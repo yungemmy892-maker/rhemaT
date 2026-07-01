@@ -49,8 +49,8 @@ function Terms() {
               features. Pricing is in Nigerian Naira (₦):
             </p>
             <ul className="mt-2 space-y-1 list-disc list-inside text-muted-foreground">
-              <li>Monthly: ₦2,500/month</li>
-              <li>Annual: ₦20,000/year (saves ₦10,000 vs monthly)</li>
+              <li>Monthly: ₦1,000/month</li>
+              <li>Annual: ₦9,000/year (saves ₦3,000 vs monthly)</li>
             </ul>
             <p className="mt-2">
               Payment is processed by Paystack. Subscriptions renew automatically. You may cancel at

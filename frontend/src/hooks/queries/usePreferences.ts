@@ -21,10 +21,10 @@ export function useToggleSaved() {
   });
 }
 
-export function useCollections() {
+export function useCollections(version?: import("@/services/api").BibleVersion) {
   return useQuery({
-    queryKey: queryKeys.collections,
-    queryFn: preferencesApi.getCollections,
+    queryKey: [...queryKeys.collections, version ?? "KJV"],
+    queryFn: () => preferencesApi.getCollections(version),
   });
 }
 

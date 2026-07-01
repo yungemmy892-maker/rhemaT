@@ -66,6 +66,14 @@ class User(me.Document):
         "indexes": ["google_id", "email"],
     }
 
+    # DRF's IsAuthenticated permission checks request.user.is_authenticated.
+    # Our User is a MongoEngine document, not a Django auth model, so we
+    # declare this explicitly. It's always True because our JWTAuthentication
+    # class only sets request.user when a valid token is present — unauthenticated
+    # requests leave request.user as None, so this property is never reached
+    # on an unauthenticated request.
+    is_authenticated = True
+
     FREE_DAILY_SEARCH_LIMIT = 20
 
     def touch_streak(self):

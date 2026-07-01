@@ -59,10 +59,10 @@ function Subscription() {
     navigate({ to: "/app/profile" });
   };
 
-  const monthlyNaira = pricing?.plans.monthly.naira ?? 2500;
-  const annualNaira = pricing?.plans.annual.naira ?? 20000;
+  const monthlyNaira = pricing?.plans.monthly.naira ?? 1000;
+  const annualNaira = pricing?.plans.annual.naira ?? 9000;
   const annualMonthly = Math.round(annualNaira / 12);
-  const savings = pricing?.plans.annual.savings ?? "Save ₦10,000";
+  const savings = pricing?.plans.annual.savings ?? "Save ₦3,000";
 
   return (
     <div>

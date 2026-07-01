@@ -1,6 +1,6 @@
 import mongoengine as me
 
-SUPPORTED_VERSIONS = ("KJV", "WEB")
+SUPPORTED_VERSIONS = ("KJV", "WEB", "ASV", "DRA")
 
 
 class Verse(me.Document):

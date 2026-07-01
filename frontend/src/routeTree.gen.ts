@@ -25,7 +25,8 @@ import { Route as AppNotificationsRouteImport } from './routes/app.notifications
 import { Route as AppLibraryRouteImport } from './routes/app.library'
 import { Route as AppHomeRouteImport } from './routes/app.home'
 import { Route as AppDiscoverRouteImport } from './routes/app.discover'
-import { Route as AppProfileEditRouteImport } from './routes/app.profile.edit'
+import { Route as AppProfileIndexRouteImport } from './routes/app.profile.index'
+import { Route as AppProfileEditRouteImport } from './routes/app.profile_.edit'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -107,10 +108,15 @@ const AppDiscoverRoute = AppDiscoverRouteImport.update({
   path: '/discover',
   getParentRoute: () => AppRoute,
 } as any)
-const AppProfileEditRoute = AppProfileEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
+const AppProfileIndexRoute = AppProfileIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => AppProfileRoute,
+} as any)
+const AppProfileEditRoute = AppProfileEditRouteImport.update({
+  id: '/profile_/edit',
+  path: '/profile/edit',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/app/text': typeof AppTextRoute
   '/app/voice': typeof AppVoiceRoute
   '/app/profile/edit': typeof AppProfileEditRoute
+  '/app/profile/': typeof AppProfileIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -143,13 +150,13 @@ export interface FileRoutesByTo {
   '/app/home': typeof AppHomeRoute
   '/app/library': typeof AppLibraryRoute
   '/app/notifications': typeof AppNotificationsRoute
-  '/app/profile': typeof AppProfileRouteWithChildren
   '/app/results': typeof AppResultsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscription': typeof AppSubscriptionRoute
   '/app/text': typeof AppTextRoute
   '/app/voice': typeof AppVoiceRoute
   '/app/profile/edit': typeof AppProfileEditRoute
+  '/app/profile': typeof AppProfileIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,7 +176,8 @@ export interface FileRoutesById {
   '/app/subscription': typeof AppSubscriptionRoute
   '/app/text': typeof AppTextRoute
   '/app/voice': typeof AppVoiceRoute
-  '/app/profile/edit': typeof AppProfileEditRoute
+  '/app/profile_/edit': typeof AppProfileEditRoute
+  '/app/profile/': typeof AppProfileIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +199,7 @@ export interface FileRouteTypes {
     | '/app/text'
     | '/app/voice'
     | '/app/profile/edit'
+    | '/app/profile/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -203,13 +212,13 @@ export interface FileRouteTypes {
     | '/app/home'
     | '/app/library'
     | '/app/notifications'
-    | '/app/profile'
     | '/app/results'
     | '/app/settings'
     | '/app/subscription'
     | '/app/text'
     | '/app/voice'
     | '/app/profile/edit'
+    | '/app/profile'
   id:
     | '__root__'
     | '/'
@@ -228,7 +237,8 @@ export interface FileRouteTypes {
     | '/app/subscription'
     | '/app/text'
     | '/app/voice'
-    | '/app/profile/edit'
+    | '/app/profile_/edit'
+    | '/app/profile/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -354,22 +364,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDiscoverRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/profile/edit': {
-      id: '/app/profile/edit'
-      path: '/edit'
+    '/app/profile/': {
+      id: '/app/profile/'
+      path: '/'
+      fullPath: '/app/profile/'
+      preLoaderRoute: typeof AppProfileIndexRouteImport
+      parentRoute: typeof AppProfileRoute
+    }
+    '/app/profile_/edit': {
+      id: '/app/profile_/edit'
+      path: '/profile/edit'
       fullPath: '/app/profile/edit'
       preLoaderRoute: typeof AppProfileEditRouteImport
-      parentRoute: typeof AppProfileRoute
+      parentRoute: typeof AppRoute
     }
   }
 }
 
 interface AppProfileRouteChildren {
-  AppProfileEditRoute: typeof AppProfileEditRoute
+  AppProfileIndexRoute: typeof AppProfileIndexRoute
 }
 
 const AppProfileRouteChildren: AppProfileRouteChildren = {
-  AppProfileEditRoute: AppProfileEditRoute,
+  AppProfileIndexRoute: AppProfileIndexRoute,
 }
 
 const AppProfileRouteWithChildren = AppProfileRoute._addFileChildren(
@@ -387,6 +404,7 @@ interface AppRouteChildren {
   AppSubscriptionRoute: typeof AppSubscriptionRoute
   AppTextRoute: typeof AppTextRoute
   AppVoiceRoute: typeof AppVoiceRoute
+  AppProfileEditRoute: typeof AppProfileEditRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -400,6 +418,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSubscriptionRoute: AppSubscriptionRoute,
   AppTextRoute: AppTextRoute,
   AppVoiceRoute: AppVoiceRoute,
+  AppProfileEditRoute: AppProfileEditRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

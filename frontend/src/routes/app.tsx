@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { MobileFrame } from "@/components/MobileFrame";
@@ -11,20 +11,57 @@ export const Route = createFileRoute("/app")({
 function AppLayout() {
   const { user, isReady } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
 
+  /* ── Auth guard ────────────────────────────────────────────────── */
   useEffect(() => {
-    // Only redirect once the session check is fully resolved. If isReady is
-    // false we're still verifying a stored token — wait for the result
-    // before deciding where to send the user.
     if (isReady && !user) {
       navigate({ to: "/auth", replace: true });
     }
   }, [isReady, user, navigate]);
 
-  // While verifying a stored access token, show a minimal inline spinner
-  // inside the mobile frame. This only shows for users who have a stored
-  // token (i.e. they were previously logged in) — new visitors are
-  // redirected immediately after the no-token fast path in AuthContext.
+  /* ── Back-navigation guard ─────────────────────────────────────── */
+  // Prevents the hardware/browser back button from leaving the app and
+  // landing on the landing page while the user is signed in.
+  // Works by pushing a dummy history state on mount so that pressing
+  // back just pops that state back to the current app page, and the
+  // popstate handler immediately re-pushes it so it never escapes.
+  useEffect(() => {
+    if (!user) return;
+
+    // Push a sentinel entry so there is always something behind us.
+    window.history.pushState({ verseid: true }, "");
+
+    const handlePopState = (e: PopStateEvent) => {
+      // If the popped state is NOT one of ours the user is trying to
+      // navigate away (e.g. to the landing page). Block it by pushing
+      // the sentinel back.
+      if (!e.state?.verseid) {
+        window.history.pushState({ verseid: true }, "");
+      } else {
+        // Normal in-app back — let TanStack Router handle it.
+        router.history.back();
+        // Re-push the sentinel after the router has navigated.
+        setTimeout(() => window.history.pushState({ verseid: true }, ""), 0);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    // Also intercept the browser's beforeunload (tab close / refresh)
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [user, router]);
+
+  /* ── Loading state ─────────────────────────────────────────────── */
   if (!isReady) {
     return (
       <MobileFrame>
@@ -35,7 +72,7 @@ function AppLayout() {
     );
   }
 
-  // isReady && !user → redirect in progress (handled by useEffect above)
+  // isReady && !user → redirect in progress, render nothing
   if (!user) return null;
 
   return (

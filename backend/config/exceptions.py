@@ -1,5 +1,9 @@
+import logging
+
 from rest_framework.views import exception_handler
 from rest_framework.response import Response
+
+logger = logging.getLogger(__name__)
 
 
 def custom_exception_handler(exc, context):
@@ -12,6 +16,9 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response is None:
+        # Unhandled exception — log the full traceback so it appears in
+        # the Django dev server terminal, then return a clean 500.
+        logger.exception("Unhandled exception in %s", context.get("view"))
         return Response(
             {"error": {"code": 500, "message": "Internal server error."}},
             status=500,

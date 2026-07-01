@@ -26,5 +26,3 @@ class SettingsUpdateSerializer(serializers.Serializer):
     bibleVersion = serializers.ChoiceField(choices=list(SUPPORTED_VERSIONS), required=False)
     language = serializers.CharField(required=False)
     theme = serializers.CharField(required=False)
-    aiVoice = serializers.CharField(required=False)
-    voiceTone = serializers.CharField(required=False)

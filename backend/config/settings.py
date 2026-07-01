@@ -1,6 +1,10 @@
 """
 Django settings for the VerseID backend.
 
+This project intentionally does NOT use Django's relational ORM or
+django.contrib.auth's User model. All persistence goes through MongoEngine
+documents stored in MongoDB. django.contrib.admin/auth/sessions are left out
+of INSTALLED_APPS so no SQL database is required at all.
 """
 
 import os
@@ -106,6 +110,10 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
     ],
     "EXCEPTION_HANDLER": "config.exceptions.custom_exception_handler",
+    # DRF defaults UNAUTHENTICATED_USER to django.contrib.auth.models.AnonymousUser
+    # which pulls in django.contrib.contenttypes — not in INSTALLED_APPS since this
+    # project uses MongoDB only. Setting to None tells DRF to leave request.user
+    # unset for unauthenticated requests instead of using Django's AnonymousUser.
     "UNAUTHENTICATED_USER": None,
 }
 
@@ -135,9 +143,9 @@ PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY", "")
 PAYSTACK_PUBLIC_KEY = os.environ.get("PAYSTACK_PUBLIC_KEY", "")
 
 # NGN pricing (kobo = smallest unit, 100 kobo = ₦1)
-# Monthly: ₦2,500  |  Annual: ₦20,000  (saves ≈33%)
-PLAN_MONTHLY_KOBO = 250_000    # ₦2,500
-PLAN_ANNUAL_KOBO = 2_000_000   # ₦20,000
+# Monthly: ₦1,000  |  Annual: ₦9,000  (saves ₦3,000 vs monthly)
+PLAN_MONTHLY_KOBO = 100_000    # ₦1,000
+PLAN_ANNUAL_KOBO = 900_000     # ₦9,000
 
 # ---------------------------------------------------------------------------
 # Web Push (VAPID) — for the daily verse-of-the-day push notification.

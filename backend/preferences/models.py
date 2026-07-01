@@ -62,11 +62,9 @@ class UserSettings(me.Document):
         choices=("Morning", "Midday", "Evening"), default="Morning"
     )
 
-    bible_version = me.StringField(choices=("KJV", "WEB"), default="KJV")
+    bible_version = me.StringField(choices=("KJV", "WEB", "ASV", "DRA"), default="KJV")
     language = me.StringField(default="English")
     theme = me.StringField(default="Calm Lavender")
-    ai_voice = me.StringField(default="Soft · Female")
-    voice_tone = me.StringField(default="Gentle")
 
     meta = {"collection": "user_settings", "indexes": ["user_id"]}
 
@@ -85,6 +83,4 @@ class UserSettings(me.Document):
             "bibleVersion": self.bible_version,
             "language": self.language,
             "theme": self.theme,
-            "aiVoice": self.ai_voice,
-            "voiceTone": self.voice_tone,
         }

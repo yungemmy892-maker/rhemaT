@@ -4,6 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .languages import LANGUAGES
 from .models import SUPPORTED_VERSIONS, Verse
 
 # Well-known references used to seed "Popular verses" on Discover, since
@@ -136,3 +137,12 @@ class BooksListView(APIView):
                 })
         books.sort(key=lambda b: b["order"])
         return Response(books)
+
+
+class LanguagesView(APIView):
+    """GET /api/v1/bible/languages/ — all supported UI languages."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response(LANGUAGES)

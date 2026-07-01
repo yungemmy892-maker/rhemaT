@@ -9,6 +9,8 @@ DATA_DIR = Path(__file__).resolve().parents[3] / "data"
 FIXTURE_PATHS = {
     "KJV": DATA_DIR / "kjv_verses.json",
     "WEB": DATA_DIR / "web_verses.json",
+    "ASV": DATA_DIR / "asv_verses.json",
+    "DRA": DATA_DIR / "dra_verses.json",
 }
 
 
@@ -20,10 +22,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--version",
-            choices=["kjv", "web", "all"],
+            "--translation",
+            choices=["kjv", "web", "asv", "dra", "all"],
             default="all",
-            help="Which version(s) to load. Defaults to both.",
+            help="Which version(s) to load. Defaults to all four.",
         )
         parser.add_argument(
             "--reset",
@@ -34,8 +36,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         versions = (
             list(SUPPORTED_VERSIONS)
-            if options["version"] == "all"
-            else [options["version"].upper()]
+            if options["translation"] == "all"
+            else [options["translation"].upper()]
         )
 
         for version in versions:

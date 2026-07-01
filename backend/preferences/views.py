@@ -26,8 +26,6 @@ def _field_map():
         "bibleVersion": "bible_version",
         "language": "language",
         "theme": "theme",
-        "aiVoice": "ai_voice",
-        "voiceTone": "voice_tone",
     }
 
 
@@ -84,13 +82,31 @@ class SavedVersesView(APIView):
 
 
 class CollectionsView(APIView):
-    """GET /api/v1/preferences/collections/ — the 4 fixed themed tiles."""
+    """
+    GET /api/v1/preferences/collections/?version=KJV
+    Returns the 4 themed collections with full resolved verse content.
+    """
 
     def get(self, request):
+        from bible.models import SUPPORTED_VERSIONS
+        version = request.query_params.get("version", "KJV").upper()
+        if version not in SUPPORTED_VERSIONS:
+            version = "KJV"
+
         results = []
         for name in COLLECTION_NAMES:
             verse_ids = COLLECTION_TAGS.get(name, [])
-            results.append({"name": name, "count": len(verse_ids), "verseIds": verse_ids})
+            verses = []
+            for vid in verse_ids:
+                v = resolve_verse(vid, version)
+                if v:
+                    verses.append(v.to_dict())
+            results.append({
+                "name": name,
+                "count": len(verses),
+                "verseIds": verse_ids,
+                "verses": verses,
+            })
         return Response(results)
 
 

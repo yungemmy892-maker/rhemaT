@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     q: "What does Pro include?",
-    a: "Pro removes the daily search limit entirely (unlimited identifications), and includes all current and future premium features. Pricing is ₦2,500/month or ₦20,000/year — processed securely by Paystack in Nigerian Naira.",
+    a: "Pro removes the daily search limit entirely (unlimited identifications), and includes all current and future premium features. Pricing is ₦1,000/month or ₦9,000/year — processed securely by Paystack in Nigerian Naira.",
   },
   {
     q: "How do I upgrade to Pro?",
@@ -89,7 +89,7 @@ function Help() {
             { Icon: Search, label: "Text search", desc: "Type a phrase to identify", to: "/app/text" },
             { Icon: Bookmark, label: "Library", desc: "Saved verses & history", to: "/app/library" },
             { Icon: Bell, label: "Notifications", desc: "Daily verse & alerts", to: "/app/settings" },
-            { Icon: Crown, label: "Pro plan", desc: "Unlimited searches (₦2,500/mo)", to: "/app/subscription" },
+            { Icon: Crown, label: "Pro plan", desc: "Unlimited searches (₦1,000/mo)", to: "/app/subscription" },
             { Icon: User, label: "Profile", desc: "Edit name, photo & password", to: "/app/profile/edit" },
           ].map(({ Icon, label, desc, to }) => (
             <Link

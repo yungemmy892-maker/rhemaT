@@ -27,14 +27,14 @@ logger = logging.getLogger(__name__)
 NGN_PRICES = {
     "monthly": {
         "kobo": settings.PLAN_MONTHLY_KOBO,
-        "label": "₦2,500/month",
-        "naira": 2500,
+        "label": "₦1,000/month",
+        "naira": 1000,
     },
     "annual": {
         "kobo": settings.PLAN_ANNUAL_KOBO,
-        "label": "₦20,000/year",
-        "naira": 20000,
-        "savings": "Save ₦10,000",
+        "label": "₦9,000/year",
+        "naira": 9000,
+        "savings": "Save ₦3,000",
     },
 }
 

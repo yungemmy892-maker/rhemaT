@@ -6,7 +6,7 @@ import { api } from "./client";
 // requires no changes to component prop types.
 // ---------------------------------------------------------------------------
 
-export type BibleVersion = "KJV" | "WEB";
+export type BibleVersion = "KJV" | "WEB" | "ASV" | "DRA";
 
 export interface Verse {
   id: string;
@@ -94,6 +94,14 @@ export interface Collection {
   name: string;
   count: number;
   verseIds: string[];
+  verses: Verse[];
+}
+
+export interface Language {
+  code: string;
+  name: string;
+  native: string;
+  region: string;
 }
 
 export interface UserSettings {
@@ -110,8 +118,6 @@ export interface UserSettings {
   bibleVersion: BibleVersion;
   language: string;
   theme: string;
-  aiVoice: string;
-  voiceTone: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -188,6 +194,9 @@ export const bibleApi = {
         { book: string; display: string; testament: "OT" | "NT"; order: number }[]
       >("/bible/books/")
       .then((r) => r.data),
+
+  languages: () =>
+    api.get<Language[]>("/bible/languages/").then((r) => r.data),
 };
 
 // ---------------------------------------------------------------------------
@@ -308,7 +317,8 @@ export const preferencesApi = {
       })
       .then((r) => r.data),
 
-  getCollections: () => api.get<Collection[]>("/preferences/collections/").then((r) => r.data),
+  getCollections: (version?: BibleVersion) =>
+    api.get<Collection[]>("/preferences/collections/", { params: { version } }).then((r) => r.data),
 
   getSettings: () => api.get<UserSettings>("/preferences/settings/").then((r) => r.data),
 

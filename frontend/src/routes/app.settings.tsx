@@ -7,7 +7,6 @@ import {
   Palette,
   Globe,
   BookOpen,
-  Mic,
   Moon,
   Trash2,
   LogOut,
@@ -18,11 +17,15 @@ import {
   Calendar,
   MessageSquare,
   Volume2,
+  Check,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings, useUpdateSettings } from "@/hooks/queries/usePreferences";
+import { useLanguages } from "@/hooks/queries/useBible";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { BibleVersion } from "@/services/api";
 
 export const Route = createFileRoute("/app/settings")({
@@ -30,13 +33,22 @@ export const Route = createFileRoute("/app/settings")({
   component: Settings,
 });
 
+const BIBLE_VERSIONS: { code: BibleVersion; name: string; desc: string }[] = [
+  { code: "KJV", name: "KJV", desc: "King James Version (1611)" },
+  { code: "WEB", name: "WEB", desc: "World English Bible" },
+  { code: "ASV", name: "ASV", desc: "American Standard Version (1901)" },
+  { code: "DRA", name: "DRA", desc: "Douay-Rheims Bible" },
+];
+
 function Settings() {
   const navigate = useNavigate();
   const { deleteAccount, signOut } = useAuth();
-  const push = usePushNotifications();
   const { data: settings, isLoading } = useSettings();
   const updateSettings = useUpdateSettings();
+  const push = usePushNotifications();
+  const { data: languages = [] } = useLanguages();
   const [confirm, setConfirm] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
 
   const onDelete = async () => {
     await deleteAccount();
@@ -66,6 +78,12 @@ function Settings() {
     );
   }
 
+  const currentLang = languages.find((l) => l.name === settings.language) ||
+    { name: settings.language, native: settings.language, region: "" };
+
+  // Group languages by region for the picker
+  const regions = Array.from(new Set(languages.map((l) => l.region)));
+
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -75,6 +93,7 @@ function Settings() {
         <h1 className="font-display text-2xl font-semibold">Settings</h1>
       </div>
 
+      {/* ── Preferences ───────────────────────────────────────────── */}
       <Group title="Preferences">
         <ToggleRow
           Icon={Bell}
@@ -96,6 +115,7 @@ function Settings() {
         />
       </Group>
 
+      {/* ── Notification preferences ───────────────────────────────── */}
       <Group title="Notification preferences">
         <ToggleRow
           Icon={Sparkles}
@@ -129,10 +149,12 @@ function Settings() {
         />
         <ToggleRow
           Icon={Volume2}
-          label="In‑app sound"
+          label="In-app sound"
           value={settings.sound && settings.notifications}
           onChange={(v) => updateSettings.mutate({ sound: v })}
         />
+
+        {/* Daily verse time picker */}
         <div className="px-4 py-3.5">
           <div className="flex items-center gap-3 mb-3">
             <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
@@ -157,11 +179,11 @@ function Settings() {
           </div>
         </div>
 
-        {/* Push notification subscribe/unsubscribe */}
-        {push.status !== 'unsupported' && (
+        {/* Push subscribe/unsubscribe */}
+        {push.status !== "unsupported" && (
           <div className="px-4 py-3.5 flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
-              {push.status === 'subscribed' ? (
+              {push.status === "subscribed" ? (
                 <Bell className="h-4.5 w-4.5 text-primary" />
               ) : (
                 <BellOff className="h-4.5 w-4.5 text-primary" />
@@ -169,25 +191,27 @@ function Settings() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">
-                {push.status === 'subscribed' ? 'Push notifications on' : 'Enable push notifications'}
+                {push.status === "subscribed"
+                  ? "Push notifications on"
+                  : "Enable push notifications"}
               </div>
-              {push.status === 'denied' && (
+              {push.status === "denied" && (
                 <div className="text-xs text-muted-foreground">
-                  Blocked in browser settings — tap ⓘ in the address bar to allow.
+                  Blocked in browser — tap ⓘ in the address bar to allow.
                 </div>
               )}
               {push.error && (
                 <div className="text-xs text-destructive">{push.error}</div>
               )}
             </div>
-            {push.status === 'subscribed' ? (
+            {push.status === "subscribed" ? (
               <button
                 onClick={push.unsubscribe}
                 className="text-xs text-destructive font-medium"
               >
                 Turn off
               </button>
-            ) : push.status === 'unsubscribed' ? (
+            ) : push.status === "unsubscribed" ? (
               <button
                 onClick={push.subscribe}
                 className="text-xs text-primary font-medium"
@@ -199,39 +223,131 @@ function Settings() {
         )}
       </Group>
 
-      <Group title="Reading">
-        <div className="px-4 py-3.5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
-              <BookOpen className="h-4.5 w-4.5 text-primary" />
-            </div>
-            <span className="flex-1 text-sm font-medium">Bible version</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {(["KJV", "WEB"] as BibleVersion[]).map((v) => (
+      {/* ── Bible version ──────────────────────────────────────────── */}
+      <Group title="Bible version">
+        <div className="p-4 space-y-2">
+          {BIBLE_VERSIONS.map((v) => {
+            const active = settings.bibleVersion === v.code;
+            return (
               <button
-                key={v}
-                onClick={() => updateSettings.mutate({ bibleVersion: v })}
-                className={`h-10 rounded-2xl text-xs font-medium transition ${
-                  settings.bibleVersion === v
-                    ? "bg-gradient-primary text-white shadow-glow"
-                    : "glass-strong text-foreground"
+                key={v.code}
+                onClick={() => updateSettings.mutate({ bibleVersion: v.code })}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition ${
+                  active ? "bg-gradient-primary text-white shadow-glow" : "glass-strong"
                 }`}
               >
-                {v === "KJV" ? "King James Version" : "World English Bible"}
+                <div
+                  className={`h-9 w-9 rounded-xl grid place-items-center font-bold text-xs shrink-0 ${
+                    active ? "bg-white/20 text-white" : "bg-primary-soft text-primary"
+                  }`}
+                >
+                  {v.code}
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-sm font-semibold ${active ? "text-white" : ""}`}>
+                    {v.name}
+                  </div>
+                  <div
+                    className={`text-xs truncate ${
+                      active ? "text-white/75" : "text-muted-foreground"
+                    }`}
+                  >
+                    {v.desc}
+                  </div>
+                </div>
+                {active && <Check className="h-4 w-4 text-white ml-auto shrink-0" />}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
-        <SelectRow Icon={Globe} label="Language" value={settings.language} />
+      </Group>
+
+      {/* ── Language ────────────────────────────────────────────────── */}
+      <Group title="Interface language">
+        <div className="p-4">
+          {/* Trigger */}
+          <button
+            onClick={() => setLangOpen((o) => !o)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl glass-strong text-left"
+          >
+            <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
+              <Globe className="h-4.5 w-4.5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium">{currentLang.name}</div>
+              {currentLang.native !== currentLang.name && (
+                <div className="text-xs text-muted-foreground">{currentLang.native}</div>
+              )}
+            </div>
+            {langOpen ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
+
+          {/* Language picker */}
+          <AnimatePresence>
+            {langOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden mt-2"
+              >
+                <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
+                  {regions.map((region) => (
+                    <div key={region}>
+                      <div className="px-1 text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">
+                        {region}
+                      </div>
+                      <div className="space-y-1">
+                        {languages
+                          .filter((l) => l.region === region)
+                          .map((lang) => {
+                            const active = settings.language === lang.name;
+                            return (
+                              <button
+                                key={lang.code}
+                                onClick={() => {
+                                  updateSettings.mutate({ language: lang.name });
+                                  setLangOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-sm transition ${
+                                  active
+                                    ? "bg-primary/10 border border-primary/30 text-primary font-medium"
+                                    : "hover:bg-primary-soft/60"
+                                }`}
+                              >
+                                <span className="flex-1">{lang.name}</span>
+                                {lang.native !== lang.name && (
+                                  <span className="text-xs text-muted-foreground shrink-0">
+                                    {lang.native}
+                                  </span>
+                                )}
+                                {active && (
+                                  <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </Group>
+
+      {/* ── Theme ───────────────────────────────────────────────────── */}
+      <Group title="Appearance">
         <SelectRow Icon={Palette} label="Theme" value={settings.theme} />
       </Group>
 
-      <Group title="Voice">
-        <SelectRow Icon={Mic} label="AI voice" value={settings.aiVoice} />
-        <SelectRow Icon={Mic} label="Tone" value={settings.voiceTone} />
-      </Group>
-
+      {/* ── Account ─────────────────────────────────────────────────── */}
       <Group title="Account">
         <button
           onClick={onLogout}
@@ -257,6 +373,7 @@ function Settings() {
 
       <p className="mt-8 text-center text-xs text-muted-foreground">VerseID · v1.0.0</p>
 
+      {/* ── Delete confirmation modal ─────────────────────────────── */}
       <AnimatePresence>
         {confirm && (
           <motion.div
@@ -281,8 +398,8 @@ function Settings() {
                 <div className="flex-1">
                   <div className="font-display text-lg font-semibold">Delete your account?</div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    This permanently removes your saved verses, history and preferences. This action
-                    cannot be undone.
+                    This permanently removes your saved verses, history and preferences. This
+                    action cannot be undone.
                   </p>
                 </div>
                 <button
@@ -320,29 +437,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
       <div className="px-1 text-xs uppercase tracking-[0.16em] text-muted-foreground font-medium mb-2">
         {title}
       </div>
-      <div className="rounded-3xl glass-strong shadow-card divide-y divide-border overflow-hidden">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Row({
-  Icon,
-  label,
-  right,
-}: {
-  Icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  right: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3.5">
-      <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
-        <Icon className="h-4.5 w-4.5 text-primary" />
-      </div>
-      <span className="flex-1 text-sm font-medium">{label}</span>
-      {right}
+      <div className="rounded-3xl glass-strong shadow-card overflow-hidden">{children}</div>
     </div>
   );
 }
@@ -359,22 +454,24 @@ function ToggleRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <Row
-      Icon={Icon}
-      label={label}
-      right={
-        <button
-          onClick={() => onChange(!value)}
-          className={`relative h-7 w-12 rounded-full transition ${value ? "bg-gradient-primary shadow-glow" : "bg-border"}`}
-        >
-          <motion.span
-            layout
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-card ${value ? "right-0.5" : "left-0.5"}`}
-          />
-        </button>
-      }
-    />
+    <button
+      onClick={() => onChange(!value)}
+      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-primary-soft/40 transition"
+    >
+      <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
+        <Icon className="h-4.5 w-4.5 text-primary" />
+      </div>
+      <span className="flex-1 text-left text-sm font-medium">{label}</span>
+      <div
+        className={`h-6 w-11 rounded-full transition-colors ${value ? "bg-primary" : "bg-muted"}`}
+      >
+        <div
+          className={`h-5 w-5 mt-0.5 rounded-full bg-white shadow transition-transform ${
+            value ? "translate-x-5.5" : "translate-x-0.5"
+          }`}
+        />
+      </div>
+    </button>
   );
 }
 
@@ -388,10 +485,12 @@ function SelectRow({
   value: string;
 }) {
   return (
-    <Row
-      Icon={Icon}
-      label={label}
-      right={<span className="text-sm text-muted-foreground">{value} ›</span>}
-    />
+    <div className="flex items-center gap-3 px-4 py-3.5">
+      <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
+        <Icon className="h-4.5 w-4.5 text-primary" />
+      </div>
+      <span className="flex-1 text-sm font-medium">{label}</span>
+      <span className="text-sm text-muted-foreground">{value}</span>
+    </div>
   );
 }
