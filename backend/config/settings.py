@@ -23,7 +23,7 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-secret-change-me")
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "api.verseid.top").split(",")
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,api.verseid.top,rhemat.pxxl.run,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
     # Deliberately no django.contrib.admin / auth / sessions / contenttypes:
