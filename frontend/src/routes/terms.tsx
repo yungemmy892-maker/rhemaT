@@ -19,7 +19,7 @@ function Terms() {
           </div>
           <div>
             <h1 className="font-display text-xl font-semibold">Terms of Service</h1>
-            <p className="text-xs text-muted-foreground">Effective: January 2025</p>
+            <p className="text-xs text-muted-foreground">Effective: July 2026</p>
           </div>
         </div>
 
@@ -31,9 +31,17 @@ function Terms() {
 
           <Section title="The service">
             VerseID helps you identify Bible verses from voice or text input. The matching engine
-            searches the public-domain King James Version (KJV) and World English Bible (WEB) texts.
-            We make no guarantee that every verse will be identified correctly — fuzzy text matching
-            has inherent limitations, especially for archaic KJV phrasing quoted in modern language.
+            searches the public-domain King James Version (KJV), World English Bible (WEB), American
+            Standard Version (ASV), and Douay-Rheims (DRA) texts, combining fuzzy text matching with
+            AI-based semantic search to catch paraphrases and misremembered wording. We make no
+            guarantee that every verse will be identified correctly — matching, especially across
+            translations with very different phrasing, has inherent limitations.
+          </Section>
+
+          <Section title="Account security">
+            If you reset your password, you are automatically signed out of all devices as a security
+            measure — you'll need to sign back in with your new password. Password reset uses a
+            one-time 6-digit code sent to your registered email, valid for 10 minutes.
           </Section>
 
           <Section title="Free plan">
@@ -81,9 +89,9 @@ function Terms() {
           </Section>
 
           <Section title="Content and Bible text">
-            The KJV and WEB Bible texts used by VerseID are in the public domain. The VerseID app,
-            its matching engine, UI, and associated code are proprietary. You may not copy, scrape,
-            or reverse-engineer any part of VerseID.
+            The KJV, WEB, ASV, and DRA Bible texts used by VerseID are all in the public domain. The
+            VerseID app, its matching engine, UI, and associated code are proprietary. You may not
+            copy, scrape, or reverse-engineer any part of VerseID.
           </Section>
 
           <Section title="Disclaimers">

@@ -19,7 +19,7 @@ function Privacy() {
           </div>
           <div>
             <h1 className="font-display text-xl font-semibold">Privacy Policy</h1>
-            <p className="text-xs text-muted-foreground">Effective: January 2025</p>
+            <p className="text-xs text-muted-foreground">Effective: July 2026</p>
           </div>
         </div>
 
@@ -47,7 +47,8 @@ function Privacy() {
               </li>
               <li>
                 <strong className="text-foreground">Settings and preferences</strong> — your chosen
-                Bible version, notification preferences, and notification schedule.
+                Bible version, interface language, theme (light/dark/system), notification
+                preferences, and notification schedule.
               </li>
               <li>
                 <strong className="text-foreground">Profile photo</strong> — if you upload one, stored
@@ -64,14 +65,25 @@ function Privacy() {
           <Section title="Voice and speech">
             When you use the voice search feature, your speech is processed entirely by your browser's
             built-in Web Speech API. Audio is never uploaded to our servers — only the text transcript
-            that your browser produces is sent to us to find a matching verse.
+            that your browser produces is sent to us to find a matching verse. To catch paraphrases and
+            misremembered wording, that text may also be sent to a third-party AI service (Hugging
+            Face) to generate a semantic embedding used purely for matching — see "Third-party
+            services" below. This applies equally to typed text search.
           </Section>
 
           <Section title="How we use your data">
             <ul className="space-y-2 list-disc list-inside text-muted-foreground">
               <li>To identify Bible verses from your queries and return results.</li>
               <li>To maintain your search history, saved verses, and reading streak.</li>
-              <li>To send you the daily verse notification (if you've enabled it).</li>
+              <li>
+                To send you the daily verse notification (if you've enabled it) — delivered as both a
+                push notification and an email at your chosen time, so you don't miss it if one channel
+                is unavailable.
+              </li>
+              <li>
+                To send account-related emails: a welcome email when you sign up, and password reset
+                codes when requested.
+              </li>
               <li>To manage your Pro subscription and enforce free-tier search limits.</li>
               <li>We never sell your data. We never show you ads.</li>
             </ul>
@@ -92,6 +104,18 @@ function Privacy() {
                 <strong className="text-foreground">DiceBear</strong> — generates a default avatar
                 image from your name if you don't have a Google profile photo and haven't uploaded one.
                 No personal data is shared — only an anonymous seed word.
+              </li>
+              <li>
+                <strong className="text-foreground">Hugging Face</strong> — powers AI-based semantic
+                verse matching. Your search query text may be sent to Hugging Face's inference API to
+                generate a numeric representation of its meaning, used only to find candidate verses.
+                No account information accompanies this request. Their privacy policy is at
+                huggingface.co/privacy.
+              </li>
+              <li>
+                <strong className="text-foreground">MyMemory Translation API</strong> — translates the
+                app's interface text if you select a language other than English. Only fixed
+                interface strings are translated, never your personal data or search queries.
               </li>
             </ul>
           </Section>

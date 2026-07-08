@@ -8,6 +8,8 @@ import {
   Globe,
   BookOpen,
   Moon,
+  Sun,
+  Monitor,
   Trash2,
   LogOut,
   ShieldAlert,
@@ -23,6 +25,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useSettings, useUpdateSettings } from "@/hooks/queries/usePreferences";
 import { useLanguages } from "@/hooks/queries/useBible";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -43,6 +46,7 @@ const BIBLE_VERSIONS: { code: BibleVersion; name: string; desc: string }[] = [
 function Settings() {
   const navigate = useNavigate();
   const { deleteAccount, signOut } = useAuth();
+  const { setTheme } = useTheme();
   const { data: settings, isLoading } = useSettings();
   const updateSettings = useUpdateSettings();
   const push = usePushNotifications();
@@ -100,12 +104,6 @@ function Settings() {
           label="Notifications"
           value={settings.notifications}
           onChange={(v) => updateSettings.mutate({ notifications: v })}
-        />
-        <ToggleRow
-          Icon={Moon}
-          label="Dark mode"
-          value={settings.darkMode}
-          onChange={(v) => updateSettings.mutate({ darkMode: v })}
         />
         <ToggleRow
           Icon={Bell}
@@ -344,7 +342,42 @@ function Settings() {
 
       {/* ── Theme ───────────────────────────────────────────────────── */}
       <Group title="Appearance">
-        <SelectRow Icon={Palette} label="Theme" value={settings.theme} />
+        <div className="px-4 py-3.5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
+              <Palette className="h-4.5 w-4.5 text-primary" />
+            </div>
+            <span className="flex-1 text-sm font-medium">Theme</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                { mode: "system", label: "System", Icon: Monitor },
+                { mode: "light", label: "Light", Icon: Sun },
+                { mode: "dark", label: "Dark", Icon: Moon },
+              ] as const
+            ).map(({ mode, label, Icon }) => (
+              <button
+                key={mode}
+                onClick={() => {
+                  setTheme(mode);
+                  updateSettings.mutate({ theme: mode });
+                }}
+                className={`h-16 rounded-2xl flex flex-col items-center justify-center gap-1 text-xs font-medium transition ${
+                  settings.theme === mode
+                    ? "bg-gradient-primary text-white shadow-glow"
+                    : "glass-strong text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2.5 text-xs text-muted-foreground">
+            "System" matches your device's light/dark setting automatically.
+          </p>
+        </div>
       </Group>
 
       {/* ── Account ─────────────────────────────────────────────────── */}
@@ -472,25 +505,5 @@ function ToggleRow({
         />
       </div>
     </button>
-  );
-}
-
-function SelectRow({
-  Icon,
-  label,
-  value,
-}: {
-  Icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3.5">
-      <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
-        <Icon className="h-4.5 w-4.5 text-primary" />
-      </div>
-      <span className="flex-1 text-sm font-medium">{label}</span>
-      <span className="text-sm text-muted-foreground">{value}</span>
-    </div>
   );
 }

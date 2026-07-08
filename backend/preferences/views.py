@@ -14,7 +14,6 @@ def _field_map():
     """camelCase API field -> snake_case document field."""
     return {
         "notifications": "notifications",
-        "darkMode": "dark_mode",
         "quietHours": "quiet_hours",
         "dailyVerse": "daily_verse",
         "verseReminders": "verse_reminders",

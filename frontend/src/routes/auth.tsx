@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowLeft, Mail, Lock, User as UserIcon, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User as UserIcon, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
-import { authApi } from "@/services/api";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -31,27 +30,8 @@ function Auth() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [forgotSent, setForgotSent] = useState(false);
-  const [forgotLoading, setForgotLoading] = useState(false);
 
   const goApp = () => navigate({ to: "/app/home" });
-
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setError("Enter your email address above, then tap 'Forgot password?'.");
-      return;
-    }
-    setForgotLoading(true);
-    setError(null);
-    try {
-      await authApi.forgotPassword(email);
-      setForgotSent(true);
-    } catch {
-      setError("Couldn't send a reset email. Please try again.");
-    } finally {
-      setForgotLoading(false);
-    }
-  };
 
   const { trigger: triggerGoogleSignIn } = useGoogleSignIn({
     onSuccess: async (idToken) => {
@@ -112,7 +92,7 @@ function Auth() {
             className="text-center"
           >
             <div className="mx-auto h-16 w-16 rounded-3xl bg-gradient-primary grid place-items-center shadow-glow">
-              <Sparkles className="h-7 w-7 text-white" strokeWidth={2.4} />
+              <img src="/logo-glyph.png" alt="VerseID" className="h-8 w-8" />
             </div>
             <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">
               {mode === "login" ? "Welcome back" : "Create your account"}
@@ -196,20 +176,13 @@ function Auth() {
 
             {mode === "login" && (
               <div className="text-right">
-                {forgotSent ? (
-                  <span className="text-xs text-primary font-medium">
-                    Reset link sent — check your inbox.
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={forgotLoading}
-                    onClick={handleForgotPassword}
-                    className="text-xs text-primary font-medium disabled:opacity-60"
-                  >
-                    {forgotLoading ? 'Sending…' : 'Forgot password?'}
-                  </button>
-                )}
+                <Link
+                  to="/auth/forgot-password"
+                  search={{ email }}
+                  className="text-xs text-primary font-medium"
+                >
+                  Forgot password?
+                </Link>
               </div>
             )}
 

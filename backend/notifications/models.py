@@ -14,6 +14,7 @@ NOTIFICATION_KINDS = (
     "pro_upsell",
     "new_voice",
     "streak",
+    "welcome",
 )
 
 

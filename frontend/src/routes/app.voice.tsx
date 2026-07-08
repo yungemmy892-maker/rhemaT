@@ -4,6 +4,7 @@ import { ArrowLeft, Mic, Keyboard } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useVoiceRecognition } from "@/hooks/useVoiceRecognition";
 import { useIdentifyVerse } from "@/hooks/queries/useSearch";
+import { useSettings } from "@/hooks/queries/usePreferences";
 
 export const Route = createFileRoute("/app/voice")({
   head: () => ({ meta: [{ title: "Listening — VerseID" }] }),
@@ -14,6 +15,7 @@ function VoiceSearch() {
   const [phase, setPhase] = useState<"listening" | "processing">("listening");
   const navigate = useNavigate();
   const identify = useIdentifyVerse();
+  const { data: settings } = useSettings();
   const handledRef = useRef(false);
 
   const { status, transcript } = useVoiceRecognition({
@@ -26,9 +28,42 @@ function VoiceSearch() {
       }
       setPhase("processing");
       identify.mutate(
-        { query: finalTranscript },
+        { query: finalTranscript, version: settings?.bibleVersion },
         {
-          onSettled: () => {
+          onSuccess: (data) => {
+            // Quota exceeded — let Results re-run identify itself so it
+            // shows the proper "Daily limit reached" screen. Harmless to
+            // repeat: the backend only spends a unit when quota remains,
+            // so re-checking an already-exceeded quota doesn't double-charge.
+            if ("quotaExceeded" in data && data.quotaExceeded) {
+              navigate({ to: "/app/results", search: { q: finalTranscript } });
+              return;
+            }
+            // Already matched — open the exact verse directly rather than
+            // handing `q` to Results, which would silently run identify a
+            // second time and spend a second quota unit for one voice search.
+            if (data.matched) {
+              navigate({
+                to: "/app/results",
+                search: {
+                  q: finalTranscript,
+                  book: data.verse.book,
+                  chapter: data.verse.chapter,
+                  verse: data.verse.verse,
+                  version: data.verse.version,
+                  confidence: data.confidence,
+                },
+              });
+              return;
+            }
+            // No match — identify already ran and spent the quota unit, so
+            // tell Results not to repeat it for the same phrase.
+            navigate({ to: "/app/results", search: { q: finalTranscript, noMatch: true } });
+          },
+          onError: () => {
+            // Something went wrong before we got a real answer (network
+            // error, etc.) — fall back to letting Results run identify
+            // itself, same as before this fix.
             navigate({ to: "/app/results", search: { q: finalTranscript } });
           },
         },

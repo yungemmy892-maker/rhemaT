@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from .languages import LANGUAGES
 from .models import SUPPORTED_VERSIONS, Verse
+from .translate_service import get_ui_translations
 
 # Well-known references used to seed "Popular verses" on Discover, since
 # the corpus itself carries no popularity metadata. Same well-loved verses
@@ -146,3 +147,18 @@ class LanguagesView(APIView):
 
     def get(self, request):
         return Response(LANGUAGES)
+
+
+class UITranslationsView(APIView):
+    """
+    GET /api/v1/bible/translations/?lang=yo — translated UI chrome strings
+    for the given interface-language code. Returns {} for English (nothing
+    to override) or for a language MyMemory doesn't recognise. Cached in
+    Mongo after the first request per language — see translate_service.py.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        lang_code = (request.query_params.get("lang") or "en").strip()
+        return Response(get_ui_translations(lang_code))

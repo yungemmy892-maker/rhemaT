@@ -1,5 +1,7 @@
 import datetime
 import hashlib
+import hmac
+import logging
 import secrets
 
 from rest_framework import status
@@ -8,6 +10,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from notifications.email import send_password_reset_email
+from notifications.welcome import send_welcome
 from users.avatars import AvatarUploadError, save_avatar
 from users.models import PasswordResetToken, RefreshToken, User
 
@@ -22,8 +26,31 @@ from .serializers import (
     RefreshSerializer,
     ResetPasswordSerializer,
     UpdateProfileSerializer,
+    VerifyResetCodeSerializer,
 )
 from .tokens import TokenError, decode_token, issue_token_pair, revoke_refresh_token
+
+logger = logging.getLogger(__name__)
+
+# How many wrong code attempts are allowed before a code is locked out —
+# guards against brute-forcing a 6-digit (1-in-a-million) code.
+MAX_CODE_ATTEMPTS = 5
+CODE_TTL_MINUTES = 10
+
+
+def _latest_active_token(user_id: str) -> PasswordResetToken | None:
+    return (
+        PasswordResetToken.objects(user_id=user_id, used=False)
+        .order_by("-created_at")
+        .first()
+    )
+
+
+def _code_invalid_response() -> Response:
+    return Response(
+        {"error": {"code": 400, "message": "That code is invalid or has expired."}},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 
 
 def _avatar_fallback(name: str) -> str:
@@ -73,7 +100,8 @@ class GoogleLoginView(APIView):
             # email/password first, now also linking Google).
             user = User.objects(email=email).first()
 
-        if user is None:
+        is_new_user = user is None
+        if is_new_user:
             user = User(google_id=google_id, email=email, name=name, avatar=avatar)
         else:
             user.google_id = google_id
@@ -81,6 +109,9 @@ class GoogleLoginView(APIView):
             user.avatar = avatar
         user.last_login_at = datetime.datetime.utcnow()
         user.save()
+
+        if is_new_user:
+            send_welcome(user)
 
         tokens = issue_token_pair(user)
         return Response({"user": user.to_public_dict(), **tokens}, status=status.HTTP_200_OK)
@@ -114,6 +145,7 @@ class EmailRegisterView(APIView):
             password_hash=hash_password(data["password"]),
         )
         user.save()
+        send_welcome(user)
 
         tokens = issue_token_pair(user)
         return Response(
@@ -159,12 +191,10 @@ class ForgotPasswordView(APIView):
     POST /api/v1/auth/forgot-password/
     Body: { "email": "..." }
 
-    Issues a one-time reset token. NOTE: the current frontend's "Forgot
-    password?" button has no onClick handler (it's a no-op in the existing
-    UI), so nothing calls this endpoint yet — it exists so password reset
-    can be wired up later without backend changes. Always returns 204
-    regardless of whether the email exists, to avoid leaking account
-    existence.
+    Step 1 of the reset flow: issues a 6-digit code, emails it, and
+    invalidates any previously-issued unused code for this user so only the
+    latest one is valid. Always returns 204 regardless of whether the email
+    exists, to avoid leaking account existence.
     """
 
     permission_classes = [AllowAny]
@@ -175,21 +205,76 @@ class ForgotPasswordView(APIView):
         user = User.objects(email=serializer.validated_data["email"]).first()
 
         if user is not None:
-            raw_token = secrets.token_urlsafe(32)
-            token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+            PasswordResetToken.objects(user_id=str(user.id), used=False).update(set__used=True)
+
+            code = f"{secrets.randbelow(1_000_000):06d}"
+            code_hash = hashlib.sha256(code.encode()).hexdigest()
             PasswordResetToken(
                 user_id=str(user.id),
-                token_hash=token_hash,
-                expires_at=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+                token_hash=code_hash,
+                expires_at=datetime.datetime.utcnow()
+                + datetime.timedelta(minutes=CODE_TTL_MINUTES),
             ).save()
-            # In production this token would be emailed to the user via a
-            # transactional email provider rather than returned directly.
+
+            try:
+                send_password_reset_email(user.email, user.name.split(" ")[0], code)
+            except Exception:
+                # The HTTP response must stay a generic 204 regardless (never
+                # leak email delivery failures to the client — that's also
+                # how account-enumeration is avoided) but swallowing this
+                # with a bare `pass` made real SMTP misconfiguration
+                # completely invisible. Log it so it actually shows up in
+                # the server console/logs during development.
+                logger.exception("Failed to send password reset email to %s", user.email)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class VerifyResetCodeView(APIView):
+    """
+    POST /api/v1/auth/verify-reset-code/
+    Body: { "email": "...", "code": "123456" }
+
+    Step 2 of the reset flow — lets the frontend confirm the code before
+    showing the "new password" screen, without consuming the code yet
+    (that happens in ResetPasswordView so the code can only be spent once).
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = VerifyResetCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        user = User.objects(email=data["email"]).first()
+        if user is None:
+            return _code_invalid_response()
+
+        record = _latest_active_token(str(user.id))
+        if record is None or record.expires_at < datetime.datetime.utcnow():
+            return _code_invalid_response()
+        if record.attempts >= MAX_CODE_ATTEMPTS:
+            return _code_invalid_response()
+
+        code_hash = hashlib.sha256(data["code"].encode()).hexdigest()
+        if not hmac.compare_digest(record.token_hash, code_hash):
+            PasswordResetToken.objects(id=record.id).update(inc__attempts=1)
+            return _code_invalid_response()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ResetPasswordView(APIView):
-    """POST /api/v1/auth/reset-password/ — { "token": "...", "new_password": "..." }"""
+    """
+    POST /api/v1/auth/reset-password/
+    Body: { "email": "...", "code": "123456", "new_password": "..." }
+
+    Step 3 — re-validates the code (a code is only ever actually consumed
+    here, never in VerifyResetCodeView) then updates the password and
+    revokes every existing refresh token, signing the user out everywhere
+    as a safety measure.
+    """
 
     permission_classes = [AllowAny]
 
@@ -198,29 +283,29 @@ class ResetPasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        token_hash = hashlib.sha256(data["token"].encode()).hexdigest()
-        record = PasswordResetToken.objects(token_hash=token_hash).first()
-        if (
-            record is None
-            or record.used
-            or record.expires_at < datetime.datetime.utcnow()
-        ):
-            return Response(
-                {"error": {"code": 400, "message": "Reset link is invalid or has expired."}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        user = User.objects(id=record.user_id).first()
+        user = User.objects(email=data["email"]).first()
         if user is None:
-            return Response(
-                {"error": {"code": 400, "message": "Reset link is invalid or has expired."}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return _code_invalid_response()
+
+        record = _latest_active_token(str(user.id))
+        if record is None or record.expires_at < datetime.datetime.utcnow():
+            return _code_invalid_response()
+        if record.attempts >= MAX_CODE_ATTEMPTS:
+            return _code_invalid_response()
+
+        code_hash = hashlib.sha256(data["code"].encode()).hexdigest()
+        if not hmac.compare_digest(record.token_hash, code_hash):
+            PasswordResetToken.objects(id=record.id).update(inc__attempts=1)
+            return _code_invalid_response()
 
         user.password_hash = hash_password(data["new_password"])
         user.save()
+
         record.used = True
         record.save()
+
+        # Reset is a credential change — sign the user out of every device.
+        RefreshToken.objects(user_id=str(user.id)).delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

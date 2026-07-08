@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "preferences",
     "notifications",
     "billing",
+    "analytics",
 ]
 
 MIDDLEWARE = [
@@ -132,6 +133,21 @@ JWT_REFRESH_TTL = timedelta(days=int(os.environ.get("JWT_REFRESH_TTL_DAYS", "30"
 # ---------------------------------------------------------------------------
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+
+# ---------------------------------------------------------------------------
+# Hugging Face Inference API (semantic search — search/embeddings.py, search/faiss_index.py)
+# Free token from https://huggingface.co/settings/tokens. Leave unset to
+# run with lexical-only matching; semantic re-rank silently no-ops without it.
+# ---------------------------------------------------------------------------
+
+HF_API_TOKEN = os.environ.get("HF_API_TOKEN", "")
+
+# ---------------------------------------------------------------------------
+# Admin dashboard (analytics app) — a single shared secret, checked against
+# the X-Admin-Key header. See analytics/views.py's HasAdminKey.
+# ---------------------------------------------------------------------------
+
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 
 # ---------------------------------------------------------------------------
@@ -173,6 +189,10 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "VerseID <noreply@verseid.app>")
+
+# Base URL of the deployed frontend, used to build links inside transactional
+# emails (welcome email CTA, future password-reset links, etc).
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 # ---------------------------------------------------------------------------
 # CORS — frontend dev server(s)

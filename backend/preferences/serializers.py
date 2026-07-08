@@ -12,7 +12,6 @@ class SaveVerseSerializer(serializers.Serializer):
 
 class SettingsUpdateSerializer(serializers.Serializer):
     notifications = serializers.BooleanField(required=False)
-    darkMode = serializers.BooleanField(required=False)
     quietHours = serializers.BooleanField(required=False)
     dailyVerse = serializers.BooleanField(required=False)
     verseReminders = serializers.BooleanField(required=False)
@@ -25,4 +24,4 @@ class SettingsUpdateSerializer(serializers.Serializer):
     )
     bibleVersion = serializers.ChoiceField(choices=list(SUPPORTED_VERSIONS), required=False)
     language = serializers.CharField(required=False)
-    theme = serializers.CharField(required=False)
+    theme = serializers.ChoiceField(choices=["system", "light", "dark"], required=False)

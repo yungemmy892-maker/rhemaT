@@ -83,7 +83,7 @@ function Discover() {
               <Link
                 key={v.id}
                 to="/app/results"
-                search={{ q: v.text.slice(0, 32) }}
+                search={{ q: "", book: v.book, chapter: v.chapter, verse: v.verse, version: v.version }}
                 className="block p-4 rounded-2xl glass-strong shadow-card hover:bg-primary-soft transition"
               >
                 <div className="font-medium text-sm">

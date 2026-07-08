@@ -8,6 +8,7 @@ import {
   Sparkles,
   Mic,
   Heart,
+  PartyPopper,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useNotifications, useMarkAllRead } from "@/hooks/queries/useNotificationsBilling";
@@ -43,6 +44,10 @@ const KIND_META: Record<
   streak: {
     Icon: Heart,
     tint: "from-rose-500 to-red-500",
+  },
+  welcome: {
+    Icon: PartyPopper,
+    tint: "from-violet-500 to-fuchsia-500",
   },
 };
 

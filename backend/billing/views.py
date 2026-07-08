@@ -200,7 +200,11 @@ class PaystackWebhookView(APIView):
             metadata = data.get("metadata", {})
             uid = metadata.get("user_id") or user_id
             interval = metadata.get("interval", "monthly")
-            if uid:
+            # Renewal charges (charge_renewals.py) already activate Pro and
+            # send their own "renewed" notification synchronously right
+            # after the charge succeeds — skip here to avoid a duplicate,
+            # contradictory "Welcome to Pro 🎉" notification on a renewal.
+            if uid and not metadata.get("renewal"):
                 _activate_pro(uid, interval, data)
 
         elif event_type in ("subscription.disable", "subscription.not_renew"):

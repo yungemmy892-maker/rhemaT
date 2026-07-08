@@ -31,7 +31,7 @@ function Landing() {
       <header className="mx-auto max-w-6xl px-5 sm:px-8 pt-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
-            <Sparkles className="h-4.5 w-4.5 text-white" strokeWidth={2.4} />
+            <img src="/logo-glyph.png" alt="" className="h-5 w-5" />
           </div>
           <span className="font-display text-xl font-semibold tracking-tight">VerseID</span>
         </Link>

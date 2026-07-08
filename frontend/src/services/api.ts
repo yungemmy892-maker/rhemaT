@@ -26,6 +26,11 @@ export interface MatchBreakdown {
   fuzzyTypoMatch: number;
   confidence: number;
   exactPhrase: boolean;
+  // True when RapidFuzz's lexical matching didn't clear the confidence bar
+  // on its own and a BAAI/bge semantic re-rank (via Hugging Face) found
+  // this verse instead — see backend/search/semantic.py. Absent/false for
+  // ordinary lexical matches.
+  semanticMatch?: boolean;
 }
 
 export interface IdentifyResult extends MatchBreakdown {
@@ -106,7 +111,6 @@ export interface Language {
 
 export interface UserSettings {
   notifications: boolean;
-  darkMode: boolean;
   quietHours: boolean;
   dailyVerse: boolean;
   verseReminders: boolean;
@@ -117,7 +121,7 @@ export interface UserSettings {
   dailyVerseTime: "Morning" | "Midday" | "Evening";
   bibleVersion: BibleVersion;
   language: string;
-  theme: string;
+  theme: "system" | "light" | "dark";
 }
 
 // ---------------------------------------------------------------------------
@@ -137,7 +141,10 @@ export const authApi = {
   forgotPassword: (email: string) =>
     api.post<void>("/auth/forgot-password/", { email }).then((r) => r.data),
 
-  resetPassword: (payload: { token: string; new_password: string }) =>
+  verifyResetCode: (payload: { email: string; code: string }) =>
+    api.post<void>("/auth/verify-reset-code/", payload).then((r) => r.data),
+
+  resetPassword: (payload: { email: string; code: string; new_password: string }) =>
     api.post<void>("/auth/reset-password/", payload).then((r) => r.data),
 
   refresh: (refreshToken: string) =>
@@ -197,6 +204,11 @@ export const bibleApi = {
 
   languages: () =>
     api.get<Language[]>("/bible/languages/").then((r) => r.data),
+
+  translations: (langCode: string) =>
+    api
+      .get<Record<string, string>>("/bible/translations/", { params: { lang: langCode } })
+      .then((r) => r.data),
 };
 
 // ---------------------------------------------------------------------------
@@ -221,6 +233,11 @@ export const searchApi = {
       }),
 
   recent: () => api.get<RecentSearch[]>("/search/recent/").then((r) => r.data),
+
+  clearHistory: () => api.delete("/search/history/").then(() => undefined),
+
+  deleteHistoryItem: (id: string) =>
+    api.delete(`/search/history/${id}/`).then(() => undefined),
 };
 
 // ---------------------------------------------------------------------------
@@ -273,7 +290,8 @@ export interface AppNotification {
     | "saved_to_library"
     | "pro_upsell"
     | "new_voice"
-    | "streak";
+    | "streak"
+    | "welcome";
   title: string;
   body: string;
   unread: boolean;

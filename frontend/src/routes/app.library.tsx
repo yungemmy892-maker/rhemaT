@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Bookmark, Clock, Layers, X, ChevronRight } from "lucide-react";
+import { Bookmark, Clock, Layers, X, ChevronRight, Trash2 } from "lucide-react";
 import { useSavedVerses, useCollections } from "@/hooks/queries/usePreferences";
-import { useRecentSearches } from "@/hooks/queries/useSearch";
+import { useRecentSearches, useClearHistory, useDeleteHistoryItem } from "@/hooks/queries/useSearch";
 import { useSettings } from "@/hooks/queries/usePreferences";
 import type { Collection, Verse } from "@/services/api";
 
@@ -26,12 +26,15 @@ const COLLECTION_GRADIENTS: Record<string, string> = {
 function Library() {
   const [tab, setTab]                         = useState<Tab>("Saved");
   const [openCollection, setOpenCollection]   = useState<Collection | null>(null);
+  const [confirmClear, setConfirmClear]       = useState(false);
 
   const { data: settings }                              = useSettings();
   const version                                         = settings?.bibleVersion ?? "KJV";
   const { data: saved = [],       isLoading: savedLoading }       = useSavedVerses();
   const { data: collections = [], isLoading: collectionsLoading } = useCollections(version);
   const { data: recent = [],      isLoading: recentLoading }      = useRecentSearches();
+  const clearHistory      = useClearHistory();
+  const deleteHistoryItem = useDeleteHistoryItem();
 
   return (
     <div>
@@ -60,6 +63,39 @@ function Library() {
         ))}
       </div>
 
+      {tab === "History" && recent.length > 0 && (
+        <div className="mt-4 flex items-center justify-end gap-3">
+          {confirmClear ? (
+            <>
+              <span className="text-xs text-muted-foreground">Clear all history?</span>
+              <button
+                className="text-xs font-medium text-muted-foreground"
+                onClick={() => setConfirmClear(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="text-xs font-medium text-destructive disabled:opacity-40"
+                disabled={clearHistory.isPending}
+                onClick={() => {
+                  clearHistory.mutate();
+                  setConfirmClear(false);
+                }}
+              >
+                Confirm
+              </button>
+            </>
+          ) : (
+            <button
+              className="text-xs font-medium text-muted-foreground hover:text-destructive transition"
+              onClick={() => setConfirmClear(true)}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="mt-6 space-y-2.5">
         {/* ── Saved ──────────────────────────────────────────────── */}
         {tab === "Saved" &&
@@ -67,7 +103,11 @@ function Library() {
             <LoadingRows />
           ) : saved.length ? (
             saved.map((v) => (
-              <Link key={v.id} to="/app/results" search={{ q: v.text.slice(0, 40) }}>
+              <Link
+                key={v.id}
+                to="/app/results"
+                search={{ q: "", book: v.book, chapter: v.chapter, verse: v.verse, version: v.version }}
+              >
                 <VerseRow
                   title={`${v.book} ${v.chapter}:${v.verse}`}
                   text={v.text}
@@ -116,21 +156,56 @@ function Library() {
           (recentLoading ? (
             <LoadingRows />
           ) : recent.length ? (
-            recent.map((r) => (
-              <Link key={r.id} to="/app/results" search={{ q: r.query }} className="block">
-                <VerseRow
-                  title={
+            recent.map((r, i) => (
+              <motion.div
+                key={r.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ delay: i * 0.03 }}
+                className="flex items-center gap-2 p-4 rounded-2xl glass-strong shadow-card hover:bg-primary-soft/40 transition"
+              >
+                <Link
+                  to="/app/results"
+                  search={
                     r.verse
-                      ? `${r.verse.book} ${r.verse.chapter}:${r.verse.verse}`
-                      : "No match found"
+                      ? {
+                          q: "",
+                          book: r.verse.book,
+                          chapter: r.verse.chapter,
+                          verse: r.verse.verse,
+                          version: r.verse.version,
+                        }
+                      : { q: r.query }
                   }
-                  text={`"${r.query}"`}
-                  version={new Date(r.timestamp).toLocaleDateString("en-NG", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                />
-              </Link>
+                  className="flex-1 min-w-0 block"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium text-sm truncate">
+                      {r.verse
+                        ? `${r.verse.book} ${r.verse.chapter}:${r.verse.verse}`
+                        : "No match found"}
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wider text-primary font-medium shrink-0">
+                      {new Date(r.timestamp).toLocaleDateString("en-NG", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">
+                    "{r.query}"
+                  </p>
+                </Link>
+                <button
+                  onClick={() => deleteHistoryItem.mutate(r.id)}
+                  disabled={deleteHistoryItem.isPending}
+                  aria-label="Delete from history"
+                  className="h-8 w-8 shrink-0 rounded-full grid place-items-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition disabled:opacity-40"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </motion.div>
             ))
           ) : (
             <EmptyState Icon={Clock} text="Your search history will appear here." />
@@ -192,7 +267,7 @@ function Library() {
                     <Link
                       key={v.id}
                       to="/app/results"
-                      search={{ q: v.text.slice(0, 40) }}
+                      search={{ q: "", book: v.book, chapter: v.chapter, verse: v.verse, version: v.version }}
                       onClick={() => setOpenCollection(null)}
                     >
                       <motion.div

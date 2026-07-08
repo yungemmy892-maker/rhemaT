@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     q: "Which Bible translations are supported?",
-    a: "VerseID currently supports two public-domain translations: King James Version (KJV) and World English Bible (WEB). You can set your preferred version in Settings → Bible version. The search engine automatically checks both versions to give you the best match, which is especially helpful because some well-known verses use very different wording between KJV ('charity suffereth long') and modern translations ('love is patient').",
+    a: "VerseID supports four public-domain translations: King James Version (KJV), World English Bible (WEB), American Standard Version (ASV), and Douay-Rheims (DRA). You can set your preferred version in Settings → Bible version. When no specific version is set, the search engine checks KJV, WEB, and ASV together to give you the best match — which is especially helpful because some well-known verses use very different wording between KJV ('charity suffereth long') and modern translations ('love is patient'). DRA uses different verse numbering from the others (based on the Vulgate), so it matches best when explicitly selected.",
   },
   {
     q: "What are the free plan limits?",
@@ -30,15 +30,15 @@ const FAQS = [
   },
   {
     q: "Why didn't it find my verse?",
-    a: "A few common reasons: (1) The verse uses very different wording in KJV/WEB than the version you learnt it from (e.g. NIV/ESV phrases can differ substantially from KJV). Try the WEB version in Settings for more modern phrasing. (2) The phrase is very short or contains only common words ('for God', 'in the beginning') — add a few more distinctive words for a better match. (3) Background noise affected the voice transcript — try the text search instead.",
+    a: "VerseID uses AI-based semantic search to catch paraphrases and misremembered wording, so it can often find a verse even if you don't recall the exact phrasing. Still, a few things can trip it up: (1) the phrase is very short or contains only common words ('for God', 'in the beginning') — try adding a few more distinctive words; (2) background noise affected the voice transcript — try text search instead; (3) you have DRA selected as your version, which uses different verse numbering from KJV/WEB/ASV and matches best when the phrasing is closer to its own wording.",
   },
   {
     q: "How does the confidence score work?",
-    a: "After each identification, VerseID shows a confidence percentage from 0–100%. It's calculated from four signals blended together: exact phrase match (did the query appear verbatim in the verse?), partial match (is the query a fragment of the verse?), token-set match (do most of the same words appear in any order?), and fuzzy-typo match (are the words similar even if slightly misspelled?). Higher confidence means a more reliable result.",
+    a: "After each identification, VerseID shows a confidence percentage from 0–100%. Most matches come from four lexical signals blended together: exact phrase match (did the query appear verbatim in the verse?), partial match (is the query a fragment of the verse?), token-set match (do most of the same words appear in any order?), and fuzzy-typo match (are the words similar even if slightly misspelled?). For paraphrases that don't share much wording with the actual verse text, an AI semantic search step steps in instead, matching by meaning rather than exact words — you'll see a 'Semantic match' badge instead of 'Match found' when this happens. Higher confidence means a more reliable result either way.",
   },
   {
     q: "How do I enable daily verse notifications?",
-    a: "Go to Settings and make sure 'Notifications' is on and 'Daily verse' is toggled on. Then choose your preferred time (Morning, Midday, or Evening). The first time you do this, your browser will ask for notification permission — tap Allow. If you've already denied permission, you'll need to re-enable it in your browser's site settings.",
+    a: "Go to Settings and make sure 'Notifications' is on and 'Daily verse' is toggled on. Then choose your preferred time (Morning, Midday, or Evening). At that time each day, you'll receive both a push notification and an email with the verse — so you won't miss it if one channel doesn't reach you. The first time you enable this, your browser will ask for notification permission — tap Allow. If you've already denied permission, you'll need to re-enable it in your browser's site settings.",
   },
   {
     q: "How do I change my profile picture?",
@@ -47,6 +47,22 @@ const FAQS = [
   {
     q: "How do I change my name or password?",
     a: "Go to Profile → Edit profile. The 'Name' section lets you update your display name. The 'Change password' section lets you set or update your password — if you signed up with Google and haven't set a password yet, you can set one here to enable email/password sign-in as an alternative.",
+  },
+  {
+    q: "I forgot my password — how do I reset it?",
+    a: "On the sign-in screen, tap 'Forgot password?'. Enter your email and we'll send a 6-digit code (valid for 10 minutes). Enter the code, then choose a new password. For security, resetting your password signs you out of all devices — sign back in everywhere with your new password.",
+  },
+  {
+    q: "Can I switch between light and dark mode?",
+    a: "Yes — go to Settings → Theme, and choose System, Light, or Dark. 'System' automatically matches your device's own light/dark setting and switches live if your device does (e.g. at sunset), while Light/Dark force a specific look regardless of your device.",
+  },
+  {
+    q: "Can I use VerseID in another language?",
+    a: "Go to Settings → Interface language to translate the app's menus, buttons, and screens into your preferred language. This only affects the app's own interface text — Bible verse text always stays in whichever translation (KJV/WEB/ASV/DRA) you've selected, since that's a separate setting.",
+  },
+  {
+    q: "Can I delete items from my search history?",
+    a: "Yes — go to Library → History. Swipe or tap the trash icon on any entry to remove just that one, or use 'Clear all' at the top of the list to remove your entire history at once.",
   },
   {
     q: "Can I use voice search offline?",
@@ -117,8 +133,8 @@ function Help() {
             },
             {
               step: "2",
-              title: "We search KJV + WEB",
-              body: "Our fuzzy matching engine checks your query against all 31,100+ verses in both the King James Version and the World English Bible, scoring each candidate on phrase similarity, word overlap, and tolerance for misspellings.",
+              title: "We find the closest verse",
+              body: "Our engine checks your query against KJV, WEB, and ASV (or DRA if you've selected it), blending fuzzy text matching with AI-based semantic search — so a paraphrase or misremembered wording can still find the right verse, not just an exact quote.",
             },
             {
               step: "3",

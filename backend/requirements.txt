@@ -12,6 +12,9 @@ Pillow==12.2.0
 pillow-heif==1.4.0
 pywebpush==2.3.0
 requests==2.32.3
+gunicorn==23.0.0
+faiss-cpu==1.14.3
+numpy==2.4.4
 
 # Only needed if you rebuild the WEB fixture from the raw USFX XML
 # (scripts/build_web_fixture.py) — not required to run the server.

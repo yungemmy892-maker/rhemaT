@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowLeft, Search, Mic, X } from "lucide-react";
 import { useState } from "react";
+import { useSettings } from "@/hooks/queries/usePreferences";
 
 export const Route = createFileRoute("/app/text")({
   head: () => ({ meta: [{ title: "Text search — VerseID" }] }),
@@ -20,9 +21,10 @@ const SUGGESTIONS = [
 function TextSearch() {
   const [q, setQ] = useState("");
   const navigate = useNavigate();
+  const { data: settings } = useSettings();
   const submit = (val: string) => {
     if (!val.trim()) return;
-    navigate({ to: "/app/results", search: { q: val.trim() } });
+    navigate({ to: "/app/results", search: { q: val.trim(), version: settings?.bibleVersion } });
   };
 
   return (

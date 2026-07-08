@@ -3,6 +3,9 @@ import { useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { MobileFrame } from "@/components/MobileFrame";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { I18nProvider } from "@/context/I18nContext";
+import { useSettings } from "@/hooks/queries/usePreferences";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -12,6 +15,20 @@ function AppLayout() {
   const { user, isReady } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const { data: settings } = useSettings();
+
+  /* ── Theme sync ────────────────────────────────────────────────── */
+  // The locally-cached theme (used for an instant, flash-free paint) can
+  // be stale if the user changed it on another device — reconcile once
+  // their real settings load.
+  useEffect(() => {
+    if (settings?.theme && settings.theme !== theme) {
+      setTheme(settings.theme);
+    }
+    // Only re-run when the server value changes, not on every local setTheme.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings?.theme]);
 
   /* ── Auth guard ────────────────────────────────────────────────── */
   useEffect(() => {
@@ -77,8 +94,10 @@ function AppLayout() {
 
   return (
     <MobileFrame>
-      <Outlet />
-      <BottomNav />
+      <I18nProvider>
+        <Outlet />
+        <BottomNav />
+      </I18nProvider>
     </MobileFrame>
   );
 }

@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Mic, Search, Bookmark, History, Compass, ChevronRight, Bell, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useT } from "@/context/I18nContext";
 import { useRecentSearches } from "@/hooks/queries/useSearch";
 
 export const Route = createFileRoute("/app/home")({
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/app/home")({
 
 function Home() {
   const { user } = useAuth();
+  const t = useT();
   const { data: recent = [], isLoading: recentLoading } = useRecentSearches();
   const navigate = useNavigate();
   const remaining = user?.dailySearchesRemaining;
@@ -26,7 +28,7 @@ function Home() {
         className="flex items-center justify-between"
       >
         <div>
-          <div className="text-xs text-muted-foreground">Good evening</div>
+          <div className="text-xs text-muted-foreground">{t("home.greeting.evening", "Good evening")}</div>
           <h1 className="font-display text-2xl font-semibold">
             {user?.name?.split(" ")[0] ?? "Friend"}
           </h1>
@@ -100,7 +102,7 @@ function Home() {
             <Mic className="h-10 w-10 text-white" strokeWidth={2.2} />
           </div>
           <div className="text-center">
-            <div className="font-display text-xl font-semibold">Tap to identify a verse</div>
+            <div className="font-display text-xl font-semibold">{t("home.tapToIdentify", "Tap to identify a verse")}</div>
             <div className="text-sm text-white/80 mt-0.5">Listening starts instantly</div>
           </div>
         </div>
@@ -150,7 +152,7 @@ function Home() {
       {/* Recent */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg font-semibold">Recent searches</h2>
+          <h2 className="font-display text-lg font-semibold">{t("home.recentSearches", "Recent searches")}</h2>
           <Link to="/app/library" className="text-xs text-primary font-medium">
             See all
           </Link>
@@ -174,7 +176,11 @@ function Home() {
                 <Link
                   key={r.id}
                   to="/app/results"
-                  search={{ q: r.query }}
+                  search={
+                    v
+                      ? { q: "", book: v.book, chapter: v.chapter, verse: v.verse, version: v.version }
+                      : { q: r.query }
+                  }
                   className="flex items-center gap-3 p-3 rounded-2xl glass-strong shadow-card hover:bg-primary-soft transition"
                 >
                   <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center text-white text-xs font-semibold">

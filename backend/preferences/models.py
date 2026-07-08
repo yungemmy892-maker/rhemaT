@@ -24,6 +24,7 @@ class SavedVerse(me.Document):
             "user_id",
         ],
         "ordering": ["-created_at"],
+        "strict": False,
     }
 
 
@@ -49,7 +50,6 @@ class UserSettings(me.Document):
     user_id = me.StringField(required=True, unique=True)
 
     notifications = me.BooleanField(default=True)
-    dark_mode = me.BooleanField(default=False)
     quiet_hours = me.BooleanField(default=False)
 
     daily_verse = me.BooleanField(default=True)
@@ -58,20 +58,37 @@ class UserSettings(me.Document):
     community = me.BooleanField(default=False)
     product_updates = me.BooleanField(default=True)
     sound = me.BooleanField(default=True)
+    # Dedup guard for the daily-verse scheduler (notifications/management/
+    # commands/send_daily_verse.py) — was referenced there and read/written
+    # unconditionally, but never actually declared here, so every scheduler
+    # run crashed with AttributeError before it could send anything.
+    last_daily_sent_date = me.DateField(null=True)
     daily_verse_time = me.StringField(
         choices=("Morning", "Midday", "Evening"), default="Morning"
     )
 
     bible_version = me.StringField(choices=("KJV", "WEB", "ASV", "DRA"), default="KJV")
     language = me.StringField(default="English")
-    theme = me.StringField(default="Calm Lavender")
+    # "system" follows the device's OS-level light/dark preference; "light"
+    # and "dark" are explicit overrides set from the Settings screen.
+    theme = me.StringField(choices=("system", "light", "dark"), default="system")
 
-    meta = {"collection": "user_settings", "indexes": ["user_id"]}
+    meta = {
+        "collection": "user_settings",
+        "indexes": ["user_id"],
+        # Non-strict: silently ignore any fields present on existing Mongo
+        # documents that are no longer declared here (e.g. dark_mode,
+        # ai_voice, voice_tone from earlier iterations of this model)
+        # instead of raising FieldDoesNotExist. Mongo is schemaless, so
+        # removing a field from this class doesn't remove it from documents
+        # already saved with the old shape — strict=False is what lets old
+        # and new documents coexist without a migration step.
+        "strict": False,
+    }
 
     def to_dict(self):
         return {
             "notifications": self.notifications,
-            "darkMode": self.dark_mode,
             "quietHours": self.quiet_hours,
             "dailyVerse": self.daily_verse,
             "verseReminders": self.verse_reminders,

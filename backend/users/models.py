@@ -163,16 +163,24 @@ class RefreshToken(me.Document):
 
 
 class PasswordResetToken(me.Document):
-    """One-time token for the email/password 'forgot password' flow."""
+    """
+    One-time 6-digit code for the email/password 'forgot password' flow:
+    request code -> verify code -> set new password. `token_hash` stores
+    the SHA-256 hash of the code (not a unique URL token), so uniqueness
+    isn't enforced at the DB level — a 6-digit space can occasionally repeat
+    across different users' outstanding codes, and validation is always
+    scoped by user_id anyway.
+    """
 
     id = me.StringField(primary_key=True, default=_gen_id)
     user_id = me.StringField(required=True)
-    token_hash = me.StringField(required=True, unique=True)
+    token_hash = me.StringField(required=True)
+    attempts = me.IntField(default=0)
     created_at = me.DateTimeField(default=datetime.datetime.utcnow)
     expires_at = me.DateTimeField(required=True)
     used = me.BooleanField(default=False)
 
     meta = {
         "collection": "password_reset_tokens",
-        "indexes": ["user_id", "token_hash"],
+        "indexes": ["user_id", "-created_at"],
     }

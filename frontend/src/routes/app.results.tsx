@@ -10,6 +10,7 @@ import {
   BookOpen,
   Check,
   Sparkles,
+  Wand2,
   ChevronUp,
   ChevronDown,
   Image as ImageIcon,
@@ -22,10 +23,28 @@ import {
 } from "react";
 import { z } from "zod";
 import { useIdentifyQuery } from "@/hooks/queries/useSearch";
-import { useSavedVerses, useToggleSaved } from "@/hooks/queries/usePreferences";
-import { bibleApi, type Verse } from "@/services/api";
+import { useVerseByRef } from "@/hooks/queries/useBible";
+import { useSavedVerses, useToggleSaved, useSettings } from "@/hooks/queries/usePreferences";
+import { bibleApi, type BibleVersion, type Verse } from "@/services/api";
 
-const searchSchema = z.object({ q: z.string().default("") });
+const searchSchema = z.object({
+  q: z.string().default(""),
+  // Set instead of `q` when opening a verse whose exact reference is
+  // already known (Saved / History / Recent / a just-completed Voice
+  // match) — skips the fuzzy matcher entirely and doesn't spend any of the
+  // user's daily search quota re-identifying something already found.
+  book: z.string().optional(),
+  chapter: z.coerce.number().optional(),
+  verse: z.coerce.number().optional(),
+  version: z.string().optional(),
+  // Carried alongside book/chapter/verse when arriving from a real identify
+  // pass (Voice) so the confidence bar still renders on a "direct" open.
+  confidence: z.coerce.number().optional(),
+  // Set by Voice when identify already ran and found no match — prevents
+  // Results from silently re-running identify (and re-spending quota) for
+  // the exact same query the Voice screen just checked.
+  noMatch: z.coerce.boolean().optional(),
+});
 
 export const Route = createFileRoute("/app/results")({
   validateSearch: searchSchema,
@@ -207,12 +226,27 @@ function ChapterPanel({
 
 /* ── main component ─────────────────────────────────────────────────────────── */
 function Results() {
-  const { q } = Route.useSearch();
+  const { q, book, chapter, verse: verseNum, version, confidence: confidenceParam, noMatch } =
+    Route.useSearch();
   const navigate = useNavigate();
+  const { data: settings } = useSettings();
+  const isDirect = Boolean(book && chapter && verseNum);
+  // Voice already ran identify and found nothing for this exact query —
+  // re-running it here would silently spend a second quota unit for the
+  // same search, so skip it and go straight to the "no match" screen.
+  const skipIdentify = isDirect || noMatch;
 
-  // useQuery (not useMutation) — result is cached by query string and
-  // survives component remounts, so the screen never gets stuck.
-  const { data: response, isPending } = useIdentifyQuery(q);
+  // Direct open (Saved / History / Recent / a completed Voice match) vs. a
+  // real identify pass (Voice's own call already happened, or Text search
+  // navigating straight here). useQuery (not useMutation) for identify —
+  // result is cached by query string and survives component remounts, so
+  // the screen never gets stuck.
+  const preferredVersion = (version as BibleVersion | undefined) ?? settings?.bibleVersion;
+  const identify = useIdentifyQuery(skipIdentify ? "" : q, isDirect ? undefined : preferredVersion);
+  const direct = useVerseByRef(book, chapter, verseNum, version as BibleVersion | undefined, isDirect);
+
+  const isPending = isDirect ? direct.isPending : noMatch ? false : identify.isPending;
+  const response = identify.data;
 
   const { data: savedVerses = [] } = useSavedVerses();
   const toggleSaved = useToggleSaved();
@@ -245,7 +279,7 @@ function Results() {
   }
 
   /* ── quota exceeded ─────────────────────────────────────────────────── */
-  if (response && "quotaExceeded" in response && response.quotaExceeded) {
+  if (!isDirect && response && "quotaExceeded" in response && response.quotaExceeded) {
     return (
       <div>
         <Link
@@ -278,7 +312,17 @@ function Results() {
   }
 
   /* ── no match ───────────────────────────────────────────────────────── */
-  const result = response?.matched ? response : null;
+  const result = isDirect
+    ? direct.data
+      ? { verse: direct.data, confidence: confidenceParam ?? null, semanticMatch: false }
+      : null
+    : response?.matched
+      ? {
+          verse: response.verse,
+          confidence: response.confidence as number | null,
+          semanticMatch: Boolean(response.semanticMatch),
+        }
+      : null;
 
   if (!result) {
     return (
@@ -290,13 +334,19 @@ function Results() {
           <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
         <div className="mt-20 text-center">
-          <h2 className="font-display text-2xl font-semibold">No match found</h2>
-          <p className="mt-2 text-muted-foreground">Try a different phrase or speak again.</p>
+          <h2 className="font-display text-2xl font-semibold">
+            {isDirect ? "Verse unavailable" : "No match found"}
+          </h2>
+          <p className="mt-2 text-muted-foreground">
+            {isDirect
+              ? "This verse couldn't be loaded right now."
+              : "Try a different phrase or speak again."}
+          </p>
           <button
-            onClick={() => navigate({ to: "/app/text" })}
+            onClick={() => navigate({ to: isDirect ? "/app/library" : "/app/text" })}
             className="mt-6 h-12 px-6 rounded-full bg-gradient-primary text-white font-medium shadow-glow"
           >
-            Try again
+            {isDirect ? "Back to Library" : "Try again"}
           </button>
         </div>
       </div>
@@ -304,9 +354,9 @@ function Results() {
   }
 
   /* ── result ─────────────────────────────────────────────────────────── */
-  const { verse, confidence } = result;
+  const { verse, confidence, semanticMatch } = result;
   const isSaved = savedVerses.some((v) => v.id === verse.id);
-  const confPct = Math.round(confidence * 100);
+  const confPct = confidence !== null ? Math.round(confidence * 100) : null;
 
   const copy = async () => {
     await navigator.clipboard.writeText(
@@ -358,7 +408,21 @@ function Results() {
           <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-soft text-primary text-xs font-medium">
-          <Sparkles className="h-3.5 w-3.5" /> Match found
+          {confPct !== null ? (
+            semanticMatch ? (
+              <>
+                <Wand2 className="h-3.5 w-3.5" /> Semantic match
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3.5 w-3.5" /> Match found
+              </>
+            )
+          ) : (
+            <>
+              <BookOpen className="h-3.5 w-3.5" /> Opened from Library
+            </>
+          )}
         </div>
         <div className="w-10" />
       </div>
@@ -382,21 +446,23 @@ function Results() {
             "{verse.text}"
           </p>
 
-          {/* Confidence */}
-          <div className="mt-7">
-            <div className="flex items-center justify-between text-xs text-white/80 mb-1.5">
-              <span>Confidence</span>
-              <span className="font-medium">{confPct}%</span>
+          {/* Confidence — only shown for a real identify match, not a direct Library open */}
+          {confPct !== null && (
+            <div className="mt-7">
+              <div className="flex items-center justify-between text-xs text-white/80 mb-1.5">
+                <span>Confidence</span>
+                <span className="font-medium">{confPct}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${confPct}%` }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  className="h-full bg-white rounded-full"
+                />
+              </div>
             </div>
-            <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${confPct}%` }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="h-full bg-white rounded-full"
-              />
-            </div>
-          </div>
+          )}
         </div>
       </motion.div>
 
@@ -476,9 +542,11 @@ function Results() {
         </AnimatePresence>
       </motion.div>
 
-      <div className="mt-8 text-center text-xs text-muted-foreground">
-        Matched from: <span className="italic">"{q}"</span>
-      </div>
+      {q && confPct !== null && (
+        <div className="mt-8 text-center text-xs text-muted-foreground">
+          Matched from: <span className="italic">"{q}"</span>
+        </div>
+      )}
     </div>
   );
 }

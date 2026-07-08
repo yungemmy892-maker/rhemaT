@@ -117,3 +117,28 @@ class RecentSearchesView(APIView):
             data["verse"] = verse.to_dict() if verse else None
             results.append(data)
         return Response(results)
+
+
+class HistoryItemView(APIView):
+    """DELETE /api/v1/search/history/<id>/ — remove one entry, matching the
+    Library History tab's per-row swipe/× action."""
+
+    def delete(self, request, history_id):
+        deleted = SearchHistory.objects(
+            id=history_id, user_id=str(request.user.id)
+        ).delete()
+        if not deleted:
+            return Response(
+                {"error": {"code": 404, "message": "History item not found."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ClearHistoryView(APIView):
+    """DELETE /api/v1/search/history/ — clears the signed-in user's entire
+    search history, matching the Library History tab's "Clear all" action."""
+
+    def delete(self, request):
+        SearchHistory.objects(user_id=str(request.user.id)).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

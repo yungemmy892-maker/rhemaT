@@ -2,6 +2,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 
 def health(request):
@@ -16,6 +17,15 @@ urlpatterns = [
     path("api/v1/preferences/", include("preferences.urls")),
     path("api/v1/notifications/", include("notifications.urls")),
     path("api/v1/billing/", include("billing.urls")),
+    path("api/v1/admin/", include("analytics.urls")),
+    # Standalone admin analytics dashboard (plain HTML/JS, no build step).
+    # Served same-origin from Django specifically so its fetch() calls to
+    # /api/v1/admin/stats/ never hit CORS — see analytics/templates/admin_dashboard.html.
+    path(
+        "admin-dashboard/",
+        TemplateView.as_view(template_name="admin_dashboard.html"),
+        name="admin-dashboard",
+    ),
 ]
 
 if settings.DEBUG:
