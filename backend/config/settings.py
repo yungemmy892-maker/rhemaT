@@ -23,7 +23,7 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-secret-change-me")
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "api.verseid.top").split(",")
 
 INSTALLED_APPS = [
     # Deliberately no django.contrib.admin / auth / sessions / contenttypes:
@@ -170,7 +170,7 @@ PLAN_ANNUAL_KOBO = 900_000     # ₦9,000
 
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
-VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:admin@example.com")
+VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:rhema.trem@gmail.com")
 
 # ---------------------------------------------------------------------------
 # Email (fallback delivery for the daily verse notification when a user has
@@ -192,7 +192,7 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "VerseID <noreply@vers
 
 # Base URL of the deployed frontend, used to build links inside transactional
 # emails (welcome email CTA, future password-reset links, etc).
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://verseid.top")
 
 # ---------------------------------------------------------------------------
 # CORS — frontend dev server(s)
@@ -200,6 +200,6 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173",
+    "https://verseid.top,https://www.verseid.top,https://verseid.top,https://www.verseid.top",
 ).split(",")
 CORS_ALLOW_CREDENTIALS = True
