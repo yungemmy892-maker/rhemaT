@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/terms")({
-  head: () => ({ meta: [{ title: "Terms of Service — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Terms of Service - VerseID" }] }),
   component: Terms,
 });
 
@@ -31,16 +31,16 @@ function Terms() {
 
           <Section title="The service">
             VerseID helps you identify Bible verses from voice or text input. The matching engine
-            searches the public-domain King James Version (KJV), World English Bible (WEB), American
+            searches the King James Version (KJV), World English Bible (WEB), American
             Standard Version (ASV), and Douay-Rheims (DRA) texts, combining fuzzy text matching with
             AI-based semantic search to catch paraphrases and misremembered wording. We make no
-            guarantee that every verse will be identified correctly — matching, especially across
+            guarantee that every verse will be identified correctly matching, especially across
             translations with very different phrasing, has inherent limitations.
           </Section>
 
           <Section title="Account security">
             If you reset your password, you are automatically signed out of all devices as a security
-            measure — you'll need to sign back in with your new password. Password reset uses a
+            measure you'll need to sign back in with your new password. Password reset uses a
             one-time 6-digit code sent to your registered email, valid for 10 minutes.
           </Section>
 
@@ -62,7 +62,7 @@ function Terms() {
             </ul>
             <p className="mt-2">
               Payment is processed by Paystack. Subscriptions renew automatically. You may cancel at
-              any time from the Subscription screen — your Pro access continues until the end of the
+              any time from the Subscription screen your Pro access continues until the end of the
               current billing period, after which you revert to the free plan.
             </p>
             <p className="mt-2">
