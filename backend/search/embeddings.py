@@ -1,17 +1,3 @@
-"""
-Thin client for getting BAAI/bge-small-en-v1.5 embeddings from the Hugging
-Face Inference API. Used by:
-  - management/commands/precompute_embeddings.py (offline, one-time/rare,
-    embeds the whole verse corpus)
-  - faiss_index.py's semantic_candidates() (online, one embedding per
-    identify request — the query text)
-
-Requires HF_API_TOKEN — a Hugging Face access token with "Make calls to
-Inference Providers" permission (see https://huggingface.co/settings/tokens).
-When it's absent or the API call fails for any reason, get_embeddings()
-returns None and callers fall back to lexical-only matching — semantic
-search is a value-add, never a hard dependency for identify to keep working.
-"""
 import logging
 
 import requests

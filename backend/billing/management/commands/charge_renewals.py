@@ -1,25 +1,3 @@
-"""
-Charges the saved card (Paystack authorization) for every Pro subscription
-whose current billing period has ended, so Pro actually auto-renews
-instead of just lapsing silently.
-
-This integration uses Paystack's one-off Transactions API rather than
-their native Plans/Subscriptions API (see billing/paystack.py's module
-docstring) — nothing renews automatically on Paystack's side. This command
-IS the renewal mechanism, and needs to actually run regularly (see
-billing/scheduler.py, which starts automatically — same pattern as
-notifications/scheduler.py) for Pro subscriptions to renew at all.
-
-Retry policy: a single failed charge does NOT downgrade the user
-immediately — card declines (insufficient funds, temporary bank block,
-etc.) are often transient. Up to MAX_RENEWAL_ATTEMPTS consecutive failed
-daily attempts are allowed before the subscription is marked "past_due"
-and the user is downgraded to Free.
-
-Run manually:
-    python manage.py charge_renewals
-    python manage.py charge_renewals --force   # ignore due-date/once-per-day checks, for testing
-"""
 import datetime
 
 from django.core.management.base import BaseCommand

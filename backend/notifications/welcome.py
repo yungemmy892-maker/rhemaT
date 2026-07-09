@@ -1,13 +1,3 @@
-"""
-Fired once, right when a brand-new VerseID account is created — from either
-EmailRegisterView (email/password sign-up) or GoogleLoginView (a user's
-first-ever Google sign-in). Adds a "Welcome" card to the in-app
-Notifications feed and sends a matching HTML welcome email.
-
-Best-effort by design: a slow/broken SMTP provider must never fail account
-creation, so both steps are individually swallowed and logged rather than
-raised.
-"""
 import logging
 
 from .email import send_welcome_email

@@ -57,18 +57,6 @@ def verify_transaction(reference: str) -> dict:
 
 
 def charge_authorization(email: str, amount_kobo: int, authorization_code: str, metadata: dict) -> dict:
-    """
-    Charges a previously-saved card (authorization_code, captured from an
-    earlier successful transaction) without the customer re-entering
-    details — this is what powers automatic Pro renewal, since this
-    integration uses one-off Transactions rather than Paystack's native
-    Plans/Subscriptions API.
-
-    IMPORTANT: Paystack returns HTTP 200 even for a DECLINED charge — the
-    actual outcome is in the response body (data["status"] == "success" or
-    "failed"), not the HTTP status code. Callers must check that field;
-    raise_for_status() alone will not catch a declined card.
-    """
     try:
         resp = requests.post(
             f"{PAYSTACK_BASE}/transaction/charge_authorization",

@@ -1,19 +1,3 @@
-"""
-Runs `manage.py send_daily_verse` automatically, in a background thread,
-every 15 minutes — so daily verse notifications actually go out without
-needing an external cron job configured on whatever platform this gets
-deployed to. Started from NotificationsConfig.ready() (see apps.py).
-
-Caveat: in a multi-worker deployment (gunicorn -w 4, etc.) each worker
-process starts its own copy of this thread, so multiple workers race to
-send the same batch every 15 minutes. send_daily_verse's own
-last-sent-today guard makes this at-worst a rare double-send (if two
-workers both read a user's last_daily_sent_date as "not today" in the same
-few hundred milliseconds) rather than a real duplication problem, but for
-a production deployment with several workers, prefer a real external
-scheduler hitting `send_daily_verse` and set DISABLE_INPROCESS_SCHEDULER=true
-to turn this off entirely.
-"""
 import logging
 import threading
 import time

@@ -1,10 +1,6 @@
 """
 Django settings for the VerseID backend.
 
-This project intentionally does NOT use Django's relational ORM or
-django.contrib.auth's User model. All persistence goes through MongoEngine
-documents stored in MongoDB. django.contrib.admin/auth/sessions are left out
-of INSTALLED_APPS so no SQL database is required at all.
 """
 
 import os

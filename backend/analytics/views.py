@@ -1,14 +1,3 @@
-"""
-A single read-only endpoint powering the standalone admin dashboard
-(admin-dashboard/index.html — not part of the main VerseID frontend build,
-opened directly as a static file and pointed at this API).
-
-Auth is a single shared secret (ADMIN_API_KEY) checked against an
-X-Admin-Key header — deliberately not a full admin-roles system. This is a
-solo-dev internal tool: one person needs to see the numbers, not manage
-permissions for a team. If that ever changes, replace HasAdminKey with a
-real role check on User.
-"""
 import datetime
 from collections import Counter
 

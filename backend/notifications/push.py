@@ -47,19 +47,6 @@ def _build_headers(endpoint: str, vapid: Vapid01) -> dict:
 
 
 def send_push_to_user(user_id: str, payload: dict) -> dict:
-    """
-    Sends a Web Push message to every browser subscription registered for
-    this user. Returns {"sent": int, "expired": int}.
-
-    Note: this implementation sends the payload as unencrypted JSON in the
-    push body. The payload is therefore visible to the push service
-    (Google FCM, Mozilla, Apple, etc.) — it must not contain private data.
-    For end-to-end encryption (RFC 8291 / aes128gcm), a full implementation
-    using the Web Push encryption spec would be needed; that requires the
-    p256dh public key from the subscription and additional crypto primitives.
-    For a devotional app whose notifications contain only verse references
-    and short motivational text, plain (unauthenticated) push is acceptable.
-    """
     vapid = _get_vapid()
     if vapid is None:
         return {"sent": 0, "expired": 0, "error": "VAPID_PRIVATE_KEY not configured"}

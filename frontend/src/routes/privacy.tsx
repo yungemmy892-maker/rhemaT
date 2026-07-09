@@ -113,8 +113,8 @@ function Privacy() {
                 huggingface.co/privacy.
               </li>
               <li>
-                <strong className="text-foreground">MyMemory Translation API</strong> — translates the
-                app's interface text if you select a language other than English. Only fixed
+                <strong className="text-foreground">Google Cloud Translation API</strong> — translates
+                the app's interface text if you select a language other than English. Only fixed
                 interface strings are translated, never your personal data or search queries.
               </li>
             </ul>

@@ -1,19 +1,3 @@
-"""
-Builds the FAISS index of verse embeddings used by semantic search
-(search/faiss_index.py). Run this once after loading Bible data, and again
-any time WEB's verse data changes:
-
-    python manage.py precompute_embeddings
-
-Only WEB is embedded (~31k verses) — semantic *meaning* doesn't change
-between translations, so embedding KJV/ASV/DRA too would triple storage
-and compute for zero retrieval benefit. matching.py resolves each semantic
-hit to whichever version(s) are actually being searched afterward.
-
-Takes a while (one HF API call per batch, ~310 calls at BATCH_SIZE=100 for
-the full WEB corpus) — this is a rare, offline, one-time operation, not
-something that runs per-request, so it isn't optimized for speed.
-"""
 import sys
 import time
 
