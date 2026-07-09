@@ -107,8 +107,8 @@ function Terms() {
 
           <Section title="Contact">
             Questions about these terms? Email{" "}
-            <a href="mailto:legal@verseid.app" className="text-primary">
-              legal@verseid.app
+            <a href="mailto:rhema.trem@gmail.com" className="text-primary">
+              rhema.trem@gmail.com
             </a>
             .
           </Section>
