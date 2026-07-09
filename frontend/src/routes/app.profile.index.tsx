@@ -15,7 +15,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/app/profile/")({
-  head: () => ({ meta: [{ title: "Profile — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Profile - VerseID" }] }),
   component: Profile,
 });
 

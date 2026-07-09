@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Shield } from "lucide-react";
 
 export const Route = createFileRoute("/privacy")({
-  head: () => ({ meta: [{ title: "Privacy Policy — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Privacy Policy - VerseID" }] }),
   component: Privacy,
 });
 
@@ -33,29 +33,29 @@ function Privacy() {
           <Section title="What we collect">
             <ul className="space-y-2 list-disc list-inside text-muted-foreground">
               <li>
-                <strong className="text-foreground">Account information</strong> — your name, email
+                <strong className="text-foreground">Account information</strong> - your name, email
                 address, and (if you use Google Sign-In) your Google account ID and profile photo.
               </li>
               <li>
-                <strong className="text-foreground">Search queries</strong> — the text of each verse
+                <strong className="text-foreground">Search queries</strong> - the text of each verse
                 identification you perform, stored so we can show your search history and calculate
                 your streak.
               </li>
               <li>
-                <strong className="text-foreground">Saved verses</strong> — the verse references you
+                <strong className="text-foreground">Saved verses</strong> - the verse references you
                 save to your library.
               </li>
               <li>
-                <strong className="text-foreground">Settings and preferences</strong> — your chosen
+                <strong className="text-foreground">Settings and preferences</strong> - your chosen
                 Bible version, interface language, theme (light/dark/system), notification
                 preferences, and notification schedule.
               </li>
               <li>
-                <strong className="text-foreground">Profile photo</strong> — if you upload one, stored
+                <strong className="text-foreground">Profile photo</strong> - if you upload one, stored
                 securely on our servers and never shared with third parties.
               </li>
               <li>
-                <strong className="text-foreground">Payment reference</strong> — if you subscribe to
+                <strong className="text-foreground">Payment reference</strong> - if you subscribe to
                 Pro, we store the Paystack transaction reference and your subscription status. We never
                 see or store your card number — all card data is handled entirely by Paystack.
               </li>
@@ -64,10 +64,10 @@ function Privacy() {
 
           <Section title="Voice and speech">
             When you use the voice search feature, your speech is processed entirely by your browser's
-            built-in Web Speech API. Audio is never uploaded to our servers — only the text transcript
+            built-in Web Speech API. Audio is never uploaded to our servers only the text transcript
             that your browser produces is sent to us to find a matching verse. To catch paraphrases and
             misremembered wording, that text may also be sent to a third-party AI service (Hugging
-            Face) to generate a semantic embedding used purely for matching — see "Third-party
+            Face) to generate a semantic embedding used purely for matching see "Third-party
             services" below. This applies equally to typed text search.
           </Section>
 
@@ -96,24 +96,24 @@ function Privacy() {
                 Google Sign-In. If you use this, Google's privacy policy applies to the sign-in step.
               </li>
               <li>
-                <strong className="text-foreground">Paystack</strong> — for Pro subscription
+                <strong className="text-foreground">Paystack</strong> - for Pro subscription
                 payments. Paystack is PCI-DSS compliant and handles all card data. Their privacy policy
                 is at paystack.com/privacy.
               </li>
               <li>
                 <strong className="text-foreground">DiceBear</strong> — generates a default avatar
                 image from your name if you don't have a Google profile photo and haven't uploaded one.
-                No personal data is shared — only an anonymous seed word.
+                No personal data is shared - only an anonymous seed word.
               </li>
               <li>
-                <strong className="text-foreground">Hugging Face</strong> — powers AI-based semantic
+                <strong className="text-foreground">Hugging Face</strong> - powers AI-based semantic
                 verse matching. Your search query text may be sent to Hugging Face's inference API to
                 generate a numeric representation of its meaning, used only to find candidate verses.
                 No account information accompanies this request. Their privacy policy is at
                 huggingface.co/privacy.
               </li>
               <li>
-                <strong className="text-foreground">Google Cloud Translation API</strong> — translates
+                <strong className="text-foreground">Google Cloud Translation API</strong> - translates
                 the app's interface text if you select a language other than English. Only fixed
                 interface strings are translated, never your personal data or search queries.
               </li>
@@ -128,16 +128,16 @@ function Privacy() {
 
           <Section title="Your rights">
             You can export or delete your data at any time by contacting us at{" "}
-            <a href="mailto:privacy@verseid.app" className="text-primary">
-              privacy@verseid.app
+            <a href="mailto:rhema.trem@gmail.com" className="text-primary">
+              rhema.trem@gmail.com
             </a>{" "}
             or by deleting your account in Settings → Delete account.
           </Section>
 
           <Section title="Contact">
             Questions about this policy? Email{" "}
-            <a href="mailto:privacy@verseid.app" className="text-primary">
-              privacy@verseid.app
+            <a href="mailto:rhema.trem@gmail.com" className="text-primary">
+              rhema.trem@gmail.com
             </a>
             .
           </Section>

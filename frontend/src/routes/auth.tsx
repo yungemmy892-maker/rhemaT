@@ -8,7 +8,7 @@ import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — VerseID" },
+      { title: "Sign in - VerseID" },
       {
         name: "description",
         content: "Sign in or create a VerseID account to save and revisit your verses.",

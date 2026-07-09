@@ -8,7 +8,7 @@ import { useSettings } from "@/hooks/queries/usePreferences";
 import type { Collection, Verse } from "@/services/api";
 
 export const Route = createFileRoute("/app/library")({
-  head: () => ({ meta: [{ title: "Library — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Library - VerseID" }] }),
   component: Library,
 });
 

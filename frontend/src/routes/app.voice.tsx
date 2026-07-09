@@ -7,7 +7,7 @@ import { useIdentifyVerse } from "@/hooks/queries/useSearch";
 import { useSettings } from "@/hooks/queries/usePreferences";
 
 export const Route = createFileRoute("/app/voice")({
-  head: () => ({ meta: [{ title: "Listening — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Listening - VerseID" }] }),
   component: VoiceSearch,
 });
 

@@ -5,13 +5,13 @@ import { Mic, Sparkles, Search, ShieldCheck, Wand2, ChevronRight, Quote } from "
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "VerseID — Find Any Bible Verse Instantly" },
+      { title: "VerseID - Find Any Bible Verse Instantly" },
       {
         name: "description",
         content: "Hear it. Speak it. Discover it. VerseID identifies any Bible verse from your voice or a few words.",
       },
-      { property: "og:title", content: "VerseID — Find Any Bible Verse Instantly" },
-      { property: "og:description", content: "Shazam for Bible verses. Speak or type — VerseID finds it." },
+      { property: "og:title", content: "VerseID - Find Any Bible Verse Instantly" },
+      { property: "og:description", content: "Shazam for Bible verses. Speak or type - VerseID finds it." },
     ],
   }),
   component: Landing,
@@ -130,7 +130,7 @@ function Landing() {
         <SectionHeader eyebrow="Features" title="Built for quiet moments of clarity" />
         <div className="mt-12 grid sm:grid-cols-2 gap-4">
           {[
-            { Icon: Mic, t: "Voice identification", d: "Recite scripture aloud — we match it instantly." },
+            { Icon: Mic, t: "Voice identification", d: "Recite scripture aloud - we match it instantly." },
             { Icon: Search, t: "Fuzzy text search", d: "Type a few words; we find the right verse and version." },
             { Icon: Wand2, t: "Semantic AI", d: "Understand meaning, not just words." },
             { Icon: ShieldCheck, t: "Private & secure", d: "Your library stays yours, always." },
@@ -151,9 +151,9 @@ function Landing() {
         <SectionHeader eyebrow="Loved by readers" title="A daily companion" />
         <div className="mt-12 grid sm:grid-cols-3 gap-4">
           {[
-            { q: "I heard a verse on the radio and had it identified before the song ended.", a: "Marcus T." },
-            { q: "Beautiful, calming, and genuinely useful. My favorite app this year.", a: "Hannah L." },
-            { q: "Like having a concordance in my pocket — but kinder.", a: "Pastor David K." },
+            { q: "I heard a verse on the radio and had it identified before the song ended.", a: "Izuo M." },
+            { q: "Beautiful, calming, and genuinely useful. My favorite app this year.", a: "Joshua Dev." },
+            { q: "Like having a concordance in my pocket - but kinder.", a: "Elijah U." },
           ].map((t, i) => (
             <RevealCard key={t.a} delay={i * 0.08}>
               <Quote className="h-5 w-5 text-primary" />
@@ -171,15 +171,15 @@ function Landing() {
           {[
             {
               q: "Which translations are supported?",
-              a: "KJV (King James Version) and WEB (World English Bible) — both public domain. Choose a default in Settings.",
+              a: "KJV (King James Version), WEB (World English Bible), DRA, ASV. Choose a default in Settings.",
             },
             {
               q: "Does it work offline?",
-              a: "Not yet — VerseID needs a connection to search the full Bible text and identify a verse.",
+              a: "Not yet - VerseID needs a connection to search the full Bible text and identify a verse.",
             },
             {
               q: "Is my voice data stored?",
-              a: "Speech is transcribed locally in your browser and never uploaded as audio — only the resulting text is sent to find a match.",
+              a: "Speech is transcribed locally in your browser and never uploaded as audio - only the resulting text is sent to find a match.",
             },
             {
               q: "How accurate is the matching?",
@@ -230,7 +230,7 @@ function Landing() {
             Help
           </Link>
         </div>
-        © {new Date().getFullYear()} VerseID. Made with care.
+        © {new Date().getFullYear()} VerseID. Welcome.
       </footer>
     </div>
   );

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useSettings } from "@/hooks/queries/usePreferences";
 
 export const Route = createFileRoute("/app/text")({
-  head: () => ({ meta: [{ title: "Text search — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Text search - VerseID" }] }),
   component: TextSearch,
 });
 

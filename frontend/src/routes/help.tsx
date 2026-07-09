@@ -3,7 +3,7 @@ import { ArrowLeft, HelpCircle, Mic, Search, Bookmark, Bell, Crown, User, Shield
 import { useState } from "react";
 
 export const Route = createFileRoute("/help")({
-  head: () => ({ meta: [{ title: "Help & Support — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Help & Support - VerseID" }] }),
   component: Help,
 });
 
@@ -195,7 +195,7 @@ function Help() {
             href="mailto:support@verseid.app"
             className="mt-4 inline-flex h-11 px-6 items-center rounded-full bg-gradient-primary text-white text-sm font-medium shadow-glow"
           >
-            Email support@verseid.app
+            Email rhema.trem@gmail.com
           </a>
         </div>
 

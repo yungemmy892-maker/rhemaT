@@ -32,7 +32,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { BibleVersion } from "@/services/api";
 
 export const Route = createFileRoute("/app/settings")({
-  head: () => ({ meta: [{ title: "Settings — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Settings - VerseID" }] }),
   component: Settings,
 });
 

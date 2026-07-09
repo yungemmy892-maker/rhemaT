@@ -15,7 +15,7 @@ import { useNotifications, useMarkAllRead } from "@/hooks/queries/useNotificatio
 import type { AppNotification } from "@/services/api";
 
 export const Route = createFileRoute("/app/notifications")({
-  head: () => ({ meta: [{ title: "Notifications — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Notifications - VerseID" }] }),
   component: Notifications,
 });
 
