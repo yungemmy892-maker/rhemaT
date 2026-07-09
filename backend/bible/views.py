@@ -153,7 +153,7 @@ class UITranslationsView(APIView):
     """
     GET /api/v1/bible/translations/?lang=yo — translated UI chrome strings
     for the given interface-language code. Returns {} for English (nothing
-    to override) or for a language MyMemory doesn't recognise. Cached in
+    to override) or for a language Google Translate doesn't recognise. Cached in
     Mongo after the first request per language — see translate_service.py.
     """
 

@@ -8,11 +8,11 @@ SUPPORTED_VERSIONS = ("KJV", "WEB", "ASV", "DRA")
 class UITranslation(me.Document):
     """
     Cache of one UI string translated into one interface language, keyed by
-    (lang_code, key). The translation API (MyMemory, see translate_service.py)
-    is only ever called for a given (lang_code, key) pair once — every
-    subsequent request for that language is served straight from Mongo,
-    which matters both for latency and because the free translation API
-    has a modest daily word quota shared across all users.
+    (lang_code, key). The translation API (Google Cloud Translation, see
+    translate_service.py) is only ever called for a given (lang_code, key)
+    pair once — every subsequent request for that language is served
+    straight from Mongo, which matters both for latency and because the
+    API has a monthly free-tier character quota shared across all users.
     """
 
     id = me.StringField(primary_key=True)  # f"{lang_code}:{key}"
@@ -24,6 +24,7 @@ class UITranslation(me.Document):
     meta = {
         "collection": "ui_translations",
         "indexes": ["lang_code"],
+        "strict": False,
     }
 
 
@@ -63,6 +64,7 @@ class Verse(me.Document):
             ("book_index", "chapter", "verse", "version"),
             {"fields": ["$text_lower", "$ref"], "default_language": "english"},
         ],
+        "strict": False,
     }
 
     def to_dict(self):

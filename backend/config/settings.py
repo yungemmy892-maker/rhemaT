@@ -135,6 +135,13 @@ JWT_REFRESH_TTL = timedelta(days=int(os.environ.get("JWT_REFRESH_TTL_DAYS", "30"
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 
 # ---------------------------------------------------------------------------
+
+ #English-only UI; translated strings just fall back to English.
+# ---------------------------------------------------------------------------
+ 
+GOOGLE_TRANSLATE_API_KEY = os.environ.get("GOOGLE_TRANSLATE_API_KEY", "")
+ 
+# ---------------------------------------------------------------------------
 # Hugging Face Inference API (semantic search — search/embeddings.py, search/faiss_index.py)
 # Free token from https://huggingface.co/settings/tokens. Leave unset to
 # run with lexical-only matching; semantic re-rank silently no-ops without it.
