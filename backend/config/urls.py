@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.urls import include, path
 from django.views.generic import TemplateView
 
@@ -9,8 +9,17 @@ def health(request):
     return JsonResponse({"status": "ok"})
 
 
+def robots_txt(request):
+    # This host is 100% API endpoints plus the internal admin dashboard —
+    # there is no page content here that should ever appear in search
+    # results. (The actual public site's robots.txt lives on the frontend,
+    # frontend/public/robots.txt, and allows the real public pages.)
+    return HttpResponse("User-agent: *\nDisallow: /\n", content_type="text/plain")
+
+
 urlpatterns = [
     path("health/", health, name="health"),
+    path("robots.txt", robots_txt, name="robots-txt"),
     path("api/v1/auth/", include("auth_api.urls")),
     path("api/v1/bible/", include("bible.urls")),
     path("api/v1/search/", include("search.urls")),

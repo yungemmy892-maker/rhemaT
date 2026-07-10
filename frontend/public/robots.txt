@@ -1,3 +1,14 @@
 User-agent: *
 Allow: /
-Sitemap: https//verseid.top/sitemap.xml
+Allow: /help
+Allow: /terms
+Allow: /privacy
+Allow: /auth
+
+# Authenticated app screens — nothing here is meaningfully indexable (it's
+# either empty without a logged-in session or is one specific user's
+# private data), and crawling it wastes crawl budget on the public pages
+# that actually matter for search.
+Disallow: /app/
+
+Sitemap: https://verseid.top/sitemap.xml
