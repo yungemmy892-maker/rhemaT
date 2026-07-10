@@ -28,7 +28,7 @@ function Home() {
         className="flex items-center justify-between"
       >
         <div>
-          <div className="text-xs text-muted-foreground">{t("home.greeting.evening", "Good evening")}</div>
+          <div className="text-xs text-muted-foreground">{t("home.greeting.evening", "Good Day")}</div>
           <h1 className="font-display text-2xl font-semibold">
             {user?.name?.split(" ")[0] ?? "Friend"}
           </h1>

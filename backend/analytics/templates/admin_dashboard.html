@@ -1,343 +1,581 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>VerseID — Admin Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<style>
-  :root {
-    --bg: #FAF9FC;
-    --surface: #FFFFFF;
-    --border: #ECE8F2;
-    --foreground: #1F1B2E;
-    --muted: #6B6575;
-    --primary: #A855F7;
-    --gradient-start: #8B5CF6;
-    --gradient-end: #D946EF;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--foreground);
-    font-family: 'Plus Jakarta Sans', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
-  }
-  h1, h2, .display { font-family: 'Fraunces', Georgia, serif; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerseID Admin Dashboard</title>
 
-  .topbar {
-    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-    padding: 20px 24px;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .topbar h1 { margin: 0; font-size: 22px; font-weight: 600; }
-  .topbar .meta { font-size: 12px; opacity: 0.85; }
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    <link rel="stylesheet" href="styles.css">
 
-  .gate {
-    max-width: 420px;
-    margin: 80px auto;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 32px;
-    text-align: center;
-  }
-  .gate input {
-    width: 100%;
-    padding: 12px 14px;
-    margin-top: 14px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    font-size: 14px;
-  }
-  .gate button, .refresh-btn {
-    margin-top: 16px;
-    width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: 999px;
-    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-    color: #fff;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-  }
-  .refresh-btn { width: auto; padding: 8px 18px; font-size: 13px; }
-  .gate .error { color: #e11d48; font-size: 13px; margin-top: 10px; min-height: 16px; }
-
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
-    margin-bottom: 28px;
-  }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 18px;
-  }
-  .card .label { font-size: 12px; color: var(--muted); font-weight: 500; }
-  .card .value { font-size: 26px; font-weight: 700; margin-top: 6px; font-family: 'Fraunces', Georgia, serif; }
-  .card .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 24px;
-  }
-  .panel h2 { margin: 0 0 14px; font-size: 16px; font-weight: 600; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
-  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-  .pill.pro { background: #FDE68A; color: #92400E; }
-  .pill.free { background: #E5E7EB; color: #374151; }
-  .pill.google { background: #DBEAFE; color: #1E40AF; }
-  .pill.email { background: #EDE9FE; color: #5B21B6; }
-
-  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 720px) { .charts-row { grid-template-columns: 1fr; } }
-
-  .hidden { display: none; }
-  .loading { text-align: center; padding: 60px; color: var(--muted); }
-
-
-:root{
---bg:#f5f3fb;--card:#fff;--primary:#8b5cf6;--accent:#d946ef;--text:#1f1b2e;--muted:#6b7280;--border:#ece8f2;
-}
-body{background:linear-gradient(180deg,#f7f4ff,#fdfcff);font-family:Inter,Arial,sans-serif}
-.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:#161322;color:#fff;padding:24px}
-.main{margin-left:240px}
-.topbar{background:rgba(255,255,255,.7)!important;backdrop-filter:blur(18px);border-bottom:1px solid var(--border);color:var(--text)!important}
-.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
-.card{border:none;border-radius:22px;box-shadow:0 10px 30px rgba(139,92,246,.08);transition:.3s}
-.card:hover{transform:translateY(-6px)}
-.panel{border:none;border-radius:24px;box-shadow:0 10px 30px rgba(0,0,0,.05)}
-.hero{background:linear-gradient(135deg,#8b5cf6,#d946ef);color:#fff;padding:28px;border-radius:26px;margin:24px}
-
-</style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body><aside class='sidebar'><h2>📖 VerseID</h2><p style='opacity:.7'>Admin</p><hr><p>🏠 Dashboard</p><p>👥 Users</p><p>🔍 Searches</p><p>💳 Subscriptions</p><p>📊 Analytics</p><p>⚙ Settings</p></aside>
+<body>
 
-<div id="gate" class="gate">
-  <div class="display" style="font-size:22px;font-weight:600;">VerseID Admin</div>
-  <p style="color:var(--muted); font-size:13px;">Enter your admin key to view live production stats.</p>
-  <input id="admin-key-input" type="password" placeholder="Admin key" />
-  <button onclick="saveKeyAndLoad()">View dashboard</button>
-  <div class="error" id="gate-error"></div>
-</div>
+<!-- =======================
+     MOBILE MENU BUTTON
+======================== -->
 
-<div id="dashboard" class="hidden">
-  <div class="topbar">
-    <h1>VerseID Admin Dashboard</h1>
-    <div style="display:flex; align-items:center; gap:14px;">
-      <span class="meta" id="generated-at"></span>
-      <button class="refresh-btn" onclick="loadStats()">Refresh</button>
-      <button class="refresh-btn" style="background:rgba(255,255,255,0.2);" onclick="signOut()">Change key</button>
+<button class="menu-toggle" id="menuToggle">
+    ☰
+</button>
+
+<!-- =======================
+     SIDEBAR
+======================== -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+        <h2>VerseID</h2>
+        <p>Admin Dashboard</p>
     </div>
-  </div>
 
-  <div class="main"><div class="container"><div class="hero"><h2 style="margin:0">VerseID Analytics</h2><p>Monitor users, searches, subscriptions and platform performance.</p></div>
-    <div id="loading" class="loading">Loading stats…</div>
+    <nav>
 
-    <div id="content" class="hidden">
-      <div class="cards" id="cards"></div>
+        <a href="#" class="active">
+            <span>🏠</span>
+            Dashboard
+        </a>
 
-      <div class="charts-row">
-        <div class="panel">
-          <h2>New users — last 30 days</h2>
-          <canvas id="signupsChart" height="180"></canvas>
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-footer">
+
+        <div class="admin">
+
+        <div class="avatar">
+
+            A
+
         </div>
-        <div class="panel">
-          <h2>Searches — last 30 days</h2>
-          <canvas id="searchesChart" height="180"></canvas>
+
+        <div>
+
+            <h4>Administrator</h4>
+
+            <p>VerseID Admin</p>
+
         </div>
-      </div>
 
-      <div class="panel">
-        <h2>Top identified verses</h2>
-        <table>
-          <thead><tr><th>Verse</th><th>Times identified</th></tr></thead>
-          <tbody id="top-verses-body"></tbody>
-        </table>
-      </div>
-
-      <div class="panel">
-        <h2>Recent signups</h2>
-        <table>
-          <thead>
-            <tr><th>Name</th><th>Email</th><th>Plan</th><th>Method</th><th>Identified</th><th>Joined</th></tr>
-          </thead>
-          <tbody id="recent-users-body"></tbody>
-        </table>
-      </div>
     </div>
-  </div>
+
 </div>
+        <a href="#">
+            <span>👥</span>
+            Users
+        </a>
 
-<script>
-  const STORAGE_KEY = "verseid_admin_key";
-  // Same-origin by design — this page is served by the Django backend
-  // itself (see analytics/urls.py) specifically so fetch() calls below
-  // never hit a CORS wall. If you copy this file out to host separately,
-  // you'll need to add CORS handling for wherever you serve it from.
-  const API_BASE = window.location.origin + "/api/v1";
+        <a href="#">
+            <span>🔍</span>
+            Searches
+        </a>
 
-  let signupsChart, searchesChart;
+        <a href="#">
+            <span>💳</span>
+            Subscriptions
+        </a>
 
-  function getKey() {
-    return localStorage.getItem(STORAGE_KEY) || "";
-  }
+        <a href="#">
+            <span>📖</span>
+            Saved Verses
+        </a>
 
-  function saveKeyAndLoad() {
-    const key = document.getElementById("admin-key-input").value.trim();
-    if (!key) return;
-    localStorage.setItem(STORAGE_KEY, key);
-    loadStats();
-  }
+        <a href="#">
+            <span>📈</span>
+            Analytics
+        </a>
 
-  function signOut() {
-    localStorage.removeItem(STORAGE_KEY);
-    document.getElementById("dashboard").classList.add("hidden");
-    document.getElementById("gate").classList.remove("hidden");
-  }
+        <a href="#">
+            <span>⚙</span>
+            Settings
+        </a>
 
-  async function loadStats() {
-    const key = getKey();
-    if (!key) {
-      document.getElementById("gate").classList.remove("hidden");
-      document.getElementById("dashboard").classList.add("hidden");
-      return;
-    }
+    </nav>
 
-    document.getElementById("gate").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
-    document.getElementById("loading").classList.remove("hidden");
-    document.getElementById("content").classList.add("hidden");
+</aside>
 
-    try {
-      const res = await fetch(`${API_BASE}/admin/stats/`, {
-        headers: { "X-Admin-Key": key },
-      });
-      if (res.status === 403) {
-        signOut();
-        document.getElementById("gate-error").textContent = "Invalid admin key.";
-        return;
-      }
-      if (!res.ok) throw new Error(`Server returned ${res.status}`);
-      const data = await res.json();
-      render(data);
-    } catch (err) {
-      document.getElementById("loading").textContent =
-        "Couldn't load stats: " + err.message + ". Check the server is running and try Refresh.";
-    }
-  }
+<!-- =======================
+     MAIN CONTENT
+======================== -->
 
-  function render(data) {
-    document.getElementById("loading").classList.add("hidden");
-    document.getElementById("content").classList.remove("hidden");
-    document.getElementById("generated-at").textContent =
-      "Updated " + new Date(data.generatedAt).toLocaleString();
+<main class="main-content">
 
-    const t = data.totals;
-    const cards = [
-      ["Total users", t.users, ""],
-      ["New today", t.newToday, ""],
-      ["New this week", t.newThisWeek, ""],
-      ["New this month", t.newThisMonth, ""],
-      ["Active (7d)", t.activeLast7Days, "logged in recently"],
-      ["Google signups", t.googleSignups, `${t.emailSignups} via email`],
-      ["Pro users", t.proUsers, `${t.freeUsers} free`],
-      ["Total searches", t.totalSearches, `${t.searchesToday} today`],
-      ["Total saved verses", t.totalSaved, ""],
-      ["Active subscriptions", t.activeSubscriptions, ""],
-      ["MRR", "₦" + Number(t.mrrNaira).toLocaleString(), ""],
-    ];
-    document.getElementById("cards").innerHTML = cards
-      .map(
-        ([label, value, sub]) => `
-        <div class="card">
-          <div class="label">${label}</div>
-          <div class="value">${value}</div>
-          ${sub ? `<div class="sub">${sub}</div>` : ""}
-        </div>`
-      )
-      .join("");
+    <!-- =======================
+         TOPBAR
+    ======================== -->
 
-    const chartOpts = {
-      type: "line",
-      options: {
-        plugins: { legend: { display: false } },
-        scales: { x: { grid: { display: false } }, y: { beginAtZero: true } },
-      },
-    };
+    <header class="topbar">
 
-    if (signupsChart) signupsChart.destroy();
-    signupsChart = new Chart(document.getElementById("signupsChart"), {
-      ...chartOpts,
-      data: {
-        labels: data.signupsByDay.map((d) => d.date.slice(5)),
-        datasets: [
-          {
-            data: data.signupsByDay.map((d) => d.count),
-            borderColor: "#A855F7",
-            backgroundColor: "rgba(168,85,247,0.12)",
-            fill: true,
-            tension: 0.3,
-          },
-        ],
-      },
-    });
+        <div>
 
-    if (searchesChart) searchesChart.destroy();
-    searchesChart = new Chart(document.getElementById("searchesChart"), {
-      ...chartOpts,
-      data: {
-        labels: data.searchesByDay.map((d) => d.date.slice(5)),
-        datasets: [
-          {
-            data: data.searchesByDay.map((d) => d.count),
-            borderColor: "#D946EF",
-            backgroundColor: "rgba(217,70,239,0.12)",
-            fill: true,
-            tension: 0.3,
-          },
-        ],
-      },
-    });
+            <h1>
+                Dashboard
+            </h1>
 
-    document.getElementById("top-verses-body").innerHTML = data.topVerses
-      .map((v) => `<tr><td>${v.ref}</td><td>${v.count}</td></tr>`)
-      .join("") || `<tr><td colspan="2" style="color:var(--muted)">No data yet</td></tr>`;
+            <p>
+                Monitor VerseID in real time.
+            </p>
 
-    document.getElementById("recent-users-body").innerHTML = data.recentUsers
-      .map(
-        (u) => `
-        <tr>
-          <td>${u.name}</td>
-          <td>${u.email}</td>
-          <td><span class="pill ${u.plan === "Pro" ? "pro" : "free"}">${u.plan}</span></td>
-          <td><span class="pill ${u.signupMethod}">${u.signupMethod}</span></td>
-          <td>${u.identifiedCount}</td>
-          <td>${new Date(u.createdAt).toLocaleDateString()}</td>
-        </tr>`
-      )
-      .join("");
-  }
+        </div>
 
-  // Auto-load if a key is already saved from a previous visit.
-  if (getKey()) loadStats();
-</script>
+        <div class="topbar-actions">
+
+            <div class="status">
+
+                <span class="status-dot"></span>
+
+                Live
+
+            </div>
+
+            <button id="refreshBtn">
+
+                Refresh
+
+            </button>
+
+            <button>
+
+                Export
+
+            </button>
+
+        </div>
+
+    </header>
+
+    <!-- =======================
+         HERO
+    ======================== -->
+
+    <section class="hero">
+
+        <div>
+
+            <span class="hero-badge">
+
+                ✨ Production Analytics
+
+            </span>
+
+            <h2>
+
+                Welcome back 👋
+
+            </h2>
+
+            <p>
+
+                Monitor users, subscriptions, searches and platform growth
+                from one beautiful dashboard.
+
+            </p>
+
+        </div>
+
+        <div class="hero-right">
+
+            <div class="hero-stat">
+
+                <h3 id="lastUpdated">
+
+                    ---
+
+                </h3>
+
+                <span>
+
+                    Last Updated
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- =======================
+         KPI CARDS
+         (Next Part)
+    ======================== -->
+
+    <section id="statsGrid" class="stats-grid">
+
+    </section>
+
+    <!-- =======================
+         CHARTS
+         (Next Part)
+    ======================== -->
+
+    <section class="charts-grid">
+
+    </section>
+
+    <!-- =======================
+         AI INSIGHTS
+         (Next Part)
+    ======================== -->
+
+    <section id="insights">
+
+    </section>
+
+    <!-- =======================
+         RECENT ACTIVITY
+         (Next Part)
+    ======================== -->
+
+    <section id="activity">
+
+    </section>
+
+    <!-- =======================
+         TOP VERSES
+         (Next Part)
+    ======================== -->
+
+    <section id="topVerses">
+
+    </section>
+
+    <!-- =======================
+         RECENT USERS
+         (Next Part)
+    ======================== -->
+
+    <section id="recentUsers">
+
+    </section>
+
+    <!-- ===================================
+     ANALYTICS CHARTS
+==================================== -->
+
+<section class="charts-grid">
+
+    <div class="chart-card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>New Users</h3>
+
+                <p>Last 30 Days</p>
+
+            </div>
+
+            <span class="growth positive">
+                ▲ 18%
+            </span>
+
+        </div>
+
+        <canvas id="signupsChart"></canvas>
+
+    </div>
+
+    <div class="chart-card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h3>Search Activity</h3>
+
+                <p>Last 30 Days</p>
+
+            </div>
+
+            <span class="growth positive">
+                ▲ 12%
+            </span>
+
+        </div>
+
+        <canvas id="searchesChart"></canvas>
+
+    </div>
+
+</section>
+
+<!-- ===================================
+     AI INSIGHTS
+==================================== -->
+
+<section class="section">
+
+    <div class="section-header">
+
+        <h2>AI Insights</h2>
+
+        <span>Live Analysis</span>
+
+    </div>
+
+    <div class="insights-grid">
+
+        <div class="insight-card">
+
+            <div class="insight-icon">
+                📈
+            </div>
+
+            <h3>Searches Increased</h3>
+
+            <h1 id="searchGrowth">
+
+                +18%
+
+            </h1>
+
+            <p>Compared with yesterday</p>
+
+        </div>
+
+        <div class="insight-card">
+
+            <div class="insight-icon">
+                🔥
+            </div>
+
+            <h3>Trending Verse</h3>
+
+            <h1 id="trendingVerse">
+
+                Psalm 23
+
+            </h1>
+
+            <p>Most searched today</p>
+
+        </div>
+
+        <div class="insight-card">
+
+            <div class="insight-icon">
+                💜
+            </div>
+
+            <h3>Pro Growth</h3>
+
+            <h1 id="proGrowth">
+
+                +43
+
+            </h1>
+
+            <p>New Pro users this week</p>
+
+        </div>
+
+        <div class="insight-card">
+
+            <div class="insight-icon">
+                ⚡
+            </div>
+
+            <h3>Platform Health</h3>
+
+            <h1>
+
+                99.9%
+
+            </h1>
+
+            <p>Server uptime</p>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ===================================
+     RECENT ACTIVITY
+==================================== -->
+
+<section class="section">
+
+    <div class="section-header">
+
+        <h2>Recent Activity</h2>
+
+        <button class="view-all">
+
+            View All
+
+        </button>
+
+    </div>
+
+    <div class="activity-list" id="activityList">
+
+        <div class="activity-item">
+
+            <div class="activity-icon success">
+                👤
+            </div>
+
+            <div class="activity-content">
+
+                <h4>New user signed up</h4>
+
+                <p>Google Authentication</p>
+
+            </div>
+
+            <span>
+
+                2 mins ago
+
+            </span>
+
+        </div>
+
+        <div class="activity-item">
+
+            <div class="activity-icon purple">
+                🔍
+            </div>
+
+            <div class="activity-content">
+
+                <h4>Psalm 23 identified</h4>
+
+                <p>Voice Search</p>
+
+            </div>
+
+            <span>
+
+                5 mins ago
+
+            </span>
+
+        </div>
+
+        <div class="activity-item">
+
+            <div class="activity-icon green">
+                💳
+            </div>
+
+            <div class="activity-content">
+
+                <h4>Subscription Renewed</h4>
+
+                <p>Monthly Plan</p>
+
+            </div>
+
+            <span>
+
+                8 mins ago
+
+            </span>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ===================================
+     TOP VERSES
+==================================== -->
+
+<section class="section">
+
+    <div class="section-header">
+
+        <h2>Top Identified Verses</h2>
+
+        <button class="view-all">
+
+            View All
+
+        </button>
+
+    </div>
+
+    <div class="verses-grid" id="topVersesGrid">
+
+        <!-- JavaScript -->
+
+    </div>
+
+</section>
+
+<!-- ===================================
+     RECENT USERS
+==================================== -->
+
+<section class="section">
+
+    <div class="section-header">
+
+        <h2>Recent Users</h2>
+
+        <button class="view-all">
+
+            View All
+
+        </button>
+
+    </div>
+
+    <div class="table-wrapper">
+
+        <table class="users-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>User</th>
+
+                    <th>Plan</th>
+
+                    <th>Method</th>
+
+                    <th>Searches</th>
+
+                    <th>Joined</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="recentUsersTable">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+<!-- ===================================
+     DARK MODE BUTTON
+==================================== -->
+
+<button class="theme-toggle" id="themeToggle">
+
+    🌙
+
+</button>
+
+</main>
+
+<script src="script.js"></script>
+
 </body>
 </html>
