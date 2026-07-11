@@ -1,5 +1,7 @@
+import datetime
+
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import EmailMultiAlternatives
 
 # Hex equivalents of the oklch design tokens in frontend/src/styles.css
 # (email clients don't support oklch or CSS custom properties, so the
@@ -29,15 +31,111 @@ FONT_SANS = "'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-s
 LOGO_URL = f"{settings.FRONTEND_URL.rstrip('/')}/logo-glyph.png"
 
 
+def _daily_verse_html(name: str, verse_ref: str, verse_text: str, version: str, app_url: str) -> str:
+    b = BRAND
+    today = datetime.date.today().strftime("%A, %B %-d")
+    return f"""\
+<!DOCTYPE html>
+<html>
+  <body style="margin:0;padding:0;background:{b['bg']};font-family:{FONT_SANS};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{b['bg']};padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+            <!-- Logo / wordmark -->
+            <tr>
+              <td align="center" style="padding-bottom:20px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="40" style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});" align="center" valign="middle">
+                      <img src="{LOGO_URL}" width="20" height="20" alt="VerseID" style="display:block;" />
+                    </td>
+                    <td style="padding-left:10px;font-family:{FONT_DISPLAY};font-size:20px;font-weight:600;color:{b['foreground']};">VerseID</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Card -->
+            <tr>
+              <td style="background:{b['surface']};border:1px solid {b['border']};border-radius:{b['radius']};overflow:hidden;">
+
+                <!-- Gradient header -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});padding:26px 32px;">
+                      <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.8);">
+                        Your Daily Verse
+                      </div>
+                      <div style="font-family:{FONT_DISPLAY};font-size:18px;font-weight:600;color:#ffffff;margin-top:4px;">
+                        {today}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Verse -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding:36px 34px 30px;text-align:center;">
+                      <div style="font-family:{FONT_DISPLAY};font-size:44px;line-height:1;color:{b['gradient_start']};opacity:0.35;">&#8220;</div>
+                      <div style="font-family:{FONT_DISPLAY};font-size:22px;line-height:1.5;color:{b['foreground']};font-weight:500;margin-top:-14px;">
+                        {verse_text}
+                      </div>
+                      <div style="margin-top:22px;display:inline-block;padding:7px 16px;border-radius:999px;background:{b['bg']};border:1px solid {b['border']};font-size:13px;font-weight:600;color:{b['gradient_start']};">
+                        {verse_ref} &middot; {version}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- CTA -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding:0 32px 34px;" align="center">
+                      <a href="{app_url}" style="display:inline-block;padding:13px 34px;border-radius:999px;background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">
+                        Open VerseID
+                      </a>
+                      <div style="margin-top:14px;font-size:12.5px;color:{b['muted']};">
+                        Tap the app to save this verse or identify another one.
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td align="center" style="padding:22px 12px;font-size:12px;color:{b['muted']};">
+                Hi {name} &mdash; you're receiving this because daily verse notifications are on.
+                <br/>Turn them off anytime in Settings.
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+
+
 def send_daily_verse_email(to_email: str, name: str, verse_ref: str, verse_text: str, version: str):
+    app_url = f"{settings.FRONTEND_URL.rstrip('/')}/app/home"
     subject = f"Your verse for today: {verse_ref}"
-    message = (
+    text_body = (
         f"Hi {name},\n\n"
         f'"{verse_text}"\n'
         f"— {verse_ref} ({version})\n\n"
         "Open VerseID to save this verse or identify another one.\n"
     )
-    send_mail(subject, message, None, [to_email], fail_silently=False)
+
+    msg = EmailMultiAlternatives(subject, text_body, None, [to_email])
+    msg.attach_alternative(_daily_verse_html(name, verse_ref, verse_text, version, app_url), "text/html")
+    msg.send(fail_silently=False)
 
 
 def _welcome_html(name: str, app_url: str) -> str:
