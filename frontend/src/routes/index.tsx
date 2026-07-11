@@ -208,7 +208,7 @@ function Landing() {
           <h3 className="relative font-display text-3xl sm:text-4xl font-semibold text-white">
             Start your library of verses today.
           </h3>
-          <p className="relative mt-3 text-white/85">20 free identifications every day.</p>
+          <p className="relative mt-3 text-white/85">6 free identifications every day.</p>
           <Link
             to="/auth"
             className="relative inline-flex mt-7 items-center justify-center gap-2 h-12 px-7 rounded-full bg-white text-primary font-medium hover:scale-[1.02] transition-transform"

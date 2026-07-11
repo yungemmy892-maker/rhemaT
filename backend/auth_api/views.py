@@ -104,9 +104,14 @@ class GoogleLoginView(APIView):
         if is_new_user:
             user = User(google_id=google_id, email=email, name=name, avatar=avatar)
         else:
+            # Only link the google_id here — deliberately NOT re-setting
+            # name/avatar for a returning user. This used to overwrite
+            # whatever the user had customized via Edit Profile with
+            # whatever their Google account's name/photo currently is,
+            # every single time they logged back in via Google — a
+            # returning login should authenticate, not silently revert
+            # profile edits.
             user.google_id = google_id
-            user.name = name
-            user.avatar = avatar
         user.last_login_at = datetime.datetime.utcnow()
         user.save()
 
@@ -190,6 +195,11 @@ class ForgotPasswordView(APIView):
     """
     POST /api/v1/auth/forgot-password/
     Body: { "email": "..." }
+
+    Step 1 of the reset flow: issues a 6-digit code, emails it, and
+    invalidates any previously-issued unused code for this user so only the
+    latest one is valid. Always returns 204 regardless of whether the email
+    exists, to avoid leaking account existence.
     """
 
     permission_classes = [AllowAny]
@@ -229,6 +239,10 @@ class VerifyResetCodeView(APIView):
     """
     POST /api/v1/auth/verify-reset-code/
     Body: { "email": "...", "code": "123456" }
+
+    Step 2 of the reset flow — lets the frontend confirm the code before
+    showing the "new password" screen, without consuming the code yet
+    (that happens in ResetPasswordView so the code can only be spent once).
     """
 
     permission_classes = [AllowAny]
@@ -260,6 +274,11 @@ class ResetPasswordView(APIView):
     """
     POST /api/v1/auth/reset-password/
     Body: { "email": "...", "code": "123456", "new_password": "..." }
+
+    Step 3 — re-validates the code (a code is only ever actually consumed
+    here, never in VerifyResetCodeView) then updates the password and
+    revokes every existing refresh token, signing the user out everywhere
+    as a safety measure.
     """
 
     permission_classes = [AllowAny]
@@ -388,6 +407,11 @@ class ChangePasswordView(APIView):
     POST /api/v1/auth/change-password/
     Body: { "current_password": "...", "new_password": "..." }
 
+    For authenticated users changing their password from within the app
+    (Profile > Edit profile), as opposed to the unauthenticated
+    forgot/reset-password flow above. If the account has no password yet
+    (Google-only sign-up), `current_password` may be omitted to set one
+    for the first time.
     """
 
     permission_classes = [IsAuthenticated]
@@ -414,6 +438,10 @@ class ChangePasswordView(APIView):
 class AvatarUploadView(APIView):
     """
     POST /api/v1/auth/avatar/
+    Multipart form upload, field name "avatar". Accepts an image from
+    either a file picker ("choose from gallery") or a camera capture
+    ("take a photo") — both arrive identically as a single uploaded file,
+    the distinction is purely in the frontend's <input> attributes.
     """
 
     permission_classes = [IsAuthenticated]
