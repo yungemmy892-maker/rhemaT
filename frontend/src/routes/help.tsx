@@ -18,7 +18,7 @@ const FAQS = [
   },
   {
     q: "What are the free plan limits?",
-    a: "Free accounts can identify up to 20 verses per day. The count resets at midnight UTC. Your search history, saved verses, and collections are unlimited on the free plan.",
+    a: "Free accounts can identify up to 6 verses per day. The count resets at midnight UTC. Your search history, saved verses, and collections are unlimited on the free plan.",
   },
   {
     q: "What does Pro include?",

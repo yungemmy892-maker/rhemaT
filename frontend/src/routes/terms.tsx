@@ -46,7 +46,7 @@ function Terms() {
 
           <Section title="Free plan">
             The free plan allows up to{" "}
-            <strong>20 verse identifications per day</strong> (UTC). The limit resets automatically
+            <strong>6 verse identifications per day</strong> (UTC). The limit resets automatically
             at midnight UTC each day. Saved verses, search history, and collections are available on
             the free plan with no limit.
           </Section>
