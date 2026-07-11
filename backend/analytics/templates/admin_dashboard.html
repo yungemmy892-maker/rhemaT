@@ -1,581 +1,1709 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VerseID Admin Dashboard</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VerseID — Admin Dashboard</title>
+<style>
+/* ---------------------------------------------------------------------- */
+/* styles.css — imported inline                                           */
+/* ---------------------------------------------------------------------- */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+/* ---------------------------------------------------------------------- */
+/* Design tokens                                                          */
+/* ---------------------------------------------------------------------- */
+:root {
+  --primary: #8b5cf6;
+  --primary-2: #a855f7;
+  --primary-soft: #f3ecff;
+  --gradient: linear-gradient(135deg, #8b5cf6, #d946ef);
 
-    <link rel="stylesheet" href="styles.css">
+  --bg: #f8f8fb;
+  --surface: #ffffff;
+  --surface-2: #fbfaff;
+  --border: #ececf2;
+  --foreground: #16161d;
+  --muted: #6b6b7b;
+  --muted-2: #9494a3;
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --warning: #d97706;
+  --warning-soft: #fef3c7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --info: #2563eb;
+  --info-soft: #dbeafe;
+
+  --shadow-sm: 0 1px 2px rgba(16, 16, 30, 0.04);
+  --shadow-md: 0 4px 16px rgba(16, 16, 30, 0.06);
+  --shadow-lg: 0 12px 40px -8px rgba(16, 16, 30, 0.14);
+  --shadow-glow: 0 8px 30px -6px rgba(139, 92, 246, 0.35);
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 76px;
+  --topbar-h: 68px;
+
+  --font: "Inter", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+[data-theme="dark"] {
+  --bg: #0a0a0f;
+  --surface: #131318;
+  --surface-2: #17171e;
+  --border: #24242e;
+  --foreground: #f3f3f7;
+  --muted: #9a9aab;
+  --muted-2: #6c6c7c;
+
+  --success-soft: rgba(22, 163, 74, 0.15);
+  --warning-soft: rgba(217, 119, 6, 0.15);
+  --danger-soft: rgba(220, 38, 38, 0.15);
+  --info-soft: rgba(37, 99, 235, 0.15);
+  --primary-soft: rgba(139, 92, 246, 0.15);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 60px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Reset + base                                                           */
+/* ---------------------------------------------------------------------- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--foreground);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+button, input { font-family: inherit; color: inherit; }
+button { cursor: pointer; border: none; background: none; }
+a { color: inherit; text-decoration: none; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+
+.hidden { display: none !important; }
+
+/* ---------------------------------------------------------------------- */
+/* Gate (admin key entry)                                                 */
+/* ---------------------------------------------------------------------- */
+#gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.16), transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(217, 70, 239, 0.14), transparent 45%),
+    var(--bg);
+}
+
+.gate-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  animation: fadeInUp 0.5s ease;
+}
+
+.gate-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--gradient);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 18px;
+  font-weight: 800;
+  font-size: 20px;
+  color: #fff;
+  box-shadow: var(--shadow-glow);
+}
+
+.gate-card h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.gate-card p { color: var(--muted); font-size: 13.5px; margin-bottom: 22px; line-height: 1.5; }
+
+.gate-card input {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.gate-card input:focus { border-color: var(--primary); }
+.gate-card .btn-primary { width: 100%; margin-top: 14px; justify-content: center; }
+
+.gate-error { color: var(--danger); font-size: 12.5px; margin-top: 10px; min-height: 16px; }
+
+/* ---------------------------------------------------------------------- */
+/* App shell                                                              */
+/* ---------------------------------------------------------------------- */
+#app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100vh;
+  transition: grid-template-columns 0.25s ease;
+}
+
+#app.sidebar-collapsed { grid-template-columns: var(--sidebar-w-collapsed) 1fr; }
+
+/* ---------------------------------------------------------------------- */
+/* Sidebar                                                                */
+/* ---------------------------------------------------------------------- */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 30;
+}
+
+.sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 22px; }
+
+.sidebar-brand .logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--gradient);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.sidebar-brand span { font-weight: 700; font-size: 15.5px; white-space: nowrap; overflow: hidden; }
+
+#app.sidebar-collapsed .sidebar-brand span,
+#app.sidebar-collapsed .nav-item span,
+#app.sidebar-collapsed .admin-profile .info { display: none; }
+
+.nav-section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  padding: 14px 12px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.nav-item:hover { background: var(--surface-2); color: var(--foreground); }
+.nav-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.nav-item .icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+.sidebar-spacer { flex: 1; }
+
+.admin-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.admin-profile .avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.admin-profile .info { overflow: hidden; }
+.admin-profile .info .name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-profile .info .role { font-size: 11.5px; color: var(--muted-2); }
+
+/* ---------------------------------------------------------------------- */
+/* Main column                                                            */
+/* ---------------------------------------------------------------------- */
+.main { min-width: 0; display: flex; flex-direction: column; }
+
+/* ---------------------------------------------------------------------- */
+/* Topbar (glassmorphism)                                                 */
+/* ---------------------------------------------------------------------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-menu-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.topbar h1 { font-size: 16px; font-weight: 700; }
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 1.8s infinite; }
+
+.topbar-spacer { flex: 1; }
+.topbar-datetime { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.icon-btn:hover { background: var(--primary-soft); color: var(--primary); }
+.icon-btn:active { transform: scale(0.94); }
+.icon-btn svg { width: 17px; height: 17px; }
+.icon-btn.spinning svg { animation: spin 0.7s linear infinite; }
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--gradient);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13.5px;
+  box-shadow: var(--shadow-glow);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13.5px;
+  transition: background 0.15s ease;
+}
+
+.btn-secondary:hover { background: var(--primary-soft); color: var(--primary); }
+
+/* ---------------------------------------------------------------------- */
+/* Content area                                                           */
+/* ---------------------------------------------------------------------- */
+.content { padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
+.view { animation: fadeIn 0.35s ease; }
+
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 30px 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title:first-child { margin-top: 0; }
+
+/* ---------------------------------------------------------------------- */
+/* Hero                                                                   */
+/* ---------------------------------------------------------------------- */
+.hero {
+  border-radius: var(--radius-lg);
+  padding: 28px 30px;
+  background: var(--gradient);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-glow);
+  animation: fadeInUp 0.4s ease;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 85% 0%, rgba(255, 255, 255, 0.25), transparent 55%);
+  pointer-events: none;
+}
+
+.hero h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.hero p { font-size: 13.5px; opacity: 0.92; max-width: 520px; line-height: 1.5; }
+.hero .hero-meta { margin-top: 18px; display: flex; gap: 22px; flex-wrap: wrap; }
+.hero .hero-meta .stat .value { font-size: 20px; font-weight: 800; }
+.hero .hero-meta .stat .label { font-size: 11px; opacity: 0.85; }
+
+/* ---------------------------------------------------------------------- */
+/* KPI grid + cards                                                       */
+/* ---------------------------------------------------------------------- */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  animation: fadeInUp 0.4s ease both;
+}
+
+.kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.kpi-card .kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.kpi-card .kpi-icon { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; }
+.kpi-card .kpi-icon svg { width: 16px; height: 16px; }
+.kpi-card .kpi-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.kpi-card .kpi-value { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+.kpi-card .kpi-sub { margin-top: 4px; font-size: 11.5px; color: var(--muted-2); }
+
+.tint-violet { background: var(--primary-soft); color: var(--primary); }
+.tint-success { background: var(--success-soft); color: var(--success); }
+.tint-warning { background: var(--warning-soft); color: var(--warning); }
+.tint-info { background: var(--info-soft); color: var(--info); }
+.tint-danger { background: var(--danger-soft); color: var(--danger); }
+
+/* ---------------------------------------------------------------------- */
+/* Charts                                                                 */
+/* ---------------------------------------------------------------------- */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  animation: fadeInUp 0.4s ease both;
+}
+
+.panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.panel-head h3 { font-size: 14px; font-weight: 700; }
+.panel-head .panel-sub { font-size: 11.5px; color: var(--muted); }
+.chart-wrap { position: relative; height: 240px; }
+
+/* ---------------------------------------------------------------------- */
+/* Insights                                                               */
+/* ---------------------------------------------------------------------- */
+.insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+
+.insight-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  animation: fadeInUp 0.4s ease both;
+}
+
+.insight-card .insight-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; margin-bottom: 10px; }
+.insight-card .insight-icon svg { width: 15px; height: 15px; }
+.insight-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.insight-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.insight-card .insight-highlight { color: var(--primary); font-weight: 700; }
+
+/* ---------------------------------------------------------------------- */
+/* Activity timeline                                                      */
+/* ---------------------------------------------------------------------- */
+.timeline { display: flex; flex-direction: column; }
+
+.timeline-item {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn 0.4s ease both;
+}
+
+.timeline-item:last-child { border-bottom: none; padding-bottom: 0; }
+.timeline-item:first-child { padding-top: 0; }
+
+.timeline-dot { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; }
+.timeline-dot svg { width: 14px; height: 14px; }
+.timeline-body .timeline-text { font-size: 13px; }
+.timeline-body .timeline-text strong { font-weight: 600; }
+.timeline-body .timeline-time { font-size: 11.5px; color: var(--muted-2); margin-top: 2px; }
+
+/* ---------------------------------------------------------------------- */
+/* Top verses                                                             */
+/* ---------------------------------------------------------------------- */
+.verse-list { display: flex; flex-direction: column; gap: 12px; }
+
+.verse-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  animation: fadeInUp 0.4s ease both;
+}
+
+.verse-rank {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.verse-info { flex: 1; min-width: 0; }
+.verse-ref { font-size: 13.5px; font-weight: 600; margin-bottom: 6px; }
+.verse-progress-track { height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; }
+.verse-progress-fill { height: 100%; border-radius: 999px; background: var(--gradient); width: 0; transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+.verse-count { font-size: 12.5px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+
+/* ---------------------------------------------------------------------- */
+/* Recent users table                                                     */
+/* ---------------------------------------------------------------------- */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+table { width: 100%; border-collapse: collapse; min-width: 640px; }
+
+thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-2);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: background 0.15s ease; }
+tbody tr:hover { background: var(--surface-2); }
+
+.user-cell { display: flex; align-items: center; gap: 10px; }
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-name { font-weight: 600; }
+.user-email { color: var(--muted); font-size: 12px; }
+
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+
+/* ---------------------------------------------------------------------- */
+/* Loading skeletons                                                      */
+/* ---------------------------------------------------------------------- */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-kpi { height: 92px; }
+.skeleton-panel { height: 300px; }
+.skeleton-row { height: 52px; margin-bottom: 8px; }
+
+/* ---------------------------------------------------------------------- */
+/* Error state                                                            */
+/* ---------------------------------------------------------------------- */
+.state-card {
+  max-width: 420px;
+  margin: 60px auto;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  box-shadow: var(--shadow-md);
+  animation: fadeInUp 0.4s ease;
+}
+
+.state-card .state-icon { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; margin: 0 auto 18px; }
+.state-card .state-icon svg { width: 26px; height: 26px; }
+.state-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.state-card p { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+
+/* ---------------------------------------------------------------------- */
+/* Empty state (pure CSS illustration)                                    */
+/* ---------------------------------------------------------------------- */
+.empty-illustration { width: 90px; height: 90px; margin: 0 auto 16px; position: relative; }
+.empty-illustration .ring { position: absolute; inset: 0; border-radius: 50%; border: 2px dashed var(--border); animation: spin-slow 12s linear infinite; }
+.empty-illustration .core { position: absolute; inset: 22px; border-radius: 50%; background: var(--primary-soft); display: grid; place-items: center; }
+.empty-illustration .core svg { width: 22px; height: 22px; color: var(--primary); }
+
+/* ---------------------------------------------------------------------- */
+/* Animations                                                             */
+/* ---------------------------------------------------------------------- */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* ---------------------------------------------------------------------- */
+/* Responsive                                                             */
+/* ---------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .charts-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 860px) {
+  #app { grid-template-columns: 1fr; }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 264px;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+    transition: transform 0.25s ease;
+  }
+
+  #app.sidebar-open .sidebar { transform: translateX(0); }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 25;
+  }
+
+  #app.sidebar-open .sidebar-backdrop { display: block; }
+
+  .topbar-menu-btn { display: grid; }
+  .topbar-datetime { display: none; }
+  .content { padding: 16px; }
+  .hero { padding: 22px 20px; }
+  .btn-primary span, .btn-secondary span { display: none; }
+}
+
+@media (max-width: 520px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero .hero-meta { gap: 14px; }
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" defer></script>
 </head>
 <body>
 
-<!-- =======================
-     MOBILE MENU BUTTON
-======================== -->
+<!-- ============================== GATE ============================== -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">V</div>
+    <h1>VerseID Admin</h1>
+    <p>Enter your admin key to view live production stats from your backend.</p>
+    <form id="gate-form">
+      <input id="admin-key-input" type="password" placeholder="Admin key" autocomplete="off" required />
+      <button type="submit" class="btn-primary"><span>Continue</span></button>
+      <div class="gate-error" id="gate-error"></div>
+    </form>
+  </div>
+</div>
 
-<button class="menu-toggle" id="menuToggle">
-    ☰
-</button>
+<!-- ============================== APP ================================ -->
+<div id="app" class="hidden">
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-<!-- =======================
-     SIDEBAR
-======================== -->
-
-<aside class="sidebar" id="sidebar">
-
-    <div class="sidebar-header">
-        <h2>VerseID</h2>
-        <p>Admin Dashboard</p>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">V</div>
+      <span>VerseID Admin</span>
     </div>
 
     <nav>
-
-        <a href="#" class="active">
-            <span>🏠</span>
-            Dashboard
-        </a>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-footer">
-
-        <div class="admin">
-
-        <div class="avatar">
-
-            A
-
-        </div>
-
-        <div>
-
-            <h4>Administrator</h4>
-
-            <p>VerseID Admin</p>
-
-        </div>
-
-    </div>
-
-</div>
-        <a href="#">
-            <span>👥</span>
-            Users
-        </a>
-
-        <a href="#">
-            <span>🔍</span>
-            Searches
-        </a>
-
-        <a href="#">
-            <span>💳</span>
-            Subscriptions
-        </a>
-
-        <a href="#">
-            <span>📖</span>
-            Saved Verses
-        </a>
-
-        <a href="#">
-            <span>📈</span>
-            Analytics
-        </a>
-
-        <a href="#">
-            <span>⚙</span>
-            Settings
-        </a>
-
+      <div class="nav-item active" data-view="dashboard">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg></span>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-item" data-view="users">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <span>Users</span>
+        <span class="sidebar-spacer"></span>
+      </div>
+      <div class="nav-item" data-view="searches">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+        <span>Searches</span>
+      </div>
+      <div class="nav-item" data-view="subscriptions">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></span>
+        <span>Subscriptions</span>
+      </div>
+      <div class="nav-item" data-view="saved">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
+        <span>Saved Verses</span>
+      </div>
+      <div class="nav-item" data-view="analytics">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span>
+        <span>Analytics</span>
+      </div>
+      <div class="nav-item" data-view="settings">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <span>Settings</span>
+      </div>
     </nav>
 
-</aside>
+    <div class="sidebar-spacer"></div>
 
-<!-- =======================
-     MAIN CONTENT
-======================== -->
+    <div class="admin-profile">
+      <div class="avatar">A</div>
+      <div class="info">
+        <div class="name">Administrator</div>
+        <div class="role">VerseID Admin</div>
+      </div>
+    </div>
+  </aside>
 
-<main class="main-content">
-
-    <!-- =======================
-         TOPBAR
-    ======================== -->
-
+  <!-- Main column -->
+  <div class="main">
+    <!-- Topbar -->
     <header class="topbar">
-
-        <div>
-
-            <h1>
-                Dashboard
-            </h1>
-
-            <p>
-                Monitor VerseID in real time.
-            </p>
-
-        </div>
-
-        <div class="topbar-actions">
-
-            <div class="status">
-
-                <span class="status-dot"></span>
-
-                Live
-
-            </div>
-
-            <button id="refreshBtn">
-
-                Refresh
-
-            </button>
-
-            <button>
-
-                Export
-
-            </button>
-
-        </div>
-
+      <button class="topbar-menu-btn" id="topbar-menu-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      <button class="icon-btn" id="sidebar-collapse-btn" title="Collapse sidebar" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      <h1>Dashboard</h1>
+      <div class="live-badge"><span class="live-dot"></span>Live</div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-datetime" id="topbar-datetime"></div>
+      <button class="icon-btn" id="refresh-btn" title="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+      <button class="btn-secondary" id="export-btn"><span>Export</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg></button>
+      <button class="icon-btn" id="theme-toggle" title="Toggle theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
     </header>
 
-    <!-- =======================
-         HERO
-    ======================== -->
+    <div class="content">
 
-    <section class="hero">
+      <!-- ---------- Loading skeleton ---------- -->
+      <div id="state-loading">
+        <div class="skeleton" style="height:150px; border-radius:20px; margin-bottom:24px;"></div>
+        <div class="kpi-grid">
+          <div class="skeleton skeleton-kpi"></div><div class="skeleton skeleton-kpi"></div>
+          <div class="skeleton skeleton-kpi"></div><div class="skeleton skeleton-kpi"></div>
+        </div>
+        <div class="charts-row" style="margin-top:24px;">
+          <div class="skeleton skeleton-panel"></div>
+          <div class="skeleton skeleton-panel"></div>
+        </div>
+      </div>
 
-        <div>
+      <!-- ---------- Error state ---------- -->
+      <div id="state-error" class="hidden">
+        <div class="state-card">
+          <div class="state-icon tint-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
+          <h3>Couldn't load your stats</h3>
+          <p id="error-message">Something went wrong.</p>
+          <button class="btn-primary" id="retry-btn" style="justify-content:center; width:100%;"><span>Try again</span></button>
+        </div>
+      </div>
 
-            <span class="hero-badge">
+      <!-- ---------- Dashboard content ---------- -->
+      <div id="dashboard-content" class="hidden">
 
-                ✨ Production Analytics
+        <!-- === Dashboard (overview) === -->
+        <section class="view" data-view="dashboard">
+          <div class="hero">
+            <h2>Welcome back, Administrator</h2>
+            <p>Here's what's happening across VerseID right now.</p>
+            <div class="hero-meta" id="hero-meta"></div>
+          </div>
+          <div style="margin-top:6px; font-size:11.5px; color:var(--muted);" id="hero-updated"></div>
 
-            </span>
+          <div class="section-title">Overview</div>
+          <div class="kpi-grid" id="kpi-grid"></div>
 
-            <h2>
+          <div class="section-title">Analytics</div>
+          <div class="charts-row">
+            <div class="panel">
+              <div class="panel-head"><div><h3>New Users</h3><div class="panel-sub">Last 30 days</div></div></div>
+              <div class="chart-wrap"><canvas id="chart-signups"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><div><h3>Searches</h3><div class="panel-sub">Last 30 days</div></div></div>
+              <div class="chart-wrap"><canvas id="chart-searches"></canvas></div>
+            </div>
+          </div>
 
-                Welcome back 👋
+          <div class="section-title">AI Insights</div>
+          <div class="insights-grid" id="insights-grid"></div>
 
-            </h2>
+          <div class="section-title">Recent Activity</div>
+          <div class="panel"><div class="timeline" id="activity-timeline"></div></div>
 
-            <p>
+          <div class="section-title">Top Verses</div>
+          <div class="panel"><div class="verse-list" data-role="top-verses"></div></div>
+        </section>
 
-                Monitor users, subscriptions, searches and platform growth
-                from one beautiful dashboard.
+        <!-- === Users === -->
+        <section class="view hidden" data-view="users">
+          <div class="section-title">User Metrics</div>
+          <div class="kpi-grid" id="kpi-grid-users"></div>
 
+          <div class="section-title">Recent Users</div>
+          <div data-role="recent-users"></div>
+        </section>
+
+        <!-- === Searches === -->
+        <section class="view hidden" data-view="searches">
+          <div class="section-title">Search Metrics</div>
+          <div class="kpi-grid" id="kpi-grid-searches"></div>
+
+          <div class="section-title">Top Verses</div>
+          <div class="panel"><div class="verse-list" data-role="top-verses"></div></div>
+        </section>
+
+        <!-- === Subscriptions === -->
+        <section class="view hidden" data-view="subscriptions">
+          <div class="section-title">Subscription Metrics</div>
+          <div class="kpi-grid" id="kpi-grid-subscriptions"></div>
+
+          <div class="section-title">Revenue</div>
+          <div class="panel">
+            <p style="font-size:13px; color:var(--muted); line-height:1.6;">
+              Monthly recurring revenue is calculated from currently active subscriptions —
+              monthly plans counted in full, annual plans counted as 1/12th of their total value.
+              See the MRR card above for the current figure.
             </p>
+          </div>
+        </section>
 
-        </div>
+        <!-- === Saved Verses === -->
+        <section class="view hidden" data-view="saved">
+          <div class="section-title">Saved Verses</div>
+          <div class="kpi-grid" id="kpi-grid-saved"></div>
 
-        <div class="hero-right">
+          <div class="section-title">Most Identified Verses</div>
+          <div class="panel"><div class="verse-list" data-role="top-verses"></div></div>
+        </section>
 
-            <div class="hero-stat">
+        <!-- === Analytics (full) === -->
+        <section class="view hidden" data-view="analytics">
+          <div class="section-title">All Metrics</div>
+          <div class="kpi-grid" id="kpi-grid-analytics"></div>
 
-                <h3 id="lastUpdated">
-
-                    ---
-
-                </h3>
-
-                <span>
-
-                    Last Updated
-
-                </span>
-
+          <div class="section-title">Trends</div>
+          <div class="charts-row">
+            <div class="panel">
+              <div class="panel-head"><div><h3>New Users</h3><div class="panel-sub">Last 30 days</div></div></div>
+              <div class="chart-wrap"><canvas id="chart-signups-2"></canvas></div>
             </div>
-
-        </div>
-
-    </section>
-
-    <!-- =======================
-         KPI CARDS
-         (Next Part)
-    ======================== -->
-
-    <section id="statsGrid" class="stats-grid">
-
-    </section>
-
-    <!-- =======================
-         CHARTS
-         (Next Part)
-    ======================== -->
-
-    <section class="charts-grid">
-
-    </section>
-
-    <!-- =======================
-         AI INSIGHTS
-         (Next Part)
-    ======================== -->
-
-    <section id="insights">
-
-    </section>
-
-    <!-- =======================
-         RECENT ACTIVITY
-         (Next Part)
-    ======================== -->
-
-    <section id="activity">
-
-    </section>
-
-    <!-- =======================
-         TOP VERSES
-         (Next Part)
-    ======================== -->
-
-    <section id="topVerses">
-
-    </section>
-
-    <!-- =======================
-         RECENT USERS
-         (Next Part)
-    ======================== -->
-
-    <section id="recentUsers">
-
-    </section>
-
-    <!-- ===================================
-     ANALYTICS CHARTS
-==================================== -->
-
-<section class="charts-grid">
-
-    <div class="chart-card">
-
-        <div class="card-header">
-
-            <div>
-
-                <h3>New Users</h3>
-
-                <p>Last 30 Days</p>
-
+            <div class="panel">
+              <div class="panel-head"><div><h3>Searches</h3><div class="panel-sub">Last 30 days</div></div></div>
+              <div class="chart-wrap"><canvas id="chart-searches-2"></canvas></div>
             </div>
+          </div>
 
-            <span class="growth positive">
-                ▲ 18%
-            </span>
+          <div class="section-title">AI Insights</div>
+          <div class="insights-grid" id="insights-grid-2"></div>
+        </section>
 
-        </div>
+        <!-- === Settings === -->
+        <section class="view hidden" data-view="settings">
+          <div class="section-title">Admin Access</div>
+          <div class="panel">
+            <p style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.6;">
+              Your admin key is stored only in this browser's local storage and sent as the
+              <code>X-Admin-Key</code> header on every request. It is never sent anywhere else.
+            </p>
+            <button class="btn-secondary" id="sign-out-btn"><span>Clear admin key &amp; sign out</span></button>
+          </div>
 
-        <canvas id="signupsChart"></canvas>
+          <div class="section-title">About</div>
+          <div class="panel">
+            <p style="font-size:13px; color:var(--muted); line-height:1.6;">
+              This dashboard reads exclusively from <code>GET /api/v1/admin/stats/</code> on your
+              existing backend. It does not write, modify, or store any data server-side — everything
+              here is read-only reporting.
+            </p>
+          </div>
+        </section>
 
+      </div>
     </div>
+  </div>
+</div>
 
-    <div class="chart-card">
+<script>
+// ======================================================================
+// script.js — combined inline
+// ======================================================================
+"use strict";
 
-        <div class="card-header">
 
-            <div>
+const STORAGE_KEY_ADMIN = "verseid_admin_key";
+const STORAGE_KEY_THEME = "verseid_admin_theme";
 
-                <h3>Search Activity</h3>
+// Same-origin by default (this file is normally served by the Django app
+// itself at /admin-dashboard/, so relative /api/v1/... just works and
+// never touches CORS). If you host these files somewhere else, set an
+// absolute API_BASE below instead, e.g. "https://api.verseid.top/api/v1".
+const API_BASE = "/api/v1";
 
-                <p>Last 30 Days</p>
+const state = {
+  data: null,
+  charts: { signups: null, searches: null },
+  currentView: "dashboard",
+  sidebarCollapsed: false,
+  refreshTimer: null,
+};
 
-            </div>
+/* ---------------------------------------------------------------------- */
+/* Small utilities                                                        */
+/* ---------------------------------------------------------------------- */
 
-            <span class="growth positive">
-                ▲ 12%
-            </span>
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+function getAdminKey() {
+  return localStorage.getItem(STORAGE_KEY_ADMIN) || "";
+}
+
+function setAdminKey(key) {
+  localStorage.setItem(STORAGE_KEY_ADMIN, key);
+}
+
+function clearAdminKey() {
+  localStorage.removeItem(STORAGE_KEY_ADMIN);
+}
+
+function formatNumber(n) {
+  return new Intl.NumberFormat("en-US").format(n || 0);
+}
+
+function formatNaira(n) {
+  return "\u20a6" + new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n || 0);
+}
+
+function formatDate(iso) {
+  if (!iso) return "\u2014";
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatTime(iso) {
+  if (!iso) return "\u2014";
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatRelativeTime(iso) {
+  if (!iso) return "\u2014";
+  const then = new Date(iso).getTime();
+  const now = Date.now();
+  const diffSec = Math.round((now - then) / 1000);
+
+  if (diffSec < 60) return "just now";
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  if (diffDay < 30) return `${diffDay}d ago`;
+  const diffMonth = Math.round(diffDay / 30);
+  return `${diffMonth}mo ago`;
+}
+
+function initials(name) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] || "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase();
+}
+
+/** Animates a number counting up from 0 to `target`. */
+function animateCount(el, target, { duration = 900, formatter = formatNumber } = {}) {
+  const startTime = performance.now();
+
+  function tick(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    const value = Math.round(target * eased);
+    el.textContent = formatter(value);
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function svgIcon(name) {
+  const icons = {
+    dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>',
+    users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+    card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>',
+    bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+    chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>',
+    settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>',
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>',
+    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+    menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>',
+    trend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>',
+    crown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 17l1.5-9L9 12l3-8 3 8 3.5-4L20 17H4z"/></svg>',
+    pulse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+    naira: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v18M18 3v18M4 9h16M4 15h16"/></svg>',
+    alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+    inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+    google: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+  };
+  return icons[name] || icons.dashboard;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Theme                                                                  */
+/* ---------------------------------------------------------------------- */
+
+function initTheme() {
+  const saved = localStorage.getItem(STORAGE_KEY_THEME);
+  const theme = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  applyTheme(theme);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem(STORAGE_KEY_THEME, theme);
+  const btn = $("#theme-toggle");
+  if (btn) btn.innerHTML = theme === "dark" ? svgIcon("sun") : svgIcon("moon");
+  if (state.data) renderCharts(state.data);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+
+/* ---------------------------------------------------------------------- */
+/* Gate (admin key entry)                                                 */
+/* ---------------------------------------------------------------------- */
+
+function showGate(errorMessage) {
+  $("#gate").classList.remove("hidden");
+  $("#app").classList.add("hidden");
+  $("#gate-error").textContent = errorMessage || "";
+  $("#admin-key-input").focus();
+}
+
+function showApp() {
+  $("#gate").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+}
+
+function handleGateSubmit(e) {
+  e.preventDefault();
+  const key = $("#admin-key-input").value.trim();
+  if (!key) return;
+  setAdminKey(key);
+  boot();
+}
+
+/* ---------------------------------------------------------------------- */
+/* Data fetching                                                          */
+/* ---------------------------------------------------------------------- */
+
+async function fetchStats() {
+  const key = getAdminKey();
+  const res = await fetch(`${API_BASE}/admin/stats/`, {
+    headers: { "X-Admin-Key": key },
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    const err = new Error("Invalid admin key.");
+    err.isAuthError = true;
+    throw err;
+  }
+  if (!res.ok) {
+    throw new Error(`Server returned ${res.status}`);
+  }
+  return res.json();
+}
+
+async function loadDashboard({ isRefresh = false } = {}) {
+  showLoading();
+  const refreshBtn = $("#refresh-btn");
+  if (isRefresh && refreshBtn) refreshBtn.classList.add("spinning");
+
+  try {
+    const data = await fetchStats();
+    state.data = data;
+    renderAll(data);
+    showContent();
+  } catch (err) {
+    if (err.isAuthError) {
+      clearAdminKey();
+      showGate("That admin key was rejected. Please try again.");
+      return;
+    }
+    showError(err.message);
+  } finally {
+    if (refreshBtn) refreshBtn.classList.remove("spinning");
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Loading / error states                                                */
+/* ---------------------------------------------------------------------- */
+
+function showLoading() {
+  $("#state-loading").classList.remove("hidden");
+  $("#state-error").classList.add("hidden");
+  $("#dashboard-content").classList.add("hidden");
+}
+
+function showContent() {
+  $("#state-loading").classList.add("hidden");
+  $("#state-error").classList.add("hidden");
+  $("#dashboard-content").classList.remove("hidden");
+}
+
+function showError(message) {
+  $("#state-loading").classList.add("hidden");
+  $("#dashboard-content").classList.add("hidden");
+  $("#state-error").classList.remove("hidden");
+  $("#error-message").textContent = message || "Something went wrong while loading your stats.";
+}
+
+/* ---------------------------------------------------------------------- */
+/* Rendering: orchestrator                                                */
+/* ---------------------------------------------------------------------- */
+
+function renderAll(data) {
+  renderTopbarMeta(data);
+  renderHero(data);
+  renderKpis(data);
+  renderCharts(data);
+  renderInsights(data);
+  renderActivityTimeline(data);
+  renderTopVerses(data);
+  renderRecentUsers(data);
+  updateNavBadges(data);
+}
+
+function renderTopbarMeta(data) {
+  const el = $("#topbar-datetime");
+  if (el) {
+    el.textContent = new Date(data.generatedAt).toLocaleString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Rendering: hero                                                        */
+/* ---------------------------------------------------------------------- */
+
+function renderHero(data) {
+  const t = data.totals;
+  $("#hero-updated").textContent = `Updated ${formatRelativeTime(data.generatedAt)}`;
+
+  const stats = [
+    { label: "Total users", value: formatNumber(t.users) },
+    { label: "Active this week", value: formatNumber(t.activeLast7Days) },
+    { label: "MRR", value: formatNaira(t.mrrNaira) },
+    { label: "Searches today", value: formatNumber(t.searchesToday) },
+  ];
+
+  $("#hero-meta").innerHTML = stats
+    .map((s) => `<div class="stat"><div class="value">${s.value}</div><div class="label">${s.label}</div></div>`)
+    .join("");
+}
+
+/* ---------------------------------------------------------------------- */
+/* Rendering: KPI cards                                                   */
+/* ---------------------------------------------------------------------- */
+
+const KPI_DEFS = [
+  { key: "users", label: "Total Users", icon: "users", tint: "violet", view: "users" },
+  { key: "newToday", label: "New Today", icon: "plus", tint: "success", view: "users" },
+  { key: "newThisWeek", label: "New This Week", icon: "trend", tint: "success", view: "users" },
+  { key: "newThisMonth", label: "New This Month", icon: "trend", tint: "info", view: "users" },
+  { key: "activeLast7Days", label: "Active (7 Days)", icon: "pulse", tint: "info", view: "users" },
+  { key: "totalSearches", label: "Total Searches", icon: "search", tint: "violet", view: "searches" },
+  { key: "searchesToday", label: "Searches Today", icon: "search", tint: "warning", view: "searches" },
+  { key: "proUsers", label: "Pro Users", icon: "crown", tint: "warning", view: "subscriptions" },
+  { key: "freeUsers", label: "Free Users", icon: "users", tint: "info", view: "subscriptions" },
+  { key: "activeSubscriptions", label: "Subscriptions", icon: "card", tint: "success", view: "subscriptions" },
+  { key: "mrrNaira", label: "MRR", icon: "naira", tint: "success", view: "subscriptions", isCurrency: true },
+  { key: "totalSaved", label: "Saved Verses", icon: "bookmark", tint: "violet", view: "saved" },
+  { key: "googleSignups", label: "Google Signups", icon: "google", tint: "info", view: "users" },
+  { key: "emailSignups", label: "Email Signups", icon: "inbox", tint: "violet", view: "users" },
+];
+
+function renderKpis(data, { view = null, containerId = "kpi-grid" } = {}) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const defs = view ? KPI_DEFS.filter((d) => d.view === view) : KPI_DEFS;
+  const t = data.totals;
+
+  container.innerHTML = defs
+    .map(
+      (d, i) => `
+      <div class="kpi-card" style="animation-delay:${i * 0.03}s">
+        <div class="kpi-top">
+          <div class="kpi-icon tint-${d.tint}">${svgIcon(d.icon)}</div>
         </div>
+        <div class="kpi-label">${d.label}</div>
+        <div class="kpi-value" data-kpi="${d.key}">0</div>
+      </div>`
+    )
+    .join("");
 
-        <canvas id="searchesChart"></canvas>
+  defs.forEach((d) => {
+    const el = container.querySelector(`[data-kpi="${d.key}"]`);
+    if (!el) return;
+    const target = t[d.key] || 0;
+    animateCount(el, target, { formatter: d.isCurrency ? formatNaira : formatNumber });
+  });
+}
 
-    </div>
+function updateNavBadges(data) {
+  const t = data.totals;
+  const map = {
+    "nav-users": t.users,
+    "nav-searches": t.totalSearches,
+    "nav-subscriptions": t.activeSubscriptions,
+    "nav-saved": t.totalSaved,
+  };
+  Object.entries(map).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = formatNumber(value);
+  });
+}
 
-</section>
+/* ---------------------------------------------------------------------- */
+/* Rendering: charts                                                      */
+/* ---------------------------------------------------------------------- */
 
-<!-- ===================================
-     AI INSIGHTS
-==================================== -->
+function chartColors() {
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  return {
+    grid: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+    text: dark ? "#9a9aab" : "#6b6b7b",
+  };
+}
 
-<section class="section">
+function buildLineChart(canvasId, labels, values, colorFrom, colorTo) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || typeof Chart === "undefined") return null;
+  const ctx = canvas.getContext("2d");
 
-    <div class="section-header">
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight || 240);
+  gradient.addColorStop(0, colorFrom);
+  gradient.addColorStop(1, colorTo);
 
-        <h2>AI Insights</h2>
+  const colors = chartColors();
 
-        <span>Live Analysis</span>
+  return new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          data: values,
+          borderColor: "#8b5cf6",
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          borderWidth: 2.5,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: colors.text, font: { size: 10.5 }, maxTicksLimit: 8 } },
+        y: { beginAtZero: true, grid: { color: colors.grid }, ticks: { color: colors.text, font: { size: 10.5 } } },
+      },
+      interaction: { intersect: false, mode: "index" },
+    },
+  });
+}
 
-    </div>
+function renderCharts(data) {
+  if (state.charts.signups) state.charts.signups.destroy();
+  if (state.charts.searches) state.charts.searches.destroy();
 
-    <div class="insights-grid">
+  const signupLabels = data.signupsByDay.map((d) => d.date.slice(5));
+  const signupValues = data.signupsByDay.map((d) => d.count);
+  const searchLabels = data.searchesByDay.map((d) => d.date.slice(5));
+  const searchValues = data.searchesByDay.map((d) => d.count);
 
-        <div class="insight-card">
+  state.charts.signups = buildLineChart(
+    "chart-signups",
+    signupLabels,
+    signupValues,
+    "rgba(139,92,246,0.35)",
+    "rgba(139,92,246,0)"
+  );
+  state.charts.searches = buildLineChart(
+    "chart-searches",
+    searchLabels,
+    searchValues,
+    "rgba(217,70,239,0.32)",
+    "rgba(217,70,239,0)"
+  );
+}
 
-            <div class="insight-icon">
-                📈
-            </div>
+/* ---------------------------------------------------------------------- */
+/* Rendering: AI-style insights (derived client-side from the stats data) */
+/* ---------------------------------------------------------------------- */
 
-            <h3>Searches Increased</h3>
+function renderInsights(data) {
+  const t = data.totals;
+  const container = $("#insights-grid");
+  if (!container) return;
 
-            <h1 id="searchGrowth">
+  const topVerse = data.topVerses[0];
+  const proRatio = t.users > 0 ? Math.round((t.proUsers / t.users) * 100) : 0;
 
-                +18%
+  const half = Math.floor(data.signupsByDay.length / 2) || 1;
+  const firstHalf = data.signupsByDay.slice(0, half).reduce((sum, d) => sum + d.count, 0);
+  const secondHalf = data.signupsByDay.slice(half).reduce((sum, d) => sum + d.count, 0);
+  const growthPct = firstHalf > 0 ? Math.round(((secondHalf - firstHalf) / firstHalf) * 100) : secondHalf > 0 ? 100 : 0;
 
-            </h1>
+  const searchHalf = Math.floor(data.searchesByDay.length / 2) || 1;
+  const searchFirst = data.searchesByDay.slice(0, searchHalf).reduce((sum, d) => sum + d.count, 0);
+  const searchSecond = data.searchesByDay.slice(searchHalf).reduce((sum, d) => sum + d.count, 0);
+  const searchGrowthPct = searchFirst > 0 ? Math.round(((searchSecond - searchFirst) / searchFirst) * 100) : searchSecond > 0 ? 100 : 0;
 
-            <p>Compared with yesterday</p>
+  const healthLabel = t.activeLast7Days / Math.max(t.users, 1) > 0.3 ? "Healthy" : t.users === 0 ? "No data yet" : "Needs attention";
+  const healthTint = healthLabel === "Healthy" ? "success" : t.users === 0 ? "info" : "warning";
 
+  const insights = [
+    {
+      icon: "bookmark",
+      tint: "violet",
+      title: "Trending Verse",
+      body: topVerse
+        ? `<span class="insight-highlight">${escapeHtml(topVerse.ref)}</span> is your most identified verse, found ${formatNumber(topVerse.count)} times.`
+        : "No verse searches recorded yet.",
+    },
+    {
+      icon: "trend",
+      tint: growthPct >= 0 ? "success" : "danger",
+      title: "Signup Growth",
+      body: `New signups are <span class="insight-highlight">${growthPct >= 0 ? "up" : "down"} ${Math.abs(growthPct)}%</span> in the last 15 days vs. the 15 before that.`,
+    },
+    {
+      icon: "search",
+      tint: searchGrowthPct >= 0 ? "success" : "danger",
+      title: "Search Activity",
+      body: `Search volume is <span class="insight-highlight">${searchGrowthPct >= 0 ? "up" : "down"} ${Math.abs(searchGrowthPct)}%</span> over the same comparison window.`,
+    },
+    {
+      icon: "crown",
+      tint: "warning",
+      title: "Pro Conversion",
+      body: `<span class="insight-highlight">${proRatio}%</span> of your total users are on Pro (${formatNumber(t.proUsers)} of ${formatNumber(t.users)}).`,
+    },
+    {
+      icon: "naira",
+      tint: "success",
+      title: "Monthly Revenue",
+      body: `Current MRR is <span class="insight-highlight">${formatNaira(t.mrrNaira)}</span> across ${formatNumber(t.activeSubscriptions)} active subscriptions.`,
+    },
+    {
+      icon: "pulse",
+      tint: healthTint,
+      title: "Platform Health",
+      body: `<span class="insight-highlight">${healthLabel}</span> \u2014 ${formatNumber(t.activeLast7Days)} of ${formatNumber(t.users)} users were active in the last 7 days.`,
+    },
+  ];
+
+  container.innerHTML = insights
+    .map(
+      (ins, i) => `
+      <div class="insight-card" style="animation-delay:${i * 0.04}s">
+        <div class="insight-icon tint-${ins.tint}">${svgIcon(ins.icon)}</div>
+        <h4>${ins.title}</h4>
+        <p>${ins.body}</p>
+      </div>`
+    )
+    .join("");
+}
+
+/* ---------------------------------------------------------------------- */
+/* Rendering: activity timeline (derived from recentUsers + topVerses)    */
+/* ---------------------------------------------------------------------- */
+
+function renderActivityTimeline(data) {
+  const container = $("#activity-timeline");
+  if (!container) return;
+
+  const events = [];
+
+  data.recentUsers.slice(0, 6).forEach((u) => {
+    events.push({
+      time: u.createdAt,
+      icon: u.signupMethod === "google" ? "google" : "inbox",
+      tint: u.plan === "Pro" ? "warning" : "info",
+      text: `<strong>${escapeHtml(u.name)}</strong> joined via ${u.signupMethod === "google" ? "Google" : "email"}${u.plan === "Pro" ? " on the Pro plan" : ""}`,
+    });
+  });
+
+  if (data.topVerses[0]) {
+    events.push({
+      time: data.generatedAt,
+      icon: "bookmark",
+      tint: "violet",
+      text: `<strong>${escapeHtml(data.topVerses[0].ref)}</strong> is trending with ${formatNumber(data.topVerses[0].count)} identifications`,
+    });
+  }
+
+  events.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  if (events.length === 0) {
+    container.innerHTML = emptyStateHtml("No recent activity yet.");
+    return;
+  }
+
+  container.innerHTML = events
+    .slice(0, 8)
+    .map(
+      (ev) => `
+      <div class="timeline-item">
+        <div class="timeline-dot tint-${ev.tint}">${svgIcon(ev.icon)}</div>
+        <div class="timeline-body">
+          <div class="timeline-text">${ev.text}</div>
+          <div class="timeline-time">${formatRelativeTime(ev.time)}</div>
         </div>
+      </div>`
+    )
+    .join("");
+}
 
-        <div class="insight-card">
+/* ---------------------------------------------------------------------- */
+/* Rendering: top verses                                                  */
+/* ---------------------------------------------------------------------- */
 
-            <div class="insight-icon">
-                🔥
-            </div>
+function renderTopVerses(data) {
+  const containers = $$('[data-role="top-verses"]');
+  if (containers.length === 0) return;
 
-            <h3>Trending Verse</h3>
+  const verses = data.topVerses;
+  const maxCount = Math.max(...verses.map((v) => v.count), 1);
 
-            <h1 id="trendingVerse">
-
-                Psalm 23
-
-            </h1>
-
-            <p>Most searched today</p>
-
+  const html =
+    verses.length === 0
+      ? emptyStateHtml("No verses identified yet.")
+      : verses
+          .map(
+            (v, i) => `
+      <div class="verse-card" style="animation-delay:${i * 0.03}s">
+        <div class="verse-rank">${i + 1}</div>
+        <div class="verse-info">
+          <div class="verse-ref">${escapeHtml(v.ref)}</div>
+          <div class="verse-progress-track">
+            <div class="verse-progress-fill" data-width="${(v.count / maxCount) * 100}"></div>
+          </div>
         </div>
-
-        <div class="insight-card">
-
-            <div class="insight-icon">
-                💜
-            </div>
-
-            <h3>Pro Growth</h3>
-
-            <h1 id="proGrowth">
-
-                +43
-
-            </h1>
-
-            <p>New Pro users this week</p>
-
-        </div>
-
-        <div class="insight-card">
-
-            <div class="insight-icon">
-                ⚡
-            </div>
-
-            <h3>Platform Health</h3>
-
-            <h1>
-
-                99.9%
-
-            </h1>
-
-            <p>Server uptime</p>
-
-        </div>
-
-    </div>
-
-</section>
-
-<!-- ===================================
-     RECENT ACTIVITY
-==================================== -->
-
-<section class="section">
-
-    <div class="section-header">
-
-        <h2>Recent Activity</h2>
-
-        <button class="view-all">
-
-            View All
-
-        </button>
-
-    </div>
-
-    <div class="activity-list" id="activityList">
-
-        <div class="activity-item">
-
-            <div class="activity-icon success">
-                👤
-            </div>
-
-            <div class="activity-content">
-
-                <h4>New user signed up</h4>
-
-                <p>Google Authentication</p>
-
-            </div>
-
-            <span>
-
-                2 mins ago
-
-            </span>
-
-        </div>
-
-        <div class="activity-item">
-
-            <div class="activity-icon purple">
-                🔍
-            </div>
-
-            <div class="activity-content">
-
-                <h4>Psalm 23 identified</h4>
-
-                <p>Voice Search</p>
-
-            </div>
-
-            <span>
-
-                5 mins ago
-
-            </span>
-
-        </div>
-
-        <div class="activity-item">
-
-            <div class="activity-icon green">
-                💳
-            </div>
-
-            <div class="activity-content">
-
-                <h4>Subscription Renewed</h4>
-
-                <p>Monthly Plan</p>
-
-            </div>
-
-            <span>
-
-                8 mins ago
-
-            </span>
-
-        </div>
-
-    </div>
-
-</section>
-
-<!-- ===================================
-     TOP VERSES
-==================================== -->
-
-<section class="section">
-
-    <div class="section-header">
-
-        <h2>Top Identified Verses</h2>
-
-        <button class="view-all">
-
-            View All
-
-        </button>
-
-    </div>
-
-    <div class="verses-grid" id="topVersesGrid">
-
-        <!-- JavaScript -->
-
-    </div>
-
-</section>
-
-<!-- ===================================
-     RECENT USERS
-==================================== -->
-
-<section class="section">
-
-    <div class="section-header">
-
-        <h2>Recent Users</h2>
-
-        <button class="view-all">
-
-            View All
-
-        </button>
-
-    </div>
-
-    <div class="table-wrapper">
-
-        <table class="users-table">
-
-            <thead>
-
-                <tr>
-
-                    <th>User</th>
-
-                    <th>Plan</th>
-
-                    <th>Method</th>
-
-                    <th>Searches</th>
-
-                    <th>Joined</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody id="recentUsersTable">
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</section>
-
-<!-- ===================================
-     DARK MODE BUTTON
-==================================== -->
-
-<button class="theme-toggle" id="themeToggle">
-
-    🌙
-
-</button>
-
-</main>
-
-<script src="script.js"></script>
-
+        <div class="verse-count">${formatNumber(v.count)}</div>
+      </div>`
+          )
+          .join("");
+
+  containers.forEach((c) => {
+    c.innerHTML = html;
+    requestAnimationFrame(() => {
+      $$(".verse-progress-fill", c).forEach((el) => {
+        el.style.width = el.dataset.width + "%";
+      });
+    });
+  });
+}
+
+/* ---------------------------------------------------------------------- */
+/* Rendering: recent users table                                         */
+/* ---------------------------------------------------------------------- */
+
+function renderRecentUsers(data) {
+  const containers = $$('[data-role="recent-users"]');
+  if (containers.length === 0) return;
+
+  const users = data.recentUsers;
+
+  const html =
+    users.length === 0
+      ? emptyStateHtml("No signups yet.")
+      : `
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Plan</th>
+            <th>Method</th>
+            <th>Identified</th>
+            <th>Joined</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users
+            .map(
+              (u) => `
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar">${initials(u.name)}</div>
+                  <div>
+                    <div class="user-name">${escapeHtml(u.name)}</div>
+                    <div class="user-email">${escapeHtml(u.email)}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge ${u.plan === "Pro" ? "tint-warning" : "tint-info"}">${escapeHtml(u.plan)}</span></td>
+              <td><span class="badge ${u.signupMethod === "google" ? "tint-info" : "tint-violet"}">${u.signupMethod === "google" ? "Google" : "Email"}</span></td>
+              <td>${formatNumber(u.identifiedCount)}</td>
+              <td>${formatDate(u.createdAt)}</td>
+            </tr>`
+            )
+            .join("")}
+        </tbody>
+      </table>
+      </div>`;
+
+  containers.forEach((c) => {
+    c.innerHTML = html;
+  });
+}
+
+function emptyStateHtml(message) {
+  return `
+    <div style="text-align:center; padding: 30px 10px;">
+      <div class="empty-illustration">
+        <div class="ring"></div>
+        <div class="core">${svgIcon("inbox")}</div>
+      </div>
+      <p style="font-size:13px; color:var(--muted);">${escapeHtml(message)}</p>
+    </div>`;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+/* ---------------------------------------------------------------------- */
+/* View switching (sidebar navigation)                                    */
+/* ---------------------------------------------------------------------- */
+
+function switchView(view) {
+  state.currentView = view;
+
+  $$(".nav-item[data-view]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.view === view);
+  });
+
+  $$(".view").forEach((section) => {
+    section.classList.toggle("hidden", section.dataset.view !== view);
+  });
+
+  if (state.data) {
+    const kpiContainerId = `kpi-grid-${view}`;
+    if (document.getElementById(kpiContainerId)) {
+      renderKpis(state.data, { view, containerId: kpiContainerId });
+    }
+  }
+
+  closeMobileSidebar();
+}
+
+/* ---------------------------------------------------------------------- */
+/* Sidebar (collapse + mobile drawer)                                     */
+/* ---------------------------------------------------------------------- */
+
+function toggleSidebarCollapse() {
+  state.sidebarCollapsed = !state.sidebarCollapsed;
+  $("#app").classList.toggle("sidebar-collapsed", state.sidebarCollapsed);
+}
+
+function openMobileSidebar() {
+  $("#app").classList.add("sidebar-open");
+}
+
+function closeMobileSidebar() {
+  $("#app").classList.remove("sidebar-open");
+}
+
+/* ---------------------------------------------------------------------- */
+/* Export (CSV of recent users + totals summary)                          */
+/* ---------------------------------------------------------------------- */
+
+function exportCsv() {
+  if (!state.data) return;
+  const t = state.data.totals;
+
+  const lines = [
+    "VerseID Admin Export",
+    `Generated,${state.data.generatedAt}`,
+    "",
+    "Metric,Value",
+    ...Object.entries(t).map(([k, v]) => `${k},${v}`),
+    "",
+    "Recent Users",
+    "Name,Email,Plan,Signup Method,Identified,Joined",
+    ...state.data.recentUsers.map(
+      (u) => `"${u.name}","${u.email}",${u.plan},${u.signupMethod},${u.identifiedCount},${u.createdAt}`
+    ),
+  ];
+
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `verseid-admin-export-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Boot                                                                   */
+/* ---------------------------------------------------------------------- */
+
+function wireEvents() {
+  $("#gate-form")?.addEventListener("submit", handleGateSubmit);
+  $("#refresh-btn")?.addEventListener("click", () => loadDashboard({ isRefresh: true }));
+  $("#export-btn")?.addEventListener("click", exportCsv);
+  $("#theme-toggle")?.addEventListener("click", toggleTheme);
+  $("#retry-btn")?.addEventListener("click", () => loadDashboard());
+  $("#sidebar-collapse-btn")?.addEventListener("click", toggleSidebarCollapse);
+  $("#topbar-menu-btn")?.addEventListener("click", openMobileSidebar);
+  $("#sidebar-backdrop")?.addEventListener("click", closeMobileSidebar);
+  $("#sign-out-btn")?.addEventListener("click", () => {
+    clearAdminKey();
+    if (state.refreshTimer) clearInterval(state.refreshTimer);
+    showGate("");
+  });
+
+  $$(".nav-item[data-view]").forEach((item) => {
+    item.addEventListener("click", () => switchView(item.dataset.view));
+  });
+}
+
+function startAutoRefresh() {
+  if (state.refreshTimer) clearInterval(state.refreshTimer);
+  // Passive background refresh — keeps "live" data reasonably fresh
+  // without the admin needing to click Refresh constantly.
+  state.refreshTimer = setInterval(() => loadDashboard({ isRefresh: true }), 5 * 60 * 1000);
+}
+
+function boot() {
+  if (!getAdminKey()) {
+    showGate("");
+    return;
+  }
+  showApp();
+  loadDashboard();
+  startAutoRefresh();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initTheme();
+  wireEvents();
+  boot();
+});
+</script>
 </body>
 </html>

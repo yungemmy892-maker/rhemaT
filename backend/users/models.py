@@ -74,7 +74,7 @@ class User(me.Document):
     # on an unauthenticated request.
     is_authenticated = True
 
-    FREE_DAILY_SEARCH_LIMIT = 20
+    FREE_DAILY_SEARCH_LIMIT = 6
 
     def touch_streak(self):
         """Call once per successful identification. Updates streak_count

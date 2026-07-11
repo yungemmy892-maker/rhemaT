@@ -87,6 +87,11 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_STORAGE_BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET", "avatars")
+
 # Base URL used to build absolute avatar URLs returned by the API (e.g.
 # "http://localhost:8000"). Needed because the frontend may be served from
 # a different origin than the backend.
