@@ -13,7 +13,9 @@ export const Route = createFileRoute("/auth")({
         name: "description",
         content: "Sign in or create a VerseID account to save and revisit your verses.",
       },
+      { property: "og:url", content: "https://verseid.top/auth" },
     ],
+    links: [{ rel: "canonical", href: "https://verseid.top/auth" }],
   }),
   component: Auth,
 });

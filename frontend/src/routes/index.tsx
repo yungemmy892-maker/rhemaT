@@ -13,6 +13,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "VerseID - Find Any Bible Verse Instantly" },
       { property: "og:description", content: "Shazam for Bible verses. Speak or type - VerseID finds it." },
     ],
+    links: [{ rel: "canonical", href: "https://verseid.top/" }],
   }),
   component: Landing,
 });

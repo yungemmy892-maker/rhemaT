@@ -2,7 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/terms")({
-  head: () => ({ meta: [{ title: "Terms of Service - VerseID" }] }),
+  head: () => ({
+    meta: [
+      { title: "Terms of Service - VerseID" },
+      {
+        name: "description",
+        content: "The terms and conditions for using VerseID's voice and text Bible verse search.",
+      },
+      { property: "og:url", content: "https://verseid.top/terms" },
+    ],
+    links: [{ rel: "canonical", href: "https://verseid.top/terms" }],
+  }),
   component: Terms,
 });
 

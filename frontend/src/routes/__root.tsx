@@ -103,7 +103,70 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Shazam for Bible verses. Speak or type — VerseID finds it.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://verseid.top/" },
+      { property: "og:site_name", content: "VerseID" },
+      {
+        property: "og:image",
+        content: "https://verseid.top/og-image.png",
+      },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "VerseID — Find Any Bible Verse Instantly" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "VerseID — Find Any Bible Verse Instantly" },
+      {
+        name: "twitter:description",
+        content: "Shazam for Bible verses. Speak or type — VerseID finds it.",
+      },
+      { name: "twitter:image", content: "https://verseid.top/og-image.png" },
+      {
+        "script:ld+json": {
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": "https://verseid.top/#organization",
+              name: "VerseID",
+              url: "https://verseid.top/",
+              logo: "https://verseid.top/logo.png",
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://verseid.top/#website",
+              name: "VerseID",
+              url: "https://verseid.top/",
+              description:
+                "VerseID identifies any Bible verse from your voice or a few words — speak or type a phrase you remember, and VerseID finds the exact verse.",
+              publisher: { "@id": "https://verseid.top/#organization" },
+              inLanguage: "en",
+            },
+            {
+              "@type": "WebApplication",
+              name: "VerseID",
+              url: "https://verseid.top/",
+              applicationCategory: "LifestyleApplication",
+              operatingSystem: "Any (web-based)",
+              description:
+                "Hear it. Speak it. Discover it. VerseID identifies any Bible verse from your voice or a few words.",
+              offers: [
+                {
+                  "@type": "Offer",
+                  name: "Free",
+                  price: "0",
+                  priceCurrency: "NGN",
+                },
+                {
+                  "@type": "Offer",
+                  name: "Pro",
+                  price: "1000",
+                  priceCurrency: "NGN",
+                  priceValidUntil: "2027-12-31",
+                },
+              ],
+            },
+          ],
+        },
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

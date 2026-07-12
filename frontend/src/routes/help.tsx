@@ -3,7 +3,34 @@ import { ArrowLeft, HelpCircle, Mic, Search, Bookmark, Bell, Crown, User, Shield
 import { useState } from "react";
 
 export const Route = createFileRoute("/help")({
-  head: () => ({ meta: [{ title: "Help & Support - VerseID" }] }),
+  head: () => ({
+    meta: [
+      { title: "Help & Support - VerseID" },
+      {
+        name: "description",
+        content:
+          "Answers to common questions about VerseID's voice search, Bible translations, Pro plan, notifications, and account settings.",
+      },
+      { property: "og:title", content: "Help & Support - VerseID" },
+      {
+        property: "og:description",
+        content: "Answers to common questions about VerseID's voice search, translations, and account settings.",
+      },
+      { property: "og:url", content: "https://verseid.top/help" },
+      {
+        "script:ld+json": {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: FAQS.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
+        },
+      },
+    ],
+    links: [{ rel: "canonical", href: "https://verseid.top/help" }],
+  }),
   component: Help,
 });
 

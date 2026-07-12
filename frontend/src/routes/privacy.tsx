@@ -2,7 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Shield } from "lucide-react";
 
 export const Route = createFileRoute("/privacy")({
-  head: () => ({ meta: [{ title: "Privacy Policy - VerseID" }] }),
+  head: () => ({
+    meta: [
+      { title: "Privacy Policy - VerseID" },
+      {
+        name: "description",
+        content: "How VerseID collects, uses, and protects your data, including voice search and account information.",
+      },
+      { property: "og:url", content: "https://verseid.top/privacy" },
+    ],
+    links: [{ rel: "canonical", href: "https://verseid.top/privacy" }],
+  }),
   component: Privacy,
 });
 
