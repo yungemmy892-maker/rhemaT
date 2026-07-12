@@ -21,6 +21,10 @@ TARGET_SIZE = 512  # square thumbnail, plenty for any avatar display size
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
 REQUEST_TIMEOUT = 15
 
+# L3: be explicit about the decompression-bomb pixel ceiling rather than
+# relying implicitly on Pillow's own default threshold.
+Image.MAX_IMAGE_PIXELS = 89_478_485
+
 
 class AvatarUploadError(Exception):
     pass
@@ -35,6 +39,10 @@ def _process_image(uploaded_file) -> Image.Image:
     ends up being stored."""
     if uploaded_file.size > MAX_UPLOAD_BYTES:
         raise AvatarUploadError("Image is too large (max 8MB).")
+
+    content_type = getattr(uploaded_file, "content_type", None)
+    if content_type and content_type not in ALLOWED_CONTENT_TYPES:
+        raise AvatarUploadError("That file type isn't supported. Please upload a JPEG, PNG, WEBP, or HEIC image.")
 
     try:
         image = Image.open(uploaded_file)

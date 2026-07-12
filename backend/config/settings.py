@@ -124,6 +124,18 @@ REST_FRAMEWORK = {
     # project uses MongoDB only. Setting to None tells DRF to leave request.user
     # unset for unauthenticated requests instead of using Django's AnonymousUser.
     "UNAUTHENTICATED_USER": None,
+    # Rate limiting (audit H1): unthrottled auth endpoints previously allowed
+    # unlimited password guessing / reset-code email-bombing. ScopedRateThrottle
+    # keys by client IP by default, which is what we want here since these
+    # endpoints are hit pre-authentication (no user to key on yet).
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "5/min",
+        "forgot-password": "3/hour",
+        "verify-reset-code": "10/hour",
+    },
 }
 
 # ---------------------------------------------------------------------------

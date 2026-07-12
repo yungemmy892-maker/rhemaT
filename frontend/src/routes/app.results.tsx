@@ -79,74 +79,222 @@ function useSpeech() {
 }
 
 /* ── share as image ────────────────────────────────────────────────────────── */
-async function shareAsImage(verse: Verse) {
-  const canvas = document.createElement("canvas");
-  const W = 1080;
-  const H = 1080;
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
 
-  // Purple gradient background
-  const grad = ctx.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0, "#7C3AED");
-  grad.addColorStop(1, "#C084FC");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
+// Same palette as the daily-verse/welcome emails (notifications/email.py's
+// BRAND dict) so a verse looks like it came from the same product whether
+// it lands in an inbox or a share sheet.
+const CARD_BRAND = {
+  gradientStart: "#8B5CF6",
+  gradientEnd: "#D946EF",
+  card: "rgba(255,255,255,0.13)",
+  cardBorder: "rgba(255,255,255,0.28)",
+};
 
-  // Subtle radial glow
-  const glow = ctx.createRadialGradient(W * 0.2, H * 0.1, 0, W * 0.2, H * 0.1, W * 0.6);
-  glow.addColorStop(0, "rgba(255,255,255,0.18)");
-  glow.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
 
-  ctx.fillStyle = "rgba(255,255,255,0.95)";
-  ctx.textAlign = "center";
-
-  // Version badge
-  ctx.font = "bold 32px system-ui, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  ctx.fillText(verse.version, W / 2, 120);
-
-  // Reference
-  ctx.font = "bold 64px system-ui, sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(`${verse.book} ${verse.chapter}:${verse.verse}`, W / 2, 210);
-
-  // Verse text — word-wrapped
-  ctx.font = "44px Georgia, serif";
-  ctx.fillStyle = "rgba(255,255,255,0.92)";
-  const words = `"${verse.text}"`.split(" ");
+function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
   let line = "";
-  let y = 340;
-  const maxW = W - 160;
   for (const word of words) {
     const test = line ? `${line} ${word}` : word;
-    if (ctx.measureText(test).width > maxW && line) {
-      ctx.fillText(line, W / 2, y);
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
       line = word;
-      y += 64;
     } else {
       line = test;
     }
   }
-  if (line) ctx.fillText(line, W / 2, y);
+  if (line) lines.push(line);
+  return lines;
+}
 
-  // VerseID watermark
-  ctx.font = "bold 30px system-ui, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillText("VerseID", W / 2, H - 80);
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+async function shareAsImage(verse: Verse) {
+  // Canvas text only renders with a webfont once it's actually loaded —
+  // without this, the very first share after page load would silently
+  // fall back to the browser's default serif/sans instead of Fraunces /
+  // Plus Jakarta Sans.
+  await document.fonts.ready;
+  const logo = await loadImage("/logo-glyph.png");
+
+  const W = 1080;
+  const H = 1080;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+
+  /* Background — same 135° violet→fuchsia gradient as the rest of the app */
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, CARD_BRAND.gradientStart);
+  bg.addColorStop(1, CARD_BRAND.gradientEnd);
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Two soft glows (not one) for a bit of depth instead of a flat fill.
+  const glowA = ctx.createRadialGradient(W * 0.12, H * 0.08, 0, W * 0.12, H * 0.08, W * 0.55);
+  glowA.addColorStop(0, "rgba(255,255,255,0.20)");
+  glowA.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glowA;
+  ctx.fillRect(0, 0, W, H);
+
+  const glowB = ctx.createRadialGradient(W * 0.92, H * 0.95, 0, W * 0.92, H * 0.95, W * 0.5);
+  glowB.addColorStop(0, "rgba(0,0,0,0.14)");
+  glowB.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glowB;
+  ctx.fillRect(0, 0, W, H);
+
+  /* Header — logo mark + wordmark, centered as a group */
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = "600 40px Fraunces, Georgia, serif";
+  const wordmark = "VerseID";
+  const wordmarkWidth = ctx.measureText(wordmark).width;
+  const markSize = 52;
+  const gap = 16;
+  const groupWidth = markSize + gap + wordmarkWidth;
+  const groupX = (W - groupWidth) / 2;
+  const markY = 76;
+
+  // Translucent circular backing so the white glyph reads clearly against
+  // the busy gradient behind it, then the glyph itself on top.
+  ctx.beginPath();
+  ctx.arc(groupX + markSize / 2, markY + markSize / 2, markSize / 2, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  ctx.fill();
+  if (logo) {
+    const pad = 13;
+    ctx.drawImage(logo, groupX + pad, markY + pad, markSize - pad * 2, markSize - pad * 2);
+  }
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "600 40px Fraunces, Georgia, serif";
+  ctx.fillText(wordmark, groupX + markSize + gap, markY + markSize / 2 + 14);
+
+  /* Card geometry — sized around the wrapped verse text so short and long
+     verses both look intentional rather than swimming in empty space or
+     overflowing the canvas. */
+  const cardX = 72;
+  const cardWidth = W - cardX * 2;
+  const cardPadX = 64;
+  const textMaxWidth = cardWidth - cardPadX * 2;
+
+  // Step down the font size for longer verses instead of using one size
+  // that either wastes space on short verses or overflows on long ones.
+  const sizes = [46, 42, 38, 34, 30];
+  let fontSize = sizes[0];
+  let lines: string[] = [];
+  for (const size of sizes) {
+    ctx.font = `500 ${size}px Fraunces, Georgia, serif`;
+    const candidate = wrapLines(ctx, verse.text, textMaxWidth);
+    fontSize = size;
+    lines = candidate;
+    // 8 lines at the largest readable size keeps the card comfortably
+    // inside the canvas even for a long verse; stop shrinking once we fit.
+    if (candidate.length <= 8) break;
+  }
+  const lineHeight = fontSize * 1.42; // serif-appropriate leading
+
+  const quoteMarkHeight = 90;
+  const refPillHeight = 56;
+  const cardPadTop = 56;
+  const cardPadBottom = 56;
+  const gapAfterQuote = 12;
+  const gapBeforeRef = 40;
+
+  const textBlockHeight = lines.length * lineHeight;
+  const cardHeight =
+    cardPadTop +
+    quoteMarkHeight +
+    gapAfterQuote +
+    textBlockHeight +
+    gapBeforeRef +
+    refPillHeight +
+    cardPadBottom;
+
+  const cardY = Math.max(200, (H - cardHeight) / 2 + 20);
+
+  /* Glass card */
+  drawRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, 40);
+  ctx.fillStyle = CARD_BRAND.card;
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = CARD_BRAND.cardBorder;
+  ctx.stroke();
+
+  /* Oversized decorative quote glyph */
+  ctx.textAlign = "left";
+  ctx.font = "600 120px Fraunces, Georgia, serif";
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.fillText("\u201C", cardX + cardPadX - 14, cardY + cardPadTop + quoteMarkHeight);
+
+  /* Verse text, centered within the card */
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(255,255,255,0.97)";
+  ctx.font = `500 ${fontSize}px Fraunces, Georgia, serif`;
+  let ty = cardY + cardPadTop + quoteMarkHeight + gapAfterQuote + fontSize * 0.85;
+  for (const line of lines) {
+    ctx.fillText(line, W / 2, ty);
+    ty += lineHeight;
+  }
+
+  /* Reference pill — same "ref · version" pattern as the daily-verse email */
+  const refLabel = `${verse.ref}  ·  ${verse.version}`;
+  ctx.font = "600 26px 'Plus Jakarta Sans', system-ui, sans-serif";
+  const refWidth = ctx.measureText(refLabel).width;
+  const pillPadX = 30;
+  const pillWidth = refWidth + pillPadX * 2;
+  const pillX = (W - pillWidth) / 2;
+  const pillY = cardY + cardHeight - cardPadBottom - refPillHeight + 8;
+
+  drawRoundedRect(ctx, pillX, pillY, pillWidth, refPillHeight, refPillHeight / 2);
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(255,255,255,0.3)";
+  ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(refLabel, W / 2, pillY + refPillHeight / 2 + 9);
+
+  /* Footer caption */
+  ctx.font = "500 24px 'Plus Jakarta Sans', system-ui, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.65)";
+  ctx.fillText("Find any verse, instantly — verseid.top", W / 2, H - 56);
 
   return new Promise<void>((resolve) => {
     canvas.toBlob(async (blob) => {
       if (!blob) return resolve();
-      const file = new File([blob], "verse.png", { type: "image/png" });
+      const file = new File([blob], `${verse.book}-${verse.chapter}-${verse.verse}.png`, {
+        type: "image/png",
+      });
       if (navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
-            title: `${verse.book} ${verse.chapter}:${verse.verse}`,
+            title: verse.ref,
           });
         } catch {}
       } else {
@@ -261,6 +409,7 @@ function Results() {
       <div>
         <Link
           to="/app/home"
+          aria-label="Back to Home"
           className="h-10 w-10 rounded-full glass grid place-items-center"
         >
           <ArrowLeft className="h-4.5 w-4.5" />
@@ -284,6 +433,7 @@ function Results() {
       <div>
         <Link
           to="/app/home"
+          aria-label="Back to Home"
           className="h-10 w-10 rounded-full glass grid place-items-center"
         >
           <ArrowLeft className="h-4.5 w-4.5" />
@@ -329,6 +479,7 @@ function Results() {
       <div>
         <Link
           to="/app/home"
+          aria-label="Back to Home"
           className="h-10 w-10 rounded-full glass grid place-items-center"
         >
           <ArrowLeft className="h-4.5 w-4.5" />
@@ -403,6 +554,7 @@ function Results() {
       <div className="flex items-center justify-between">
         <Link
           to="/app/home"
+          aria-label="Back to Home"
           className="h-10 w-10 rounded-full glass grid place-items-center"
         >
           <ArrowLeft className="h-4.5 w-4.5" />
@@ -477,6 +629,7 @@ function Results() {
           Icon={isSaved ? Check : Bookmark}
           label={isSaved ? "Saved" : "Save"}
           active={isSaved}
+          disabled={toggleSaved.isPending}
           onClick={() =>
             toggleSaved.mutate({ verseId: verse.id, version: verse.version })
           }
@@ -556,18 +709,22 @@ function ActionBtn({
   label,
   active,
   onClick,
+  disabled,
 }: {
   Icon: React.ComponentType<{ className?: string }>;
   label: string;
   active?: boolean;
   onClick?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
+      aria-busy={disabled}
       className={`flex flex-col items-center gap-1.5 py-3.5 rounded-2xl glass-strong shadow-card transition ${
         active ? "bg-primary-soft" : "hover:bg-primary-soft"
-      }`}
+      } disabled:opacity-60 disabled:pointer-events-none`}
     >
       <Icon className={`h-5 w-5 ${active ? "text-primary" : "text-foreground"}`} />
       <span className="text-[11px] font-medium leading-tight text-center">{label}</span>

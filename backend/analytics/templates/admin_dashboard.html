@@ -1631,6 +1631,15 @@ function closeMobileSidebar() {
 /* Export (CSV of recent users + totals summary)                          */
 /* ---------------------------------------------------------------------- */
 
+// L4: prefix any field that could be interpreted as a spreadsheet
+// formula (leading =, +, -, or @) with a single quote so opening the
+// export in Excel/Sheets never triggers CSV formula injection from a
+// user-controlled name/email.
+function csvSafe(value) {
+  const s = String(value ?? "");
+  return /^[=+\-@]/.test(s) ? `'${s}` : s;
+}
+
 function exportCsv() {
   if (!state.data) return;
   const t = state.data.totals;
@@ -1645,7 +1654,8 @@ function exportCsv() {
     "Recent Users",
     "Name,Email,Plan,Signup Method,Identified,Joined",
     ...state.data.recentUsers.map(
-      (u) => `"${u.name}","${u.email}",${u.plan},${u.signupMethod},${u.identifiedCount},${u.createdAt}`
+      (u) =>
+        `"${csvSafe(u.name)}","${csvSafe(u.email)}",${csvSafe(u.plan)},${csvSafe(u.signupMethod)},${u.identifiedCount},${u.createdAt}`
     ),
   ];
 

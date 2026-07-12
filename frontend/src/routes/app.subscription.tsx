@@ -13,13 +13,13 @@ import {
 
 export const Route = createFileRoute("/app/subscription")({
   validateSearch: z.object({ status: z.string().optional(), reference: z.string().optional() }),
-  head: () => ({ meta: [{ title: "Upgrade to Pro — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Upgrade to Pro - VerseID" }] }),
   component: Subscription,
 });
 
 const FEATURES = [
   "Unlimited verse identifications",
-  "Both KJV & WEB translations",
+  "All translations",
   "Full search history",
   "Custom collections",
   "Daily verse notifications",
@@ -66,7 +66,7 @@ function Subscription() {
 
   return (
     <div>
-      <Link to="/app/profile" className="h-10 w-10 rounded-full glass grid place-items-center">
+      <Link to="/app/profile" aria-label="Back to Profile" className="h-10 w-10 rounded-full glass grid place-items-center">
         <ArrowLeft className="h-4.5 w-4.5" />
       </Link>
 
@@ -81,7 +81,7 @@ function Subscription() {
             ? "Verifying your payment…"
             : verifyPayment.isSuccess
               ? "🎉 Welcome to Pro! All features are now unlocked."
-              : "Payment received — refreshing your account…"}
+              : "Payment received - refreshing your account…"}
         </motion.div>
       )}
 
@@ -91,7 +91,7 @@ function Subscription() {
           animate={{ opacity: 1, y: 0 }}
           className="mt-4 p-4 rounded-2xl bg-muted text-sm text-muted-foreground text-center"
         >
-          Payment cancelled — you can try again any time.
+          Payment cancelled - you can try again any time.
         </motion.div>
       )}
 
@@ -237,7 +237,7 @@ function Subscription() {
                     You'll keep Pro features until the end of your billing period, then revert to 20 searches/day.
                   </p>
                 </div>
-                <button onClick={() => setCancelConfirm(false)} className="h-8 w-8 rounded-full grid place-items-center hover:bg-muted">
+                <button onClick={() => setCancelConfirm(false)} aria-label="Close" className="h-8 w-8 rounded-full grid place-items-center hover:bg-muted">
                   <X className="h-4 w-4" />
                 </button>
               </div>

@@ -108,6 +108,7 @@ function EditProfile() {
       <div className="flex items-center gap-3">
         <Link
           to="/app/profile"
+          aria-label="Back to Profile"
           className="h-10 w-10 rounded-full glass grid place-items-center"
         >
           <ArrowLeft className="h-4.5 w-4.5" />
@@ -302,6 +303,7 @@ function EditProfile() {
                 </div>
                 <button
                   onClick={() => setAvatarSheetOpen(false)}
+                  aria-label="Close"
                   className="h-8 w-8 rounded-full grid place-items-center hover:bg-muted"
                 >
                   <X className="h-4 w-4" />

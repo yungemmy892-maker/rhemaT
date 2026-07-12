@@ -11,7 +11,7 @@ function Privacy() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-5 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <Link to="/" className="h-10 w-10 rounded-full glass grid place-items-center">
+          <Link to="/" aria-label="Back" className="h-10 w-10 rounded-full glass grid place-items-center">
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <div className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center">

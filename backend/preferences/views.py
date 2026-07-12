@@ -1,3 +1,4 @@
+from mongoengine.errors import NotUniqueError
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -59,7 +60,15 @@ class SavedVersesView(APIView):
             existing.delete()
             saved = False
         else:
-            SavedVerse(user_id=user_id, verse_id=verse_id, version=version).save()
+            try:
+                SavedVerse(user_id=user_id, verse_id=verse_id, version=version).save()
+            except NotUniqueError:
+                # Lost a race against a concurrent duplicate request (double
+                # tap / double-fire) for the same verse — another request
+                # already created the row between our read and our write.
+                # Treat that as a successful "saved" outcome rather than
+                # propagating a 500.
+                pass
             saved = True
 
         count = SavedVerse.objects(user_id=user_id).count()

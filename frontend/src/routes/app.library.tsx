@@ -247,6 +247,7 @@ function Library() {
                 </div>
                 <button
                   onClick={() => setOpenCollection(null)}
+                  aria-label="Close"
                   className="h-9 w-9 rounded-full grid place-items-center hover:bg-muted"
                 >
                   <X className="h-4 w-4" />
@@ -257,7 +258,7 @@ function Library() {
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
                 {openCollection.verses.length === 0 ? (
                   <div className="py-10 text-center text-sm text-muted-foreground">
-                    No verses loaded — make sure you've run{" "}
+                    No verses loaded - make sure you've run{" "}
                     <code className="text-xs bg-muted px-1 rounded">
                       python manage.py load_bible
                     </code>

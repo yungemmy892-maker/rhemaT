@@ -73,6 +73,7 @@ function Notifications() {
       <div className="flex items-center gap-3">
         <Link
           to="/app/profile"
+          aria-label="Back to Profile"
           className="h-10 w-10 rounded-full glass grid place-items-center"
         >
           <ArrowLeft className="h-4.5 w-4.5" />
@@ -98,7 +99,7 @@ function Notifications() {
           : items.length === 0
             ? (
               <div className="py-16 text-center text-sm text-muted-foreground">
-                No notifications yet — check back after your first verse search.
+                No notifications yet - check back after your first verse search.
               </div>
             )
             : items.map((n, i) => {

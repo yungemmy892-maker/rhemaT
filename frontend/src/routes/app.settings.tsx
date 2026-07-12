@@ -53,11 +53,18 @@ function Settings() {
   const { data: languages = [] } = useLanguages();
   const [confirm, setConfirm] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const onDelete = async () => {
-    await deleteAccount();
-    setConfirm(false);
-    navigate({ to: "/" });
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deleteAccount();
+      setConfirm(false);
+      navigate({ to: "/" });
+    } finally {
+      setIsDeleting(false);
+    }
   };
   const onLogout = async () => {
     await signOut();
@@ -68,7 +75,7 @@ function Settings() {
     return (
       <div>
         <div className="flex items-center gap-3">
-          <Link to="/app/profile" className="h-10 w-10 rounded-full glass grid place-items-center">
+          <Link to="/app/profile" aria-label="Back to Profile" className="h-10 w-10 rounded-full glass grid place-items-center">
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display text-2xl font-semibold">Settings</h1>
@@ -91,7 +98,7 @@ function Settings() {
   return (
     <div>
       <div className="flex items-center gap-3">
-        <Link to="/app/profile" className="h-10 w-10 rounded-full glass grid place-items-center">
+        <Link to="/app/profile" aria-label="Back to Profile" className="h-10 w-10 rounded-full glass grid place-items-center">
           <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
         <h1 className="font-display text-2xl font-semibold">Settings</h1>
@@ -258,9 +265,14 @@ function Settings() {
             );
           })}
         </div>
+        {settings.bibleVersion === "DRA" && (
+          <div className="mx-4 mb-4 px-4 py-3 rounded-2xl bg-primary-soft text-xs text-secondary-foreground leading-relaxed">
+            Douay-Rheims uses different verse numbering from other translations,
+            so voice and text search only match against DRA while it's selected
+            — matches from other versions won't show up.
+          </div>
+        )}
       </Group>
-
-      {/* ── Language ────────────────────────────────────────────────── */}
       <Group title="Interface language">
         <div className="p-4">
           {/* Trigger */}
@@ -437,6 +449,7 @@ function Settings() {
                 </div>
                 <button
                   onClick={() => setConfirm(false)}
+                  aria-label="Close"
                   className="h-8 w-8 rounded-full grid place-items-center hover:bg-muted"
                 >
                   <X className="h-4 w-4" />
@@ -445,15 +458,18 @@ function Settings() {
               <div className="mt-5 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setConfirm(false)}
-                  className="h-12 rounded-2xl glass-strong font-medium text-sm"
+                  disabled={isDeleting}
+                  className="h-12 rounded-2xl glass-strong font-medium text-sm disabled:opacity-60"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={onDelete}
-                  className="h-12 rounded-2xl bg-destructive text-white font-medium text-sm shadow-card"
+                  disabled={isDeleting}
+                  aria-busy={isDeleting}
+                  className="h-12 rounded-2xl bg-destructive text-white font-medium text-sm shadow-card disabled:opacity-60 disabled:pointer-events-none"
                 >
-                  Delete
+                  {isDeleting ? "Deleting…" : "Delete"}
                 </button>
               </div>
             </motion.div>

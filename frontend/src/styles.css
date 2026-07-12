@@ -200,3 +200,19 @@
     letter-spacing: -0.02em;
   }
 }
+
+/* L5: respect the OS-level reduced-motion preference for CSS-driven
+   transitions (Tailwind's `transition`/`hover:` utility classes used
+   throughout buttons, cards, etc). Note this does not cover Framer
+   Motion's JS-driven animations (page transitions, staggered reveals) —
+   those are controlled per-component via variants/props and need
+   `useReducedMotion()` wired into each one; that's a larger sweep that
+   still needs doing, tracked separately from this CSS-level mitigation. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

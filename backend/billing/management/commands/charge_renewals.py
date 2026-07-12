@@ -40,6 +40,21 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
+            # M5: atomically claim today's renewal-attempt slot before doing
+            # any work. The old check-then-write let two workers both pass
+            # the "not attempted today" check before either wrote, which can
+            # double-charge a card under multi-worker deployment. This
+            # conditional update only matches (and modifies) a document that
+            # still needs today's attempt, so a losing worker's update simply
+            # matches zero documents instead of racing.
+            if not force:
+                claimed = Subscription.objects(
+                    id=sub.id, last_renewal_attempt_date__ne=today
+                ).update(set__last_renewal_attempt_date=today)
+                if not claimed:
+                    skipped += 1
+                    continue
+
             if not sub.paystack_authorization_code:
                 # Shouldn't normally happen (every successful charge stores
                 # one) — without it we simply cannot auto-charge; the user
@@ -52,6 +67,9 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
+            # Keep the in-memory object consistent with the atomic claim
+            # above (already persisted) so the subsequent sub.save() calls
+            # below don't clobber it with a stale value.
             sub.last_renewal_attempt_date = today
 
             try:
@@ -123,7 +141,7 @@ class Command(BaseCommand):
                 kind="pro_upsell",
                 title="Payment failed",
                 body=(
-                    f"We couldn't renew your Pro subscription ({reason}). We'll try again — "
+                    f"We couldn't renew your Pro subscription ({reason}). We'll try again - "
                     "please make sure your card has sufficient funds and hasn't expired."
                 ),
             ).save()

@@ -166,6 +166,7 @@ class EmailLoginView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_scope = "login"
 
     def post(self, request):
         serializer = EmailLoginSerializer(data=request.data)
@@ -203,6 +204,7 @@ class ForgotPasswordView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_scope = "forgot-password"
 
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
@@ -246,6 +248,7 @@ class VerifyResetCodeView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_scope = "verify-reset-code"
 
     def post(self, request):
         serializer = VerifyResetCodeSerializer(data=request.data)

@@ -1,4 +1,5 @@
 import datetime
+import html
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -33,6 +34,9 @@ LOGO_URL = f"{settings.FRONTEND_URL.rstrip('/')}/logo-glyph.png"
 
 def _daily_verse_html(name: str, verse_ref: str, verse_text: str, version: str, app_url: str) -> str:
     b = BRAND
+    # M1: user-controlled (settable via registration / Edit Profile), so it
+    # must be escaped before landing in an HTML f-string template.
+    name = html.escape(name)
     today = datetime.date.today().strftime("%A, %B %-d")
     return f"""\
 <!DOCTYPE html>
@@ -140,6 +144,8 @@ def send_daily_verse_email(to_email: str, name: str, verse_ref: str, verse_text:
 
 def _welcome_html(name: str, app_url: str) -> str:
     b = BRAND
+    # M1: user-controlled, must be escaped before interpolation.
+    name = html.escape(name)
     return f"""\
 <!DOCTYPE html>
 <html>
@@ -241,6 +247,8 @@ def _welcome_html(name: str, app_url: str) -> str:
 
 def _code_html(name: str, code: str) -> str:
     b = BRAND
+    # M1: user-controlled, must be escaped before interpolation.
+    name = html.escape(name)
     digits = "".join(
         f'<td style="padding:0 4px;">'
         f'<div style="width:38px;height:48px;line-height:48px;text-align:center;border-radius:10px;'

@@ -103,6 +103,23 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
 
+            # M5: atomically claim today's send slot for this user before
+            # doing any work. A plain check-then-write (the old behavior)
+            # lets two workers both pass the "not sent today" check before
+            # either writes, causing a double-send under multi-worker
+            # deployment. This conditional update only succeeds for
+            # whichever worker gets there first — `last_daily_sent_date__ne`
+            # means the update only matches (and modifies) a document that
+            # still needs today's send, so a losing worker's update simply
+            # matches zero documents instead of racing.
+            if not force:
+                claimed = UserSettings.objects(
+                    id=settings_doc.id, last_daily_sent_date__ne=today
+                ).update(set__last_daily_sent_date=today)
+                if not claimed:
+                    skipped += 1
+                    continue
+
             user = User.objects(id=settings_doc.user_id).first()
             if user is None:
                 skipped += 1
@@ -158,15 +175,17 @@ class Command(BaseCommand):
                 )
                 sent_email += 1
 
-                # Mark sent for today so cron re-runs don't duplicate
-                settings_doc.last_daily_sent_date = today
-                settings_doc.save()
-
             except Exception as exc:  # noqa: BLE001
                 failed += 1
                 self.stderr.write(
                     self.style.WARNING(f"Failed to notify {user.email}: {exc}")
                 )
+                # Release the claim so a later run can retry this user
+                # instead of silently skipping them for the rest of today.
+                if not force:
+                    UserSettings.objects(id=settings_doc.id).update(
+                        unset__last_daily_sent_date=1
+                    )
 
         self.stdout.write(
             self.style.SUCCESS(

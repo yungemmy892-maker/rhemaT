@@ -86,7 +86,7 @@ function Help() {
       <div className="mx-auto max-w-2xl px-5 py-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
-          <Link to="/" className="h-10 w-10 rounded-full glass grid place-items-center">
+          <Link to="/" aria-label="Back" className="h-10 w-10 rounded-full glass grid place-items-center">
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <div className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center">
@@ -192,7 +192,7 @@ function Help() {
             Send us an email and we'll get back to you within 24 hours.
           </p>
           <a
-            href="mailto:support@verseid.app"
+            href="mailto:rhema.trem@gmail.com"
             className="mt-4 inline-flex h-11 px-6 items-center rounded-full bg-gradient-primary text-white text-sm font-medium shadow-glow"
           >
             Email rhema.trem@gmail.com

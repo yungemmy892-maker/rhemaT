@@ -83,7 +83,7 @@ function VoiceSearch() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <Link to="/app/home" className="h-10 w-10 rounded-full glass grid place-items-center">
+        <Link to="/app/home" aria-label="Back to Home" className="h-10 w-10 rounded-full glass grid place-items-center">
           <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
         <Link
