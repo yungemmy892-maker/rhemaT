@@ -234,7 +234,7 @@ function Subscription() {
                 <div className="flex-1">
                   <div className="font-display text-lg font-semibold">Cancel Pro?</div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    You'll keep Pro features until the end of your billing period, then revert to 20 searches/day.
+                    You'll keep Pro features until the end of your billing period, then revert to 6 searches/day.
                   </p>
                 </div>
                 <button onClick={() => setCancelConfirm(false)} aria-label="Close" className="h-8 w-8 rounded-full grid place-items-center hover:bg-muted">

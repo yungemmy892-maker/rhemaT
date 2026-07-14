@@ -97,10 +97,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Hear it. Speak it. Discover it. VerseID identifies any Bible verse from your voice or a few words.",
       },
       { name: "author", content: "VerseID" },
-      { property: "og:title", content: "VerseID — Find Any Bible Verse Instantly" },
+      { property: "og:title", content: "VerseID - Find Any Bible Verse Instantly" },
       {
         property: "og:description",
-        content: "Shazam for Bible verses. Speak or type — VerseID finds it.",
+        content: "Shazam for Bible verses. Speak or type - VerseID finds it.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://verseid.top/" },

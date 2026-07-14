@@ -226,7 +226,7 @@ export const searchApi = {
             matched: false as const,
             quotaExceeded: true as const,
             dailySearchesRemaining: 0 as const,
-            dailySearchLimit: 20,
+            dailySearchLimit: 6,
           } as IdentifyQuotaExceeded;
         }
         throw err;
