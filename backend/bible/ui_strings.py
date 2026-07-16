@@ -1,18 +1,3 @@
-"""
-Canonical English source strings for VerseID's UI translation feature.
-
-The interface-language setting (Settings → Interface language) translates
-*chrome* — navigation, headings, buttons — not Bible text itself, which
-stays in its own selected version (KJV/WEB/ASV/DRA) regardless of interface
-language; those are two independent settings.
-
-This list intentionally starts with the highest-visibility strings (bottom
-nav + Home screen) rather than attempting full coverage of every screen in
-one pass — extending it is just adding another "key": "English sentence"
-entry here; the frontend's t() helper picks up new keys automatically the
-next time a language's cache is (re)warmed.
-"""
-
 UI_STRINGS = {
     # Bottom navigation
     "nav.home": "Home",
@@ -36,4 +21,39 @@ UI_STRINGS = {
     "action.confirm": "Confirm",
     "action.done": "Done",
     "action.back": "Back",
+    # Results screen
+    "action.listen": "Listen",
+    "action.stop": "Stop",
+    "action.shareText": "Share text",
+    "action.copied": "Copied",
+    "action.shareImage": "Share image",
+    "action.creating": "Creating…",
+    "action.backToLibrary": "Back to Library",
+    # Voice screen
+    "voice.listening": "Listening…",
+    "voice.identifying": "Identifying verse…",
+    "voice.speakPrompt": "Speak any verse you remember",
+    "voice.typeInstead": "Type instead",
+    # Library screen
+    "library.title": "Library",
+    "library.subtitle": "Your saved verses & history",
+    "library.tab.saved": "Saved",
+    "library.tab.collections": "Collections",
+    "library.tab.history": "History",
+    "library.clearAll": "Clear all",
+    "library.clearAllConfirm": "Clear all history?",
+    "library.emptySaved": "No saved verses yet. Tap save on any result.",
+    "library.emptyHistory": "Your search history will appear here.",
+    "library.noMatchFound": "No match found",
+    # Screen titles
+    "notifications.title": "Notifications",
+    "profile.title": "Profile",
+    "settings.title": "Settings",
+    # Settings group headings
+    "settings.group.preferences": "Preferences",
+    "settings.group.notifications": "Notification preferences",
+    "settings.group.bibleVersion": "Bible version",
+    "settings.group.interfaceLanguage": "Interface language",
+    "settings.group.appearance": "Appearance",
+    "settings.group.account": "Account",
 }

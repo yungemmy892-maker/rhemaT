@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useNotifications, useMarkAllRead } from "@/hooks/queries/useNotificationsBilling";
+import { useT } from "@/context/I18nContext";
 import type { AppNotification } from "@/services/api";
 
 export const Route = createFileRoute("/app/notifications")({
@@ -65,6 +66,7 @@ function formatTime(ts: number): string {
 }
 
 function Notifications() {
+  const t = useT();
   const { data: items = [], isLoading } = useNotifications();
   const markAll = useMarkAllRead();
 
@@ -78,7 +80,7 @@ function Notifications() {
         >
           <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
-        <h1 className="font-display text-2xl font-semibold flex-1">Notifications</h1>
+        <h1 className="font-display text-2xl font-semibold flex-1">{t("notifications.title", "Notifications")}</h1>
         <button
           className="text-xs font-medium text-primary"
           onClick={() => markAll.mutate()}
@@ -99,7 +101,7 @@ function Notifications() {
           : items.length === 0
             ? (
               <div className="py-16 text-center text-sm text-muted-foreground">
-                No notifications yet - check back after your first verse search.
+                No notifications yet — check back after your first verse search.
               </div>
             )
             : items.map((n, i) => {

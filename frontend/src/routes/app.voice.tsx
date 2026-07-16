@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useVoiceRecognition } from "@/hooks/useVoiceRecognition";
 import { useIdentifyVerse } from "@/hooks/queries/useSearch";
 import { useSettings } from "@/hooks/queries/usePreferences";
+import { useT } from "@/context/I18nContext";
 
 export const Route = createFileRoute("/app/voice")({
   head: () => ({ meta: [{ title: "Listening - VerseID" }] }),
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/app/voice")({
 function VoiceSearch() {
   const [phase, setPhase] = useState<"listening" | "processing">("listening");
   const navigate = useNavigate();
+  const t = useT();
   const identify = useIdentifyVerse();
   const { data: settings } = useSettings();
   const handledRef = useRef(false);
@@ -90,7 +92,7 @@ function VoiceSearch() {
           to="/app/text"
           className="h-10 px-4 rounded-full glass text-sm font-medium inline-flex items-center gap-2"
         >
-          <Keyboard className="h-4 w-4" /> Type instead
+          <Keyboard className="h-4 w-4" /> {t("voice.typeInstead", "Type instead")}
         </Link>
       </div>
 
@@ -108,13 +110,13 @@ function VoiceSearch() {
         </div>
 
         <h2 className="mt-10 font-display text-2xl font-semibold">
-          {phase === "listening" ? "Listening…" : "Identifying verse…"}
+          {phase === "listening" ? t("voice.listening", "Listening…") : t("voice.identifying", "Identifying verse…")}
         </h2>
         <p className="mt-3 text-muted-foreground min-h-[1.5em] px-6">
           {transcript ? (
             <span className="italic">"{transcript}"</span>
           ) : (
-            "Speak any verse you remember"
+            t("voice.speakPrompt", "Speak any verse you remember")
           )}
         </p>
 

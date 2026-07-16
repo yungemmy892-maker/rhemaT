@@ -13,6 +13,7 @@ import {
   UserCog,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useT } from "@/context/I18nContext";
 
 export const Route = createFileRoute("/app/profile")({
   head: () => ({ meta: [{ title: "Profile - VerseID" }] }),
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/app/profile")({
 });
 
 function Profile() {
+  const t = useT();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -31,7 +33,7 @@ function Profile() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl font-semibold">Profile</h1>
+        <h1 className="font-display text-3xl font-semibold">{t("profile.title", "Profile")}</h1>
         <Link
           to="/app/settings"
           className="h-10 w-10 rounded-full glass grid place-items-center"

@@ -6,7 +6,7 @@ import { useT } from "@/context/I18nContext";
 import { useRecentSearches } from "@/hooks/queries/useSearch";
 
 export const Route = createFileRoute("/app/home")({
-  head: () => ({ meta: [{ title: "Home — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Home - VerseID" }] }),
   component: Home,
 });
 
@@ -18,6 +18,14 @@ function Home() {
   const remaining = user?.dailySearchesRemaining;
   const isPro = user?.plan === "Pro";
 
+  const hour = new Date().getHours();
+  const [greetingKey, greetingFallback] =
+    hour < 12
+      ? (["home.greeting.morning", "Good morning"] as const)
+      : hour < 18
+        ? (["home.greeting.afternoon", "Good afternoon"] as const)
+        : (["home.greeting.evening", "Good evening"] as const);
+
   return (
     <div>
       {/* Greeting */}
@@ -28,7 +36,7 @@ function Home() {
         className="flex items-center justify-between"
       >
         <div>
-          <div className="text-xs text-muted-foreground">{t("home.greeting.evening", "Good Day")}</div>
+          <div className="text-xs text-muted-foreground">{t(greetingKey, greetingFallback)}</div>
           <h1 className="font-display text-2xl font-semibold">
             {user?.name?.split(" ")[0] ?? "Friend"}
           </h1>

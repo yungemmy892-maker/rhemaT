@@ -5,6 +5,7 @@ import { Bookmark, Clock, Layers, X, ChevronRight, Trash2 } from "lucide-react";
 import { useSavedVerses, useCollections } from "@/hooks/queries/usePreferences";
 import { useRecentSearches, useClearHistory, useDeleteHistoryItem } from "@/hooks/queries/useSearch";
 import { useSettings } from "@/hooks/queries/usePreferences";
+import { useT } from "@/context/I18nContext";
 import type { Collection, Verse } from "@/services/api";
 
 export const Route = createFileRoute("/app/library")({
@@ -15,6 +16,15 @@ export const Route = createFileRoute("/app/library")({
 const TABS = ["Saved", "Collections", "History"] as const;
 type Tab = (typeof TABS)[number];
 
+// Tab identity (state, `tab === t` comparisons) stays the fixed English
+// value above; this maps each to its translation key/fallback for display
+// only, so translating labels can't silently break tab switching.
+const TAB_LABELS: Record<Tab, { key: string; fallback: string }> = {
+  Saved: { key: "library.tab.saved", fallback: "Saved" },
+  Collections: { key: "library.tab.collections", fallback: "Collections" },
+  History: { key: "library.tab.history", fallback: "History" },
+};
+
 /* Gradient per collection name — stays consistent */
 const COLLECTION_GRADIENTS: Record<string, string> = {
   Comfort:   "from-violet-500 to-fuchsia-500",
@@ -24,6 +34,7 @@ const COLLECTION_GRADIENTS: Record<string, string> = {
 };
 
 function Library() {
+  const t = useT();
   const [tab, setTab]                         = useState<Tab>("Saved");
   const [openCollection, setOpenCollection]   = useState<Collection | null>(null);
   const [confirmClear, setConfirmClear]       = useState(false);
@@ -38,26 +49,26 @@ function Library() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-semibold">Library</h1>
-      <p className="text-sm text-muted-foreground mt-1">Your saved verses & history</p>
+      <h1 className="font-display text-3xl font-semibold">{t("library.title", "Library")}</h1>
+      <p className="text-sm text-muted-foreground mt-1">{t("library.subtitle", "Your saved verses & history")}</p>
 
       {/* Tabs */}
       <div className="mt-6 relative flex p-1 rounded-2xl glass-strong shadow-card">
-        {TABS.map((t) => (
+        {TABS.map((tabValue) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabValue}
+            onClick={() => setTab(tabValue)}
             className="relative flex-1 py-2.5 text-sm font-medium z-10"
           >
-            {tab === t && (
+            {tab === tabValue && (
               <motion.div
                 layoutId="lib-tab"
                 className="absolute inset-0 bg-gradient-primary rounded-xl shadow-glow"
                 transition={{ type: "spring", stiffness: 340, damping: 30 }}
               />
             )}
-            <span className={`relative ${tab === t ? "text-white" : "text-muted-foreground"}`}>
-              {t}
+            <span className={`relative ${tab === tabValue ? "text-white" : "text-muted-foreground"}`}>
+              {t(TAB_LABELS[tabValue].key, TAB_LABELS[tabValue].fallback)}
             </span>
           </button>
         ))}
@@ -67,12 +78,12 @@ function Library() {
         <div className="mt-4 flex items-center justify-end gap-3">
           {confirmClear ? (
             <>
-              <span className="text-xs text-muted-foreground">Clear all history?</span>
+              <span className="text-xs text-muted-foreground">{t("library.clearAllConfirm", "Clear all history?")}</span>
               <button
                 className="text-xs font-medium text-muted-foreground"
                 onClick={() => setConfirmClear(false)}
               >
-                Cancel
+                {t("action.cancel", "Cancel")}
               </button>
               <button
                 className="text-xs font-medium text-destructive disabled:opacity-40"
@@ -82,7 +93,7 @@ function Library() {
                   setConfirmClear(false);
                 }}
               >
-                Confirm
+                {t("action.confirm", "Confirm")}
               </button>
             </>
           ) : (
@@ -90,7 +101,7 @@ function Library() {
               className="text-xs font-medium text-muted-foreground hover:text-destructive transition"
               onClick={() => setConfirmClear(true)}
             >
-              Clear all
+              {t("library.clearAll", "Clear all")}
             </button>
           )}
         </div>
@@ -116,7 +127,7 @@ function Library() {
               </Link>
             ))
           ) : (
-            <EmptyState Icon={Bookmark} text="No saved verses yet. Tap save on any result." />
+            <EmptyState Icon={Bookmark} text={t("library.emptySaved", "No saved verses yet. Tap save on any result.")} />
           ))}
 
         {/* ── Collections ────────────────────────────────────────── */}
@@ -184,7 +195,7 @@ function Library() {
                     <div className="font-medium text-sm truncate">
                       {r.verse
                         ? `${r.verse.book} ${r.verse.chapter}:${r.verse.verse}`
-                        : "No match found"}
+                        : t("library.noMatchFound", "No match found")}
                     </div>
                     <span className="text-[10px] uppercase tracking-wider text-primary font-medium shrink-0">
                       {new Date(r.timestamp).toLocaleDateString("en-NG", {
@@ -208,7 +219,7 @@ function Library() {
               </motion.div>
             ))
           ) : (
-            <EmptyState Icon={Clock} text="Your search history will appear here." />
+            <EmptyState Icon={Clock} text={t("library.emptyHistory", "Your search history will appear here.")} />
           ))}
       </div>
 
@@ -258,7 +269,7 @@ function Library() {
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
                 {openCollection.verses.length === 0 ? (
                   <div className="py-10 text-center text-sm text-muted-foreground">
-                    No verses loaded - make sure you've run{" "}
+                    No verses loaded — make sure you've run{" "}
                     <code className="text-xs bg-muted px-1 rounded">
                       python manage.py load_bible
                     </code>

@@ -25,6 +25,7 @@ import { z } from "zod";
 import { useIdentifyQuery } from "@/hooks/queries/useSearch";
 import { useVerseByRef } from "@/hooks/queries/useBible";
 import { useSavedVerses, useToggleSaved, useSettings } from "@/hooks/queries/usePreferences";
+import { useT } from "@/context/I18nContext";
 import { bibleApi, type BibleVersion, type Verse } from "@/services/api";
 
 const searchSchema = z.object({
@@ -48,7 +49,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/app/results")({
   validateSearch: searchSchema,
-  head: () => ({ meta: [{ title: "Result — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Result - VerseID" }] }),
   component: Results,
 });
 
@@ -377,6 +378,7 @@ function Results() {
   const { q, book, chapter, verse: verseNum, version, confidence: confidenceParam, noMatch } =
     Route.useSearch();
   const navigate = useNavigate();
+  const t = useT();
   const { data: settings } = useSettings();
   const isDirect = Boolean(book && chapter && verseNum);
   // Voice already ran identify and found nothing for this exact query —
@@ -497,7 +499,7 @@ function Results() {
             onClick={() => navigate({ to: isDirect ? "/app/library" : "/app/text" })}
             className="mt-6 h-12 px-6 rounded-full bg-gradient-primary text-white font-medium shadow-glow"
           >
-            {isDirect ? "Back to Library" : "Try again"}
+            {isDirect ? t("action.backToLibrary", "Back to Library") : t("action.tryAgain", "Try again")}
           </button>
         </div>
       </div>
@@ -627,7 +629,7 @@ function Results() {
       >
         <ActionBtn
           Icon={isSaved ? Check : Bookmark}
-          label={isSaved ? "Saved" : "Save"}
+          label={isSaved ? t("action.saved", "Saved") : t("action.save", "Save")}
           active={isSaved}
           disabled={toggleSaved.isPending}
           onClick={() =>
@@ -636,18 +638,18 @@ function Results() {
         />
         <ActionBtn
           Icon={speaking ? VolumeX : Volume2}
-          label={speaking ? "Stop" : "Listen"}
+          label={speaking ? t("action.stop", "Stop") : t("action.listen", "Listen")}
           active={speaking}
           onClick={handleListen}
         />
         <ActionBtn
           Icon={copied ? Check : Copy}
-          label={copied ? "Copied" : "Share text"}
+          label={copied ? t("action.copied", "Copied") : t("action.shareText", "Share text")}
           onClick={handleShareText}
         />
         <ActionBtn
           Icon={sharing ? Sparkles : ImageIcon}
-          label={sharing ? "Creating…" : "Share image"}
+          label={sharing ? t("action.creating", "Creating…") : t("action.shareImage", "Share image")}
           onClick={handleShareImage}
         />
       </motion.div>

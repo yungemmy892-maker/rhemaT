@@ -26,6 +26,7 @@ import {
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useT } from "@/context/I18nContext";
 import { useSettings, useUpdateSettings } from "@/hooks/queries/usePreferences";
 import { useLanguages } from "@/hooks/queries/useBible";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -45,6 +46,7 @@ const BIBLE_VERSIONS: { code: BibleVersion; name: string; desc: string }[] = [
 
 function Settings() {
   const navigate = useNavigate();
+  const t = useT();
   const { deleteAccount, signOut } = useAuth();
   const { setTheme } = useTheme();
   const { data: settings, isLoading } = useSettings();
@@ -78,7 +80,7 @@ function Settings() {
           <Link to="/app/profile" aria-label="Back to Profile" className="h-10 w-10 rounded-full glass grid place-items-center">
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
-          <h1 className="font-display text-2xl font-semibold">Settings</h1>
+          <h1 className="font-display text-2xl font-semibold">{t("settings.title", "Settings")}</h1>
         </div>
         <div className="mt-6 space-y-3">
           {[0, 1, 2].map((i) => (
@@ -101,11 +103,11 @@ function Settings() {
         <Link to="/app/profile" aria-label="Back to Profile" className="h-10 w-10 rounded-full glass grid place-items-center">
           <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
-        <h1 className="font-display text-2xl font-semibold">Settings</h1>
+        <h1 className="font-display text-2xl font-semibold">{t("settings.title", "Settings")}</h1>
       </div>
 
       {/* ── Preferences ───────────────────────────────────────────── */}
-      <Group title="Preferences">
+      <Group title={t("settings.group.preferences", "Preferences")}>
         <ToggleRow
           Icon={Bell}
           label="Notifications"
@@ -121,7 +123,7 @@ function Settings() {
       </Group>
 
       {/* ── Notification preferences ───────────────────────────────── */}
-      <Group title="Notification preferences">
+      <Group title={t("settings.group.notifications", "Notification preferences")}>
         <ToggleRow
           Icon={Sparkles}
           label="Daily verse"
@@ -229,7 +231,7 @@ function Settings() {
       </Group>
 
       {/* ── Bible version ──────────────────────────────────────────── */}
-      <Group title="Bible version">
+      <Group title={t("settings.group.bibleVersion", "Bible version")}>
         <div className="p-4 space-y-2">
           {BIBLE_VERSIONS.map((v) => {
             const active = settings.bibleVersion === v.code;
@@ -273,7 +275,7 @@ function Settings() {
           </div>
         )}
       </Group>
-      <Group title="Interface language">
+      <Group title={t("settings.group.interfaceLanguage", "Interface language")}>
         <div className="p-4">
           {/* Trigger */}
           <button
@@ -353,7 +355,7 @@ function Settings() {
       </Group>
 
       {/* ── Theme ───────────────────────────────────────────────────── */}
-      <Group title="Appearance">
+      <Group title={t("settings.group.appearance", "Appearance")}>
         <div className="px-4 py-3.5">
           <div className="flex items-center gap-3 mb-3">
             <div className="h-9 w-9 rounded-xl bg-primary-soft grid place-items-center">
@@ -393,7 +395,7 @@ function Settings() {
       </Group>
 
       {/* ── Account ─────────────────────────────────────────────────── */}
-      <Group title="Account">
+      <Group title={t("settings.group.account", "Account")}>
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-primary-soft/60 transition"
@@ -461,7 +463,7 @@ function Settings() {
                   disabled={isDeleting}
                   className="h-12 rounded-2xl glass-strong font-medium text-sm disabled:opacity-60"
                 >
-                  Cancel
+                  {t("action.cancel", "Cancel")}
                 </button>
                 <button
                   onClick={onDelete}
