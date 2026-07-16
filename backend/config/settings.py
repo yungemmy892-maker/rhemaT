@@ -155,11 +155,17 @@ JWT_REFRESH_TTL = timedelta(days=int(os.environ.get("JWT_REFRESH_TTL_DAYS", "30"
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 
 # ---------------------------------------------------------------------------
-
- #English-only UI; translated strings just fall back to English.
+# Gemini + Groq (interface language) — bible/translate_service.py
+# Gemini is tried first; Groq is the fallback if Gemini is unset, fails, or
+# errors. Leave both unset to run English-only UI; translated strings just
+# fall back to English.
 # ---------------------------------------------------------------------------
- 
-GOOGLE_TRANSLATE_API_KEY = os.environ.get("GOOGLE_TRANSLATE_API_KEY", "")
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
  
 # ---------------------------------------------------------------------------
 # Hugging Face Inference API (semantic search — search/embeddings.py, search/faiss_index.py)

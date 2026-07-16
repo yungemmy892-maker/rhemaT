@@ -1,68 +1,126 @@
-"""
-Translates VerseID's UI chrome strings into the user's chosen interface
-language, via the Google Cloud Translation API (v2 — the simple REST API,
-not the newer Advanced/v3 API, since v2 needs only an API key rather than a
-full service-account setup).
-
-Requires GOOGLE_TRANSLATE_API_KEY: a Google Cloud API key with the "Cloud
-Translation API" enabled on its project. Unlike Google OAuth
-(GOOGLE_CLIENT_ID/SECRET, used for sign-in), this is a separate credential
-even if you reuse the same GCP project — see the setup steps in this
-module's accompanying documentation.
-
-NOT free at any real scale: Google Cloud Translation gives the first
-500,000 characters/month free, then bills per character past that. UI_STRINGS
-is small (a few thousand characters total) and every (language, key) pair is
-translated at MOST ONCE EVER — cached permanently in Mongo afterward — so
-in practice this stays well within the free tier even with many interface
-languages enabled, but it does require billing to be enabled on the GCP
-project for the API to work at all (Google requires this even to use the
-free quota).
-
-When GOOGLE_TRANSLATE_API_KEY is unset, the language isn't recognised, or
-the API call fails for any reason, this falls back to the English source
-string for that key rather than surfacing an error — a partially-translated
-screen (or an all-English one) is a much better experience than a broken
-Settings page.
-"""
+import json
 import logging
+import re
 
 import requests
 from django.conf import settings
 
+from .languages import LANGUAGES
 from .models import UITranslation
 from .ui_strings import UI_STRINGS
 
 logger = logging.getLogger(__name__)
 
-TRANSLATE_URL = "https://translation.googleapis.com/language/translate/v2"
-REQUEST_TIMEOUT = 10  # a full batch of ~30 short strings in one request
+REQUEST_TIMEOUT = 30  # LLM calls run slower than a dedicated translation API
+
+_LANG_NAMES = {lang["code"]: lang["name"] for lang in LANGUAGES}
+
+_CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
+
+_TRANSLATION_PROMPT = """You are translating user interface text for a Bible \
+verse-lookup mobile app from English into {lang_name}. Translate each string \
+in the JSON array below. Keep translations short and natural, matching the \
+tone of app UI text (buttons, labels, short sentences) rather than formal \
+prose. Preserve any placeholders or punctuation patterns as-is.
+
+Respond with ONLY a JSON array of the translated strings, in the exact same \
+order as the input, with exactly {count} elements. No markdown, no code \
+fences, no explanation — just the raw JSON array.
+
+Input:
+{items_json}"""
 
 
-def _translate_batch(texts: list[str], target_lang_code: str) -> list[str] | None:
-    """Translates every string in `texts` in a single API call — Google
-    Translate v2 accepts multiple `q` params and returns translations in
-    the same order, so there's no need for one request per string."""
-    api_key = getattr(settings, "GOOGLE_TRANSLATE_API_KEY", "")
-    if not api_key or not texts:
+def _parse_json_array(raw: str, expected_len: int) -> list[str] | None:
+    cleaned = _CODE_FENCE_RE.sub("", raw.strip()).strip()
+    try:
+        parsed = json.loads(cleaned)
+    except (json.JSONDecodeError, TypeError):
         return None
+    if not isinstance(parsed, list) or len(parsed) != expected_len:
+        return None
+    if not all(isinstance(item, str) for item in parsed):
+        return None
+    return parsed
+
+
+def _translate_batch_gemini(texts: list[str], lang_name: str) -> list[str] | None:
+    api_key = getattr(settings, "GEMINI_API_KEY", "")
+    if not api_key:
+        return None
+
+    model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")
+    prompt = _TRANSLATION_PROMPT.format(
+        lang_name=lang_name, count=len(texts), items_json=json.dumps(texts, ensure_ascii=False)
+    )
 
     try:
         resp = requests.post(
-            TRANSLATE_URL,
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
             params={"key": api_key},
-            json={"q": texts, "target": target_lang_code, "source": "en", "format": "text"},
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
+            },
             timeout=REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
-        translations = resp.json()["data"]["translations"]
-        if len(translations) != len(texts):
-            logger.warning("Google Translate returned %d results for %d inputs", len(translations), len(texts))
-            return None
-        return [t["translatedText"] for t in translations]
+        data = resp.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        result = _parse_json_array(text, len(texts))
+        if result is None:
+            logger.warning("Gemini returned unparseable/wrong-shaped response for lang=%s", lang_name)
+        return result
     except Exception:
-        logger.warning("Google Translate request failed for lang=%s", target_lang_code, exc_info=True)
+        logger.warning("Gemini translation request failed for lang=%s", lang_name, exc_info=True)
         return None
+
+
+def _translate_batch_groq(texts: list[str], lang_name: str) -> list[str] | None:
+    api_key = getattr(settings, "GROQ_API_KEY", "")
+    if not api_key:
+        return None
+
+    model = getattr(settings, "GROQ_MODEL", "llama-3.3-70b-versatile")
+    prompt = _TRANSLATION_PROMPT.format(
+        lang_name=lang_name, count=len(texts), items_json=json.dumps(texts, ensure_ascii=False)
+    )
+
+    try:
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.2,
+            },
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        text = resp.json()["choices"][0]["message"]["content"]
+        result = _parse_json_array(text, len(texts))
+        if result is None:
+            logger.warning("Groq returned unparseable/wrong-shaped response for lang=%s", lang_name)
+        return result
+    except Exception:
+        logger.warning("Groq translation request failed for lang=%s", lang_name, exc_info=True)
+        return None
+
+
+def _translate_batch(texts: list[str], target_lang_code: str) -> list[str] | None:
+    """Translates every string in `texts` in a single call, trying Gemini
+    first and falling back to Groq if Gemini is unset or fails."""
+    if not texts:
+        return None
+
+    lang_name = _LANG_NAMES.get(target_lang_code, target_lang_code)
+
+    result = _translate_batch_gemini(texts, lang_name)
+    if result is not None:
+        return result
+
+    return _translate_batch_groq(texts, lang_name)
 
 
 def get_ui_translations(target_lang_code: str) -> dict[str, str]:
