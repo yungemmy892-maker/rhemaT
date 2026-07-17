@@ -219,14 +219,15 @@ function Help() {
             Send us an email and we'll get back to you within 24 hours.
           </p>
           <a
-            href="mailto:rhema.trem@gmail.com"
+            href="mailto:rhema.tre@gmail.com"
             className="mt-4 inline-flex h-11 px-6 items-center rounded-full bg-gradient-primary text-white text-sm font-medium shadow-glow"
           >
-            Email rhema.trem@gmail.com
+            Email Us
           </a>
         </div>
 
         <div className="mt-8 flex gap-4 text-xs text-muted-foreground">
+          <Link to="/pricing" className="hover:text-foreground transition">Pricing</Link>
           <Link to="/privacy" className="hover:text-foreground transition">Privacy</Link>
           <Link to="/terms" className="hover:text-foreground transition">Terms</Link>
           <Link to="/" className="hover:text-foreground transition">Home</Link>
