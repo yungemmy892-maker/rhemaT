@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from django.core.management.base import BaseCommand
 
@@ -6,7 +7,14 @@ from notifications.models import Notification
 from users.models import User
 
 from billing.models import Subscription
-from billing.paystack import PaystackError, charge_authorization
+from billing.paystack import (
+    PaystackError,
+    PaystackDuplicateReference,
+    charge_authorization,
+    verify_transaction,
+)
+
+logger = logging.getLogger(__name__)
 
 MAX_RENEWAL_ATTEMPTS = 3
 
@@ -72,13 +80,46 @@ class Command(BaseCommand):
             # below don't clobber it with a stale value.
             sub.last_renewal_attempt_date = today
 
+            # Reference is tied to the BILLING PERIOD being renewed, not to
+            # today's date. It only changes once current_period_end is
+            # actually advanced further down. This means any retry of this
+            # same renewal — whether seconds later or a day later, if the
+            # process crashes after charging but before saving — reuses the
+            # exact same reference. Paystack rejects a reused reference
+            # instead of charging again, which is what makes this
+            # idempotent rather than just "less likely to double-charge."
+            reference = (
+                f"renewal_{sub.id}_"
+                f"{sub.current_period_end.strftime('%Y%m%dT%H%M%S')}"
+            )
+
             try:
                 result = charge_authorization(
                     email=user.email,
                     amount_kobo=sub.amount_kobo,
                     authorization_code=sub.paystack_authorization_code,
                     metadata={"user_id": str(user.id), "interval": sub.interval, "renewal": True},
+                    reference=reference,
                 )
+            except PaystackDuplicateReference:
+                # A prior attempt (possibly one that crashed right after
+                # charging) already sent this exact charge to Paystack.
+                # Find out what actually happened instead of assuming
+                # failure and retrying with a new reference.
+                try:
+                    verified = verify_transaction(reference)
+                except PaystackError as exc:
+                    self._handle_failure(sub, user, f"Could not verify prior attempt: {exc}")
+                    failed += 1
+                    continue
+
+                if verified.get("status") != "success":
+                    self._handle_failure(
+                        sub, user, "Prior renewal attempt unresolved — needs manual review"
+                    )
+                    failed += 1
+                    continue
+                result = verified
             except PaystackError as exc:
                 self._handle_failure(sub, user, str(exc))
                 failed += 1
@@ -92,25 +133,42 @@ class Command(BaseCommand):
             days = 30 if sub.interval == "monthly" else 365
             new_period_end = now + datetime.timedelta(days=days)
 
-            sub.renewal_attempts = 0
-            sub.current_period_end = new_period_end
-            sub.updated_at = now
-            sub.save()
+            try:
+                sub.renewal_attempts = 0
+                sub.current_period_end = new_period_end
+                sub.updated_at = now
+                sub.save()
 
-            user.plan = "Pro"
-            user.plan_expires_at = new_period_end
-            user.save()
+                user.plan = "Pro"
+                user.plan_expires_at = new_period_end
+                user.save()
 
-            Notification(
-                user_id=str(user.id),
-                kind="pro_upsell",
-                title="Pro subscription renewed",
-                body=(
-                    f"Your VerseID Pro subscription has been renewed for another "
-                    f"{'month' if sub.interval == 'monthly' else 'year'}."
-                ),
-            ).save()
-            renewed += 1
+                Notification(
+                    user_id=str(user.id),
+                    kind="pro_upsell",
+                    title="Pro subscription renewed",
+                    body=(
+                        f"Your VerseID Pro subscription has been renewed for another "
+                        f"{'month' if sub.interval == 'monthly' else 'year'}."
+                    ),
+                ).save()
+                renewed += 1
+            except Exception:
+                # Paystack has ALREADY charged the customer at this point.
+                # Don't swallow this into "failed" bookkeeping below — the
+                # subscription is now in a charged-but-unrecorded state.
+                # The next run will detect this via the same reference
+                # (current_period_end never advanced) and reconcile
+                # automatically via the PaystackDuplicateReference path
+                # above, but this needs to be loud so a human notices if
+                # it keeps happening.
+                logger.critical(
+                    "PAYSTACK CHARGED sub=%s user=%s amount_kobo=%s reference=%s "
+                    "but DB write failed — subscription NOT marked renewed.",
+                    sub.id, user.id, sub.amount_kobo, reference,
+                    exc_info=True,
+                )
+                raise
 
         self.stdout.write(
             self.style.SUCCESS(f"Renewed: {renewed}, Failed: {failed}, Skipped: {skipped}")

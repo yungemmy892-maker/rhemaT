@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 import time
 
@@ -10,7 +11,20 @@ _started = False
 _lock = threading.Lock()
 
 
+def _disabled() -> bool:
+    return os.environ.get("DISABLE_INPROCESS_SCHEDULER", "").lower() in (
+        "1", "true", "yes",
+    )
+
+
 def start_scheduler() -> None:
+    if _disabled():
+        logger.info(
+            "DISABLE_INPROCESS_SCHEDULER set — skipping in-process scheduler "
+            "thread. charge_renewals must be wired into an external cron."
+        )
+        return
+
     global _started
     with _lock:
         if _started:
