@@ -154,6 +154,7 @@ function Privacy() {
         </div>
 
         <div className="mt-12 flex gap-4 text-xs text-muted-foreground">
+          <Link to="/pricing" className="hover:text-foreground transition">Pricing</Link>
           <Link to="/terms" className="hover:text-foreground transition">Terms of Service</Link>
           <Link to="/help" className="hover:text-foreground transition">Help</Link>
           <Link to="/" className="hover:text-foreground transition">Home</Link>

@@ -221,6 +221,9 @@ function Landing() {
 
       <footer className="mx-auto max-w-5xl px-5 pb-10 text-center text-xs text-muted-foreground">
         <div className="flex items-center justify-center gap-4 mb-3">
+          <Link to="/pricing" className="hover:text-foreground transition">
+            Pricing
+          </Link>
           <Link to="/privacy" className="hover:text-foreground transition">
             Privacy
           </Link>

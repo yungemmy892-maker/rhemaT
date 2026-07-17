@@ -1,11 +1,20 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Mail, Lock, User as UserIcon, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { z } from "zod";
 import { useAuth } from "@/context/AuthContext";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: z.object({
+    // Deliberately a closed enum rather than an arbitrary path — a plain
+    // string param here would mean this component decides where a user
+    // lands post-login based on unvalidated input, the same class of risk
+    // as an open redirect even though it's client-side routing rather than
+    // a server redirect.
+    redirect: z.enum(["subscription"]).optional(),
+  }),
   head: () => ({
     meta: [
       { title: "Sign in - VerseID" },
@@ -24,6 +33,7 @@ type Mode = "login" | "register";
 
 function Auth() {
   const navigate = useNavigate();
+  const { redirect } = useSearch({ from: "/auth" });
   const { signInGoogle, signInEmail, registerEmail } = useAuth();
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
@@ -33,7 +43,7 @@ function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const goApp = () => navigate({ to: "/app/home" });
+  const goApp = () => navigate({ to: redirect === "subscription" ? "/app/subscription" : "/app/home" });
 
   const { trigger: triggerGoogleSignIn } = useGoogleSignIn({
     onSuccess: async (idToken) => {

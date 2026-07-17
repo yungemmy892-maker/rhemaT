@@ -118,13 +118,14 @@ function Terms() {
           <Section title="Contact">
             Questions about these terms? Email{" "}
             <a href="mailto:rhema.trem@gmail.com" className="text-primary">
-              rhema.trem@gmail.com
+              Mail US
             </a>
             .
           </Section>
         </div>
 
         <div className="mt-12 flex gap-4 text-xs text-muted-foreground">
+          <Link to="/pricing" className="hover:text-foreground transition">Pricing</Link>
           <Link to="/privacy" className="hover:text-foreground transition">Privacy Policy</Link>
           <Link to="/help" className="hover:text-foreground transition">Help</Link>
           <Link to="/" className="hover:text-foreground transition">Home</Link>
