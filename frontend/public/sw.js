@@ -1,14 +1,3 @@
-/* eslint-disable no-restricted-globals */
-/**
- * VerseID Push Notification Service Worker
- * Registered by usePushNotifications.ts via navigator.serviceWorker.register('/sw.js')
- *
- * Handles:
- *   - push: receives a background push event from the backend (daily verse, streak, etc.)
- *           and shows a native OS notification even when the app tab is closed.
- *   - notificationclick: taps on the native notification navigate the user to the app.
- */
-
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 

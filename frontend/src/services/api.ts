@@ -86,7 +86,6 @@ export interface AuthUser {
 
 export interface TokenPair {
   access_token: string;
-  refresh_token: string;
   token_type: string;
   expires_in: number;
 }
@@ -147,11 +146,9 @@ export const authApi = {
   resetPassword: (payload: { email: string; code: string; new_password: string }) =>
     api.post<void>("/auth/reset-password/", payload).then((r) => r.data),
 
-  refresh: (refreshToken: string) =>
-    api.post<TokenPair>("/auth/refresh/", { refresh_token: refreshToken }).then((r) => r.data),
+  refresh: () => api.post<TokenPair>("/auth/refresh/", {}).then((r) => r.data),
 
-  logout: (refreshToken: string) =>
-    api.post<void>("/auth/logout/", { refresh_token: refreshToken }).then((r) => r.data),
+  logout: () => api.post<void>("/auth/logout/", {}).then((r) => r.data),
 
   me: () => api.get<AuthUser>("/auth/me/").then((r) => r.data),
 

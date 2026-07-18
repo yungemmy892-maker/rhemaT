@@ -637,8 +637,19 @@ tbody tr:hover { background: var(--surface-2); }
 /* ---------------------------------------------------------------------- */
 /* Responsive                                                             */
 /* ---------------------------------------------------------------------- */
-@media (max-width: 1024px) {
-  .charts-row { grid-template-columns: 1fr; }
+@media (min-width: 861px) {
+  .content { padding: 28px; }
+  .topbar { padding: 0 28px; }
+  .hero { padding: 32px 34px; }
+}
+
+@media (min-width: 1200px) {
+  .content { padding: 32px; }
+  .topbar { padding: 0 32px; }
+  .hero { padding: 36px 42px; }
+  .charts-row { gap: 24px; }
+  .kpi-grid { gap: 18px; }
+  .insights-grid { gap: 18px; }
 }
 
 @media (max-width: 860px) {

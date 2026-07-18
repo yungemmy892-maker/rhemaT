@@ -4,6 +4,7 @@ import hmac
 import logging
 import secrets
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -15,6 +16,13 @@ from notifications.welcome import send_welcome
 from users.avatars import AvatarUploadError, save_avatar
 from users.models import PasswordResetToken, RefreshToken, User
 
+from .cookies import (
+    REFRESH_COOKIE_NAME,
+    clear_auth_cookies,
+    generate_csrf_token,
+    set_auth_cookies,
+    verify_csrf,
+)
 from .google_oauth import GoogleAuthError, verify_google_id_token
 from .passwords import hash_password, verify_password
 from .serializers import (
@@ -23,7 +31,6 @@ from .serializers import (
     EmailRegisterSerializer,
     ForgotPasswordSerializer,
     GoogleLoginSerializer,
-    RefreshSerializer,
     ResetPasswordSerializer,
     UpdateProfileSerializer,
     VerifyResetCodeSerializer,
@@ -36,6 +43,32 @@ logger = logging.getLogger(__name__)
 # guards against brute-forcing a 6-digit (1-in-a-million) code.
 MAX_CODE_ATTEMPTS = 5
 CODE_TTL_MINUTES = 10
+
+
+def _tokens_response(body: dict, user, status_code: int) -> Response:
+    """Issue a fresh access+refresh token pair for `user`, merge the
+    access-token fields into `body`, and set the refresh + CSRF cookies on
+    the response. The refresh token itself never enters the response body
+    or reaches frontend JS — see auth_api/cookies.py. Used by every
+    endpoint that starts or rotates a session (register/login/google/
+    refresh)."""
+    tokens = issue_token_pair(user)
+    refresh_token = tokens.pop("refresh_token")
+    response = Response({**body, **tokens}, status=status_code)
+    set_auth_cookies(
+        response,
+        refresh_token=refresh_token,
+        csrf_token=generate_csrf_token(),
+        max_age_seconds=int(settings.JWT_REFRESH_TTL.total_seconds()),
+    )
+    return response
+
+
+def _csrf_failure() -> Response:
+    return Response(
+        {"error": {"code": 403, "message": "CSRF check failed."}},
+        status=status.HTTP_403_FORBIDDEN,
+    )
 
 
 def _latest_active_token(user_id: str) -> PasswordResetToken | None:
@@ -118,8 +151,7 @@ class GoogleLoginView(APIView):
         if is_new_user:
             send_welcome(user)
 
-        tokens = issue_token_pair(user)
-        return Response({"user": user.to_public_dict(), **tokens}, status=status.HTTP_200_OK)
+        return _tokens_response({"user": user.to_public_dict()}, user, status.HTTP_200_OK)
 
 
 class EmailRegisterView(APIView):
@@ -152,9 +184,8 @@ class EmailRegisterView(APIView):
         user.save()
         send_welcome(user)
 
-        tokens = issue_token_pair(user)
-        return Response(
-            {"user": user.to_public_dict(), **tokens}, status=status.HTTP_201_CREATED
+        return _tokens_response(
+            {"user": user.to_public_dict()}, user, status.HTTP_201_CREATED
         )
 
 
@@ -188,8 +219,7 @@ class EmailLoginView(APIView):
         user.last_login_at = datetime.datetime.utcnow()
         user.save()
 
-        tokens = issue_token_pair(user)
-        return Response({"user": user.to_public_dict(), **tokens}, status=status.HTTP_200_OK)
+        return _tokens_response({"user": user.to_public_dict()}, user, status.HTTP_200_OK)
 
 
 class ForgotPasswordView(APIView):
@@ -321,16 +351,27 @@ class ResetPasswordView(APIView):
 class RefreshView(APIView):
     """
     POST /api/v1/auth/refresh/
-    Body: { "refresh_token": "..." }
-    Returns a fresh access token (and rotates the refresh token).
+    No body. The refresh token comes from the httpOnly cookie set at
+    login/register (see auth_api/cookies.py) — the frontend no longer
+    holds it directly. Requires a matching X-CSRF-Token header (double-
+    submit check against the companion, JS-readable CSRF cookie) since
+    this endpoint trusts a cookie the browser attaches automatically
+    rather than a credential the frontend explicitly supplies.
+    Returns a fresh access token and rotates the refresh cookie.
     """
 
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = RefreshSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        token = serializer.validated_data["refresh_token"]
+        token = request.COOKIES.get(REFRESH_COOKIE_NAME)
+        if not token:
+            return Response(
+                {"error": {"code": 401, "message": "No refresh token."}},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if not verify_csrf(request):
+            return _csrf_failure()
 
         try:
             payload = decode_token(token, expected_type="refresh")
@@ -354,26 +395,35 @@ class RefreshView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        # Rotate: revoke the old refresh token, issue a new pair.
+        # Rotate: revoke the old refresh token, issue a new pair (sets new
+        # refresh + CSRF cookies on the response).
         revoke_refresh_token(payload["jti"])
-        tokens = issue_token_pair(user)
-        return Response(tokens, status=status.HTTP_200_OK)
+        return _tokens_response({}, user, status.HTTP_200_OK)
 
 
 class LogoutView(APIView):
-    """POST /api/v1/auth/logout/ — revokes the supplied refresh token."""
+    """
+    POST /api/v1/auth/logout/ — revokes the refresh token carried by the
+    httpOnly cookie and clears both auth cookies. Requires a matching
+    X-CSRF-Token header, same as /refresh/ (see auth_api/cookies.py).
+    """
 
     permission_classes = [AllowAny]
 
     def post(self, request):
-        token = request.data.get("refresh_token")
+        token = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if token:
+            if not verify_csrf(request):
+                return _csrf_failure()
             try:
                 payload = decode_token(token, expected_type="refresh")
                 revoke_refresh_token(payload["jti"])
             except TokenError:
                 pass  # already invalid/expired — nothing to revoke
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        clear_auth_cookies(response)
+        return response
 
 
 class MeView(APIView):
@@ -402,7 +452,9 @@ class MeView(APIView):
         user_id = str(request.user.id)
         RefreshToken.objects(user_id=user_id).delete()
         request.user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        clear_auth_cookies(response)
+        return response
 
 
 class ChangePasswordView(APIView):

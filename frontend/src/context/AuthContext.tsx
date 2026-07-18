@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi, type AuthUser } from "@/services/api";
-import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "@/services/client";
+import { refreshAccessToken, setAccessToken } from "@/services/client";
 import { queryKeys } from "@/hooks/queries/keys";
 
 export type User = AuthUser;
@@ -42,18 +42,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   const loadSession = useCallback(async () => {
-    if (!getAccessToken()) {
-      // No token — immediately ready with no user. Landing page renders
-      // right away, no spinner, no delay.
+    // The access token lives in memory only, so it never survives a page
+    // reload — attempt a silent refresh against the httpOnly refresh
+    // cookie first. A visitor who was never logged in (no cookie) just
+    // fails this quickly and falls through to "no user, ready
+    // immediately", same as the old "no token in localStorage" fast path.
+    const token = await refreshAccessToken();
+    if (!token) {
       setIsReady(true);
       return;
     }
-    // Token exists — verify it's still valid before showing the app.
     try {
       const me = await authApi.me();
       setUser(me);
     } catch {
-      clearTokens();
+      setAccessToken(null);
       setUser(null);
     } finally {
       setIsReady(true);
@@ -64,11 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadSession();
   }, [loadSession]);
 
-  // If the axios interceptor gives up on refreshing (refresh token expired
+  // If the axios interceptor gives up on refreshing (refresh cookie expired
   // or revoked), drop the local session so routes correctly redirect to /auth.
   useEffect(() => {
     const handler = () => {
-      clearTokens();
+      setAccessToken(null);
       setUser(null);
     };
     window.addEventListener("verseid:auth-expired", handler);
@@ -79,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const res = await authApi.google(idToken);
-      setTokens(res.access_token, res.refresh_token);
+      setAccessToken(res.access_token);
       setUser(res.user);
       return res.user;
     } finally {
@@ -91,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const res = await authApi.login({ email, password });
-      setTokens(res.access_token, res.refresh_token);
+      setAccessToken(res.access_token);
       setUser(res.user);
       return res.user;
     } finally {
@@ -103,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const res = await authApi.register({ name, email, password });
-      setTokens(res.access_token, res.refresh_token);
+      setAccessToken(res.access_token);
       setUser(res.user);
       return res.user;
     } finally {
@@ -112,22 +115,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      try {
-        await authApi.logout(refreshToken);
-      } catch {
-        // Already invalid/expired — fine to proceed with local cleanup.
-      }
+    try {
+      // Cookie is sent automatically; the CSRF header is attached by the
+      // request interceptor whenever the CSRF cookie is present.
+      await authApi.logout();
+    } catch {
+      // Already invalid/expired — fine to proceed with local cleanup.
     }
-    clearTokens();
+    setAccessToken(null);
     setUser(null);
     queryClient.clear();
   }, [queryClient]);
 
   const deleteAccount = useCallback(async () => {
     await authApi.deleteAccount();
-    clearTokens();
+    setAccessToken(null);
     setUser(null);
     queryClient.clear();
   }, [queryClient]);

@@ -7,10 +7,6 @@ class GoogleLoginSerializer(serializers.Serializer):
     )
 
 
-class RefreshSerializer(serializers.Serializer):
-    refresh_token = serializers.CharField()
-
-
 class EmailRegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=120, allow_blank=True, required=False)
     email = serializers.EmailField()

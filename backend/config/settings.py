@@ -7,6 +7,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from corsheaders.defaults import default_headers
 from dotenv import load_dotenv
 from mongoengine import connect
 
@@ -236,3 +237,21 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
     "https://verseid.top,https://www.verseid.top,https://verseid.top,https://www.verseid.top",
 ).split(",")
 CORS_ALLOW_CREDENTIALS = True
+# The refresh/logout endpoints require the frontend to echo a CSRF cookie's
+# value back in this header (see auth_api/cookies.py) — corsheaders drops
+# any header not on this list before it reaches the view, so it has to be
+# added explicitly to the defaults rather than replacing them.
+CORS_ALLOW_HEADERS = [*default_headers, "x-csrf-token"]
+
+# ---------------------------------------------------------------------------
+# Auth cookies (httpOnly refresh token + JS-readable CSRF token) — see
+# auth_api/cookies.py for the full rationale.
+# ---------------------------------------------------------------------------
+
+COOKIE_DOMAIN = os.environ.get("COOKIE_DOMAIN", "")
+
+# Secure=True means these cookies are only ever sent over HTTPS. Defaults
+# to the inverse of DEBUG since local dev runs on plain HTTP, where a
+# Secure cookie would silently never be attached. Always True in
+# production — verseid.top and api.verseid.top are both HTTPS-only.
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "False" if DEBUG else "True") == "True"
