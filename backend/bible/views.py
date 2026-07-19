@@ -1,5 +1,6 @@
 import datetime
 
+from django.core.cache import cache
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,10 +9,15 @@ from .languages import LANGUAGES
 from .models import SUPPORTED_VERSIONS, Verse
 from .translate_service import get_ui_translations
 
-# Well-known references used to seed "Popular verses" on Discover, since
-# the corpus itself carries no popularity metadata. Same well-loved verses
-# the static mock previously hardcoded, now resolved against real KJV/WEB
-# text in MongoDB instead of a 10-item JS array.
+# Bible text (every version currently loaded) is static once
+# `manage.py load_bible` has run — nothing in this file ever writes to it —
+# so the cache keys below never need explicit invalidation; a TTL alone is
+# enough, and it's set generously (a day) since a cache miss just costs one
+# MongoDB round trip, not incorrect data. LanguagesView and
+# UITranslationsView aren't cached here: LANGUAGES is already an in-memory
+# constant (no DB hit to save), and UITranslationsView has its own
+# Mongo-backed per-language cache in translate_service.py already.
+
 POPULAR_REFS = [
     ("John", 3, 16),
     ("Psalms", 23, 1),
@@ -43,29 +49,45 @@ class VerseOfDayView(APIView):
     """
 
     permission_classes = [AllowAny]
+    CACHE_TTL = 60 * 60 * 25  # a bit over a day; the date in the key is what actually rolls it over
 
     def get(self, request):
         version = _resolve_version(request)
-        day_index = datetime.date.today().day % len(POPULAR_REFS)
-        book, chapter, verse_num = POPULAR_REFS[day_index]
-        verse = _lookup(book, chapter, verse_num, version)
-        if verse is None:
-            return Response({"detail": "Verse of the day unavailable."}, status=503)
-        return Response(verse.to_dict())
+        today = datetime.date.today()
+        cache_key = f"bible:verse-of-day:{today.isoformat()}:{version}"
+
+        data = cache.get(cache_key)
+        if data is None:
+            day_index = today.day % len(POPULAR_REFS)
+            book, chapter, verse_num = POPULAR_REFS[day_index]
+            verse = _lookup(book, chapter, verse_num, version)
+            if verse is None:
+                return Response({"detail": "Verse of the day unavailable."}, status=503)
+            data = verse.to_dict()
+            cache.set(cache_key, data, self.CACHE_TTL)
+
+        return Response(data)
 
 
 class PopularVersesView(APIView):
     """GET /api/v1/bible/popular/?version=KJV|WEB — top 5 for Discover."""
 
     permission_classes = [AllowAny]
+    CACHE_TTL = 60 * 60 * 24
 
     def get(self, request):
         version = _resolve_version(request)
-        results = []
-        for book, chapter, verse_num in POPULAR_REFS[:5]:
-            verse = _lookup(book, chapter, verse_num, version)
-            if verse:
-                results.append(verse.to_dict())
+        cache_key = f"bible:popular:{version}"
+
+        results = cache.get(cache_key)
+        if results is None:
+            results = []
+            for book, chapter, verse_num in POPULAR_REFS[:5]:
+                verse = _lookup(book, chapter, verse_num, version)
+                if verse:
+                    results.append(verse.to_dict())
+            cache.set(cache_key, results, self.CACHE_TTL)
+
         return Response(results)
 
 
@@ -73,6 +95,7 @@ class VerseDetailView(APIView):
     """GET /api/v1/bible/verse/?book=John&chapter=3&verse=16&version=KJV"""
 
     permission_classes = [AllowAny]
+    CACHE_TTL = 60 * 60 * 24
 
     def get(self, request):
         version = _resolve_version(request)
@@ -82,12 +105,20 @@ class VerseDetailView(APIView):
         if not (book and chapter and verse_num):
             return Response({"detail": "book, chapter and verse are required."}, status=400)
         try:
-            verse = _lookup(book, int(chapter), int(verse_num), version)
+            chapter_i, verse_i = int(chapter), int(verse_num)
         except ValueError:
             return Response({"detail": "chapter and verse must be integers."}, status=400)
-        if verse is None:
-            return Response({"detail": "Verse not found."}, status=404)
-        return Response(verse.to_dict())
+
+        cache_key = f"bible:verse:{book}:{chapter_i}:{verse_i}:{version}"
+        data = cache.get(cache_key)
+        if data is None:
+            verse = _lookup(book, chapter_i, verse_i, version)
+            if verse is None:
+                return Response({"detail": "Verse not found."}, status=404)
+            data = verse.to_dict()
+            cache.set(cache_key, data, self.CACHE_TTL)
+
+        return Response(data)
 
 
 class ChapterView(APIView):
@@ -98,6 +129,7 @@ class ChapterView(APIView):
     """
 
     permission_classes = [AllowAny]
+    CACHE_TTL = 60 * 60 * 24
 
     def get(self, request):
         version = _resolve_version(request)
@@ -110,10 +142,16 @@ class ChapterView(APIView):
         except ValueError:
             return Response({"detail": "chapter must be an integer."}, status=400)
 
-        verses = Verse.objects(book=book, chapter=chapter_num, version=version).order_by("verse")
-        if not verses:
-            return Response({"detail": "Chapter not found."}, status=404)
-        return Response([v.to_dict() for v in verses])
+        cache_key = f"bible:chapter:{book}:{chapter_num}:{version}"
+        data = cache.get(cache_key)
+        if data is None:
+            verses = Verse.objects(book=book, chapter=chapter_num, version=version).order_by("verse")
+            if not verses:
+                return Response({"detail": "Chapter not found."}, status=404)
+            data = [v.to_dict() for v in verses]
+            cache.set(cache_key, data, self.CACHE_TTL)
+
+        return Response(data)
 
 
 class BooksListView(APIView):
@@ -121,22 +159,30 @@ class BooksListView(APIView):
     used if the frontend ever needs a book picker beyond the current mock."""
 
     permission_classes = [AllowAny]
+    CACHE_KEY = "bible:books"
+    CACHE_TTL = 60 * 60 * 24
 
     def get(self, request):
-        pipeline_books = Verse.objects.distinct("book")
-        # distinct() doesn't preserve canonical order, so resolve via one
-        # representative document per book to recover book_index/testament.
-        books = []
-        for book in pipeline_books:
-            v = Verse.objects(book=book).only("book", "book_display", "testament", "book_index").first()
-            if v:
-                books.append({
-                    "book": v.book,
-                    "display": v.book_display,
-                    "testament": v.testament,
-                    "order": v.book_index,
-                })
-        books.sort(key=lambda b: b["order"])
+        books = cache.get(self.CACHE_KEY)
+        if books is None:
+            # distinct() doesn't preserve canonical order, so resolve via
+            # one representative document per book to recover
+            # book_index/testament — 66 extra round trips, which is exactly
+            # why this endpoint is worth caching.
+            pipeline_books = Verse.objects.distinct("book")
+            books = []
+            for book in pipeline_books:
+                v = Verse.objects(book=book).only("book", "book_display", "testament", "book_index").first()
+                if v:
+                    books.append({
+                        "book": v.book,
+                        "display": v.book_display,
+                        "testament": v.testament,
+                        "order": v.book_index,
+                    })
+            books.sort(key=lambda b: b["order"])
+            cache.set(self.CACHE_KEY, books, self.CACHE_TTL)
+
         return Response(books)
 
 

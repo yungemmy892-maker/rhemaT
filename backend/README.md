@@ -144,6 +144,8 @@ bun dev              # or: npm run dev
 
 The `send_daily_verse` management command delivers the verse-of-the-day notification to every user who has Daily verse enabled. It tries Web Push first (for users with browser permission) and falls back to email.
 
+**In production this now runs automatically** every 15 minutes via a Celery Beat periodic task (see `config/celery.py` and section 9 below) — no manual cron setup needed as long as the `beat` process is deployed. The crontab approach below still works fine too (e.g. for a deployment that can't run a separate `beat` process), just don't run both at once — that means the notification fires twice.
+
 **Schedule it with cron (Linux/macOS):**
 
 ```bash
@@ -208,20 +210,47 @@ Expected output: 6/6 well-known queries matched correctly, noise queries returni
 
 ---
 
+## 9 — Production process topology
+
+Three process types, defined in `Procfile`:
+
+```
+web: gunicorn config.wsgi:application
+worker: celery -A config worker --loglevel=info --concurrency=2
+beat: celery -A config beat --loglevel=info
+```
+
+- **`web`** serves HTTP traffic. Worker count auto-sizes to `(2 x CPU cores) + 1`; override with `WEB_CONCURRENCY` if the host's memory tier can't fit that many (see `gunicorn.conf.py`). Safe to scale to multiple instances.
+- **`worker`** runs background jobs — currently just the two periodic tasks below, but this is also where you'd add any future async task (e.g. a slow export, a webhook retry).
+- **`beat`** decides *when* those jobs run (`config/celery.py`). Deploy **exactly one** `beat` process — more than one means `charge_renewals` / `send_daily_verse` fire multiple times on the same schedule.
+
+All three need `REDIS_URL` set (cache + Celery broker/result backend — see `.env.example`). Locally, `celery -A config worker --beat --loglevel=info` bundles worker+beat into one process for a quick check; don't use `--beat` in production for the reason above.
+
+**Periodic tasks** (both used to be in-process threads — see `billing/tasks.py` and `notifications/tasks.py` for why that changed):
+
+| Task | Schedule | What it does |
+|---|---|---|
+| `billing.tasks.charge_renewals` | every 6 hours | Auto-renews due Pro subscriptions via Paystack |
+| `notifications.tasks.send_daily_verse` | every 15 minutes | Delivers the daily verse to users whose delivery window matches the current UTC hour |
+
+---
+
 ## Project structure
 
 ```
 verseid-backend/
 ├── auth_api/           Google OAuth + email/password auth, JWT, avatar upload
-├── bible/              KJV+WEB verse documents, chapter/verse endpoints
-├── billing/            Paystack NGN subscription, webhook handler
-├── config/             Django settings, root urls, exception handler
+├── bible/              KJV+WEB verse documents, chapter/verse endpoints (cached)
+├── billing/            Paystack NGN subscription, webhook handler, tasks.py (Celery)
+├── config/             Django settings, root urls, exception handler, celery.py
 ├── data/               kjv_verses.json + web_verses.json (source fixtures)
-├── notifications/      Notification feed, Web Push delivery, daily command
+├── notifications/      Notification feed, Web Push delivery, daily command, tasks.py (Celery)
 ├── preferences/        Saved verses, collections, user settings
 ├── scripts/            Matching engine verification script
 ├── search/             Fuzzy verse matching engine, search history
-└── users/              User model (MongoEngine), avatar processing
+├── users/              User model (MongoEngine), avatar processing
+├── gunicorn.conf.py    Gunicorn worker config (production web server)
+└── Procfile            web / worker / beat process types — see section 9
 
 verseid-frontend/
 ├── public/sw.js        Service worker (Web Push background handler)

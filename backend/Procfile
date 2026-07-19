@@ -1,0 +1,12 @@
+# Process topology for the VerseID backend. `web` is the only one that
+# serves HTTP traffic; `worker` and `beat` run background/scheduled jobs
+# (see config/celery.py) and need a Redis instance reachable via REDIS_URL.
+#
+# Deploy `beat` as EXACTLY ONE instance — it's the thing that decides when
+# charge_renewals / send_daily_verse run, and more than one running at once
+# means they'd fire multiple times on the same schedule (the same bug this
+# whole setup replaces — see config/celery.py's docstring). `web` and
+# `worker` can each be scaled to more than one instance freely.
+web: gunicorn config.wsgi:application
+worker: celery -A config worker --loglevel=info --concurrency=2
+beat: celery -A config beat --loglevel=info

@@ -1,30 +1,3 @@
-"""
-Sends the daily "verse of the day" notification — via push AND email at the
-same time, not one as a fallback for the other — to every user whose chosen
-delivery time (Morning / Midday / Evening) falls in the current UTC hour.
-
-Runs automatically in-process (see notifications/scheduler.py, started from
-NotificationsConfig.ready()) every 15 minutes, so no external cron setup is
-required for a typical single-process deployment. Set
-DISABLE_INPROCESS_SCHEDULER=true and wire this command into a real
-scheduler (cron, Render Cron Jobs, etc.) instead for multi-worker
-deployments, where every worker process would otherwise start its own
-in-process timer and could double-send under rare race conditions.
-
-Can still be run by hand:
-
-    python manage.py send_daily_verse
-    python manage.py send_daily_verse --force   # ignore time windows + dedupe, for testing
-
-Each user receives at most ONE notification per calendar day (UTC). The
-command tracks this in UserSettings.last_daily_sent_date, so re-runs of
-the cron within the same hour don't duplicate delivery.
-
-Delivery windows (WAT = UTC+1):
-    Morning  → 07:00–07:59 WAT  (06:xx UTC)
-    Midday   → 12:00–12:59 WAT  (11:xx UTC)
-    Evening  → 19:00–19:59 WAT  (18:xx UTC)
-"""
 import datetime
 
 from django.core.management.base import BaseCommand

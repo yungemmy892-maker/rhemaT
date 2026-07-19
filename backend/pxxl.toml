@@ -1,0 +1,15 @@
+# backend/pxxl.toml
+# Build settings for the two Celery services, versioned so a redeploy
+# never depends on remembering what was clicked in the dashboard.
+# Aliases below MUST exactly match each microservice's Service Name
+# in the Pxxl dashboard — rename these if you named them differently.
+
+[services.celery-worker]
+language = "python"
+installCommand = "pip install -r requirements.txt"
+startCommand = "celery -A config worker --loglevel=info --concurrency=2"
+
+[services.celery-beat]
+language = "python"
+installCommand = "pip install -r requirements.txt"
+startCommand = "celery -A config beat --loglevel=info"

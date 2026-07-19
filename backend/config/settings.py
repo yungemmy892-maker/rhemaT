@@ -103,7 +103,27 @@ BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://localhost:8000")
 # ---------------------------------------------------------------------------
 
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/verseid")
-connect(host=MONGO_URI)
+connect(
+    host=MONGO_URI,
+    # Pool size is PER PROCESS — every gunicorn worker and every Celery
+    # worker process gets its own pool of this size, so the real ceiling on
+    # simultaneous MongoDB connections is roughly
+    # maxPoolSize x (gunicorn workers + celery worker concurrency).
+    # Defaults to 10, which comfortably fits a handful of processes under
+    # a typical Atlas shared-tier connection limit — raise MONGO_MAX_POOL_SIZE
+    # explicitly if profiling shows requests queuing on pool checkout.
+    maxPoolSize=int(os.environ.get("MONGO_MAX_POOL_SIZE", "10")),
+    minPoolSize=int(os.environ.get("MONGO_MIN_POOL_SIZE", "0")),
+    # Idle pooled connections older than this get closed rather than kept
+    # open forever — matters more now that multiple processes each hold a
+    # pool, since Atlas (and most managed Mongo) will also enforce its own
+    # idle-connection ceiling server-side.
+    maxIdleTimeMS=int(os.environ.get("MONGO_MAX_IDLE_TIME_MS", "60000")),
+    # Fail fast instead of hanging a request/worker forever if Mongo is
+    # unreachable — was unset before, so pymongo's 30s wire-protocol default
+    # applied everywhere, including gunicorn's own request timeout window.
+    serverSelectionTimeoutMS=int(os.environ.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", "10000")),
+)
 
 # ---------------------------------------------------------------------------
 # Django REST Framework
@@ -248,6 +268,14 @@ CORS_ALLOW_HEADERS = [*default_headers, "x-csrf-token"]
 # auth_api/cookies.py for the full rationale.
 # ---------------------------------------------------------------------------
 
+# Domain attribute for both cookies. Leave unset for local dev — frontend
+# and backend are different ports of the SAME host (localhost) there, so a
+# host-only cookie (no explicit Domain) already works. In production the
+# frontend (verseid.top) and backend (api.verseid.top) are a subdomain
+# split of the same registrable domain, so set this to ".verseid.top" —
+# note the leading dot, and note it's the PARENT domain, not the backend's
+# own hostname — so the browser will attach the cookie to requests aimed
+# at api.verseid.top even though it was set from that same host.
 COOKIE_DOMAIN = os.environ.get("COOKIE_DOMAIN", "")
 
 # Secure=True means these cookies are only ever sent over HTTPS. Defaults
@@ -255,3 +283,46 @@ COOKIE_DOMAIN = os.environ.get("COOKIE_DOMAIN", "")
 # Secure cookie would silently never be attached. Always True in
 # production — verseid.top and api.verseid.top are both HTTPS-only.
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "False" if DEBUG else "True") == "True"
+
+# ---------------------------------------------------------------------------
+# Redis — cache backend AND Celery broker/result backend, sharing one
+# instance on two different logical DBs so a cache flush can never touch
+# the task queue (and vice versa). REDIS_URL must be the bare connection
+# string with NO trailing /<db-number> — this file appends the DB index
+# itself. Defaults to a local Redis for development.
+# ---------------------------------------------------------------------------
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"{REDIS_URL}/1",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        # Per-endpoint TIMEOUT is set explicitly at each cache.set() call
+        # (see bible/views.py) since cache lifetime varies a lot by what's
+        # being cached (Bible text is static; verse-of-day changes daily).
+        # This is just the fallback for any cache.set() that doesn't pass one.
+        "TIMEOUT": 300,
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Celery — background/scheduled jobs (config/celery.py). Replaces the old
+# in-process scheduler threads in billing/ and notifications/: those ran
+# once per gunicorn WORKER (see git history), so more than one worker meant
+# charge_renewals / send_daily_verse firing multiple times on the same
+# schedule. Celery Beat is a single dedicated process regardless of gunicorn
+# worker count, which is what actually makes it safe to run >1 worker now.
+# ---------------------------------------------------------------------------
+
+CELERY_BROKER_URL = f"{REDIS_URL}/0"
+CELERY_RESULT_BACKEND = f"{REDIS_URL}/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+# Belt-and-suspenders: cap how long any single task run may hang, so a
+# stuck Paystack/push/email call can't wedge a worker slot forever.
+CELERY_TASK_TIME_LIMIT = 60 * 10
