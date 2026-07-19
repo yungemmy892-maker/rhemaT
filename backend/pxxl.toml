@@ -1,8 +1,7 @@
-# backend/pxxl.toml
-# Build settings for the two Celery services, versioned so a redeploy
-# never depends on remembering what was clicked in the dashboard.
-# Aliases below MUST exactly match each microservice's Service Name
-# in the Pxxl dashboard — rename these if you named them differently.
+[services.web]
+language = "python"
+installCommand = "pip install -r requirements.txt"
+startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers=3 --threads=2"
 
 [services.celery-worker]
 language = "python"

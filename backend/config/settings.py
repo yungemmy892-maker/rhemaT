@@ -292,7 +292,7 @@ COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "False" if DEBUG else "True") ==
 # itself. Defaults to a local Redis for development.
 # ---------------------------------------------------------------------------
 
-REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+REDIS_URL = os.environ.get("REDIS_URL")
 
 CACHES = {
     "default": {
