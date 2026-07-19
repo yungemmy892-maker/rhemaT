@@ -316,8 +316,8 @@ CACHES = {
 # worker count, which is what actually makes it safe to run >1 worker now.
 # ---------------------------------------------------------------------------
 
-CELERY_BROKER_URL = f"{REDIS_URL}/0"
-CELERY_RESULT_BACKEND = f"{REDIS_URL}/0"
+CELERY_BROKER_URL = f"{REDIS_URL}/0?ssl_cert_reqs=none"
+CELERY_RESULT_BACKEND = f"{REDIS_URL}/0?ssl_cert_reqs=none"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
