@@ -330,7 +330,7 @@ COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "False" if DEBUG else "True") ==
 # itself. Defaults to a local Redis for development.
 # ---------------------------------------------------------------------------
 
-REDIS_URL = os.environ.get("REDIS_URL" if DEBUG else "")
+REDIS_URL = os.environ.get("REDIS_URL")
 
 # A silent localhost fallback in production means Celery/cache just hang or
 # fail per-request with a connection-refused error the first time something
