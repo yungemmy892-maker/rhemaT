@@ -26,8 +26,14 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-secret-change-me")
 # .env, so this only matters as a fail-safe for an environment that
 # forgot to set it at all — which should be safe, not verbose, by default.
 DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,api.verseid.top,rhemat.pxxl.run,127.0.0.1").split(",")
-
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        "DJANGO_ALLOWED_HOSTS",
+        "localhost,api.verseid.top,rhemat.pxxl.run,127.0.0.1",
+    ).split(",")
+    if host.strip()
+]
 # Refuse to start with an empty or wildcard ALLOWED_HOSTS outside of DEBUG.
 # ALLOWED_HOSTS is Django's actual defense against Host-header attacks
 # (cache poisoning, password-reset-link poisoning); "fixing" a
