@@ -8,6 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 from mongoengine import connect
 
@@ -19,8 +20,26 @@ load_dotenv(BASE_DIR / ".env")
 # ---------------------------------------------------------------------------
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-secret-change-me")
-DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
+# Defaults to False (not True) deliberately — DEBUG=True in production
+# leaks stack traces, settings values, and SQL/query internals to anyone
+# who can trigger a 500. Local dev sets DJANGO_DEBUG=True explicitly in
+# .env, so this only matters as a fail-safe for an environment that
+# forgot to set it at all — which should be safe, not verbose, by default.
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,api.verseid.top,rhemat.pxxl.run,127.0.0.1").split(",")
+
+# Refuse to start with an empty or wildcard ALLOWED_HOSTS outside of DEBUG.
+# ALLOWED_HOSTS is Django's actual defense against Host-header attacks
+# (cache poisoning, password-reset-link poisoning); "fixing" a
+# DisallowedHost error by setting this to "*" silently defeats that
+# defense rather than resolving whatever the real misconfiguration was.
+if not DEBUG and (not ALLOWED_HOSTS or ALLOWED_HOSTS == [""] or "*" in ALLOWED_HOSTS):
+    raise ImproperlyConfigured(
+        "DJANGO_ALLOWED_HOSTS must be set to a specific, comma-separated "
+        "list of hostnames when DJANGO_DEBUG=False (e.g. "
+        "'api.verseid.top,rhemat.pxxl.run'). Refusing to start with an "
+        "empty or wildcard value in production."
+    )
 
 INSTALLED_APPS = [
     # Deliberately no django.contrib.admin / auth / sessions / contenttypes:
@@ -40,6 +59,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "config.middleware.SecurityHeadersMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -123,6 +143,12 @@ connect(
     # unreachable — was unset before, so pymongo's 30s wire-protocol default
     # applied everywhere, including gunicorn's own request timeout window.
     serverSelectionTimeoutMS=int(os.environ.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", "10000")),
+    # Atlas connection strings already include retryWrites=true, but that's
+    # easy to drop by accident when someone hand-types a local/self-hosted
+    # MONGO_URI — set it explicitly here too so a transient network blip
+    # during a write gets one automatic retry regardless of what's in the
+    # URI. No-ops harmlessly against a standalone (non-replica-set) Mongo.
+    retryWrites=True,
 )
 
 # ---------------------------------------------------------------------------
@@ -156,6 +182,14 @@ REST_FRAMEWORK = {
         "login": "5/min",
         "forgot-password": "3/hour",
         "verify-reset-code": "10/hour",
+        # IdentifyView (search/views.py) — each call hits FAISS and, for
+        # semantic re-rank, the Hugging Face Inference API, which is both
+        # a real cost and a real per-token rate limit upstream. The daily
+        # search quota (has_search_quota()) caps how much a user can do
+        # overall, but doesn't stop them from firing 50 requests in the
+        # same second and burning through it against a slow/rate-limited
+        # upstream — this caps the rate, not just the daily total.
+        "search": "20/min",
     },
 }
 
@@ -252,10 +286,14 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://verseid.top")
 # CORS — frontend dev server(s)
 # ---------------------------------------------------------------------------
 
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS",
-    "https://verseid.top,https://www.verseid.top,https://verseid.top,https://www.verseid.top",
-).split(",")
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "CORS_ALLOWED_ORIGINS",
+        "https://verseid.top,https://www.verseid.top,https://verseid.top,https://www.verseid.top",
+    ).split(",")
+    if origin.strip()
+]
 CORS_ALLOW_CREDENTIALS = True
 # The refresh/logout endpoints require the frontend to echo a CSRF cookie's
 # value back in this header (see auth_api/cookies.py) — corsheaders drops
@@ -292,7 +330,18 @@ COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "False" if DEBUG else "True") ==
 # itself. Defaults to a local Redis for development.
 # ---------------------------------------------------------------------------
 
-REDIS_URL = os.environ.get("REDIS_URL")
+REDIS_URL = os.environ.get("REDIS_URL" if DEBUG else "")
+
+# A silent localhost fallback in production means Celery/cache just hang or
+# fail per-request with a connection-refused error the first time something
+# actually needs Redis — hours or days after the real problem (a forgotten
+# env var) was introduced. Fail loudly at startup instead.
+if not DEBUG and not REDIS_URL:
+    raise ImproperlyConfigured(
+        "REDIS_URL must be set when DJANGO_DEBUG=False — it's required for "
+        "the cache backend and as the Celery broker/result backend (see "
+        "config/celery.py). There is no safe default for it in production."
+    )
 
 CACHES = {
     "default": {
@@ -316,8 +365,8 @@ CACHES = {
 # worker count, which is what actually makes it safe to run >1 worker now.
 # ---------------------------------------------------------------------------
 
-CELERY_BROKER_URL = f"{REDIS_URL}/0?ssl_cert_reqs=none"
-CELERY_RESULT_BACKEND = f"{REDIS_URL}/0?ssl_cert_reqs=none"
+CELERY_BROKER_URL = f"{REDIS_URL}/0"
+CELERY_RESULT_BACKEND = f"{REDIS_URL}/0"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
@@ -325,4 +374,96 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 # Belt-and-suspenders: cap how long any single task run may hang, so a
 # stuck Paystack/push/email call can't wedge a worker slot forever.
-CELERY_TASK_TIME_LIMIT = 60 * 10
+# 30 min (not the original 10) gives charge_renewals real headroom on a
+# day with an unusually large batch of due subscriptions, each making a
+# live Paystack API call. SOFT_TIME_LIMIT fires 60s earlier and raises an
+# exception inside the task instead of SIGKILL-ing it outright, so a task
+# gets one chance to stop cleanly (e.g. finish logging what it already
+# charged) before the hard limit ends it mid-operation.
+CELERY_TASK_TIME_LIMIT = 60 * 30
+CELERY_TASK_SOFT_TIME_LIMIT = 60 * 29
+
+# ---------------------------------------------------------------------------
+# Security headers — X-Frame-Options and HSTS are read directly by
+# XFrameOptionsMiddleware / SecurityMiddleware (both already installed
+# above), so these are plain settings, not middleware. CSP and
+# X-XSS-Protection have no Django setting to read — see
+# config/middleware.py's SecurityHeadersMiddleware for those two.
+# ---------------------------------------------------------------------------
+
+# Already Django's default when XFrameOptionsMiddleware is installed —
+# set explicitly anyway so it's documented here rather than implicit.
+X_FRAME_OPTIONS = "DENY"
+
+# HSTS tells the browser "never try plain HTTP for this host again, for
+# the next N seconds" — genuinely dangerous to get wrong, since a browser
+# that's already seen this header will refuse HTTP even if you need to
+# roll back. Only ever enabled outside DEBUG (local dev is plain HTTP,
+# where this header would be actively harmful) and split into three
+# separately-gated pieces rather than one on/off switch:
+#
+#  - SECONDS: the actual protection, and the safe part — worst case if
+#    you need to undo it, you wait out the max-age. Defaults on in
+#    production (1 year) since verseid.top / api.verseid.top are
+#    HTTPS-only already.
+#  - INCLUDE_SUBDOMAINS / PRELOAD: much bigger blast radius — the former
+#    breaks any OTHER subdomain under verseid.top that isn't HTTPS-ready,
+#    the latter means submitting to a hardcoded browser list that's
+#    slow and painful to get removed from. Both default OFF and require
+#    deliberately opting in via env var once you're certain every
+#    current and future subdomain is HTTPS-only.
+SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get("SECURE_HSTS_INCLUDE_SUBDOMAINS", "False") == "True"
+SECURE_HSTS_PRELOAD = os.environ.get("SECURE_HSTS_PRELOAD", "False") == "True"
+
+# ---------------------------------------------------------------------------
+# Logging — plain stdout/stderr, which is where it needs to go: every
+# process here (gunicorn web workers, Celery worker, Celery beat) already
+# has its logs collected by the host from stdout/stderr, not from a file
+# (see gunicorn.conf.py's accesslog/errorlog = "-"). No new infra
+# dependency (e.g. Sentry) added here — this just makes sure Python's
+# logging module actually reaches that same stream with useful formatting,
+# instead of Django's un-configured default (which drops most app-level
+# logger.info/.warning calls silently once DEBUG=False).
+# ---------------------------------------------------------------------------
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} {name} — {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        # Django's own internal logger — INFO is noisy in production
+        # (every request gets a line via django.server/django.request at
+        # INFO), so this is WARNING+ once DEBUG is off. django.request
+        # below overrides that specifically for request-handling errors,
+        # which should always surface regardless.
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO" if DEBUG else "WARNING",
+            "propagate": False,
+        },
+        # Uncaught view exceptions (500s) — always surfaced at ERROR,
+        # DEBUG or not, since this is the actual "something broke" signal
+        # every other logger's level is tuned to avoid drowning out.
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}

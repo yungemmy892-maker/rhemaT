@@ -24,11 +24,13 @@ class IdentifyView(APIView):
     Body: { "query": "for god so loved the world", "version": "KJV" }
     ("version" is optional — omit it to search both KJV and WEB and let the
     higher-confidence match win.)
-
-    Used by both the Voice screen (after Web Speech API transcription) and
-    the Text search screen — same matching pipeline either way, since by
-    the time it reaches the backend a voice transcript is just text.
     """
+
+    # Rate limit, not a substitute for has_search_quota()'s daily cap below
+    # — this caps burst speed (FAISS + a live Hugging Face Inference API
+    # call per request) rather than total daily usage. See the "search"
+    # entry in DEFAULT_THROTTLE_RATES for the actual rate.
+    throttle_scope = "search"
 
     def post(self, request):
         serializer = IdentifySerializer(data=request.data)

@@ -638,18 +638,18 @@ tbody tr:hover { background: var(--surface-2); }
 /* Responsive                                                             */
 /* ---------------------------------------------------------------------- */
 @media (min-width: 861px) {
-  .content { padding: 28px; }
-  .topbar { padding: 0 28px; }
-  .hero { padding: 32px 34px; }
+  /* Reveals the collapse-sidebar toggle on desktop widths. It's fully
+     wired already (toggleSidebarCollapse(), the #app.sidebar-collapsed
+     rules above, the click listener in wireEvents()) but the button's
+     inline style="display:none" meant nothing ever showed it — the
+     mobile hamburger (.topbar-menu-btn) covers the equivalent job below
+     860px, so the two are meant to be mutually exclusive, not both fixed
+     to display:none. */
+  #sidebar-collapse-btn { display: grid; }
 }
 
-@media (min-width: 1200px) {
-  .content { padding: 32px; }
-  .topbar { padding: 0 32px; }
-  .hero { padding: 36px 42px; }
-  .charts-row { gap: 24px; }
-  .kpi-grid { gap: 18px; }
-  .insights-grid { gap: 18px; }
+@media (max-width: 1024px) {
+  .charts-row { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 860px) {
@@ -681,7 +681,7 @@ tbody tr:hover { background: var(--surface-2); }
   .topbar-datetime { display: none; }
   .content { padding: 16px; }
   .hero { padding: 22px 20px; }
-  .btn-primary span, .btn-secondary span { display: none; }
+  .topbar .btn-primary span, .topbar .btn-secondary span { display: none; }
 }
 
 @media (max-width: 520px) {
