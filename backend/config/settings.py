@@ -297,7 +297,7 @@ REDIS_URL = os.environ.get("REDIS_URL")
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{REDIS_URL}/1",
+        "LOCATION": f"{REDIS_URL}/0",
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
         # Per-endpoint TIMEOUT is set explicitly at each cache.set() call
         # (see bible/views.py) since cache lifetime varies a lot by what's
