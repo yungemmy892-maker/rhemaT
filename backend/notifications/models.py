@@ -46,7 +46,9 @@ class Notification(me.Document):
             "title": self.title,
             "body": self.body,
             "unread": not self.read,
-            "createdAt": int(self.created_at.replace(tzinfo=datetime.timezone.utc).timestamp() * 1000),
+            "createdAt": int(
+                self.created_at.replace(tzinfo=datetime.timezone.utc).timestamp() * 1000
+            ),
         }
 
 

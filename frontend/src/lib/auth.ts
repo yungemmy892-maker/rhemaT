@@ -33,7 +33,11 @@ export function signInGoogle(): User {
 }
 
 export function signInEmail(email: string): User {
-  const name = email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Friend";
+  const name =
+    email
+      .split("@")[0]
+      .replace(/[._]/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase()) || "Friend";
   const u: User = { name, email, avatar: avatarFor(email), plan: "Free" };
   localStorage.setItem(KEY, JSON.stringify(u));
   return u;

@@ -44,13 +44,17 @@ class Command(BaseCommand):
             self._load_version(version, reset=options["reset"])
 
         self.stdout.write(
-            self.style.SUCCESS(f"Done. {Verse.objects.count()} total verses in MongoDB.")
+            self.style.SUCCESS(
+                f"Done. {Verse.objects.count()} total verses in MongoDB."
+            )
         )
 
     def _load_version(self, version: str, reset: bool):
         path = FIXTURE_PATHS[version]
         if not path.exists():
-            self.stderr.write(self.style.ERROR(f"Fixture not found for {version}: {path}"))
+            self.stderr.write(
+                self.style.ERROR(f"Fixture not found for {version}: {path}")
+            )
             return
 
         if reset:
@@ -91,6 +95,12 @@ class Command(BaseCommand):
         batch_size = 2000
         for i in range(0, len(docs), batch_size):
             Verse.objects.insert(docs[i : i + batch_size], load_bulk=False)
-            self.stdout.write(f"  [{version}] inserted {min(i + batch_size, len(docs))}/{len(docs)}")
+            self.stdout.write(
+                f"  [{version}] inserted {min(i + batch_size, len(docs))}/{len(docs)}"
+            )
 
-        self.stdout.write(self.style.SUCCESS(f"{version}: {Verse.objects(version=version).count()} verses loaded."))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"{version}: {Verse.objects(version=version).count()} verses loaded."
+            )
+        )

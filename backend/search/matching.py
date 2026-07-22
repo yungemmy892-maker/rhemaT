@@ -73,7 +73,10 @@ def _match_breakdown(query: str, verse_text_lower: str) -> dict:
     fuzzy_typo_score = fuzz.WRatio(query, verse_text_lower)
 
     confidence = (
-        0.30 * phrase_score + 0.25 * partial_score + 0.15 * token_set_score + 0.30 * fuzzy_typo_score
+        0.30 * phrase_score
+        + 0.25 * partial_score
+        + 0.15 * token_set_score
+        + 0.30 * fuzzy_typo_score
     ) / 100.0
 
     return {
@@ -106,14 +109,17 @@ def _resolve_semantic_hits(hits, version: str | None) -> list[Verse]:
     pool = _version_pool(version)
     resolved = []
     for book, chapter, verse_num, _similarity in hits:
-        resolved.extend(Verse.objects(book=book, chapter=chapter, verse=verse_num, version__in=pool))
+        resolved.extend(
+            Verse.objects(book=book, chapter=chapter, verse=verse_num, version__in=pool)
+        )
     return resolved
 
 
 def _lexical_scan(query: str, version: str | None) -> list[tuple[Verse, dict]]:
     pool = _version_pool(version)
     scored = [
-        (v, _match_breakdown(query, v.text_lower)) for v in Verse.objects(version__in=pool)
+        (v, _match_breakdown(query, v.text_lower))
+        for v in Verse.objects(version__in=pool)
     ]
     scored.sort(key=lambda pair: pair[1]["confidence"], reverse=True)
     return scored
@@ -137,7 +143,11 @@ def find_best_match(raw_query: str, version: str | None = None):
             )
             best, best_breakdown = scored[0]
             if best_breakdown["confidence"] >= MIN_CONFIDENCE:
-                return {"verse": best.to_dict(), **best_breakdown, "semanticMatch": True}
+                return {
+                    "verse": best.to_dict(),
+                    **best_breakdown,
+                    "semanticMatch": True,
+                }
             # Semantic search ran successfully and found nothing that
             # actually reads like the query — a real no-match, not a
             # reason to fall back to a full lexical scan.

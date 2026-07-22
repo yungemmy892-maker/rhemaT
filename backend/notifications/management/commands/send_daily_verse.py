@@ -13,9 +13,9 @@ from users.models import User
 # UTC hour → WAT label mapping
 # WAT is UTC+1, so 06:xx UTC = 07:xx WAT (Morning), etc.
 DELIVERY_WINDOWS = {
-    "Morning": 6,    # 06:xx UTC = 07:xx WAT
-    "Midday":  11,   # 11:xx UTC = 12:xx WAT
-    "Evening": 18,   # 18:xx UTC = 19:xx WAT
+    "Morning": 6,  # 06:xx UTC = 07:xx WAT
+    "Midday": 11,  # 11:xx UTC = 12:xx WAT
+    "Evening": 18,  # 18:xx UTC = 19:xx WAT
 }
 
 

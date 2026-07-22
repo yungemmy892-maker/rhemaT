@@ -23,8 +23,8 @@ class Subscription(me.Document):
     paystack_subscription_code = me.StringField()
     paystack_authorization_code = me.StringField()
     interval = me.StringField(choices=BILLING_INTERVALS, default="monthly")
-    amount_kobo = me.IntField()           # actual charged amount in kobo
-    status = me.StringField(default="active")   # active | past_due | cancelled
+    amount_kobo = me.IntField()  # actual charged amount in kobo
+    status = me.StringField(default="active")  # active | past_due | cancelled
     current_period_end = me.DateTimeField()
     # Automatic renewal tracking (management/commands/charge_renewals.py) —
     # this integration charges the saved card directly via Paystack's

@@ -43,7 +43,8 @@ function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const goApp = () => navigate({ to: redirect === "subscription" ? "/app/subscription" : "/app/home" });
+  const goApp = () =>
+    navigate({ to: redirect === "subscription" ? "/app/subscription" : "/app/home" });
 
   const { trigger: triggerGoogleSignIn } = useGoogleSignIn({
     onSuccess: async (idToken) => {

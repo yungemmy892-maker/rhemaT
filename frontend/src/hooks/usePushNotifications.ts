@@ -25,7 +25,7 @@ export function usePushNotifications() {
     navigator.serviceWorker.ready.then((reg) =>
       reg.pushManager.getSubscription().then((sub) => {
         setStatus(sub ? "subscribed" : "unsubscribed");
-      })
+      }),
     );
   }, []);
 

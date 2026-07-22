@@ -34,10 +34,7 @@ function Profile() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl font-semibold">{t("profile.title", "Profile")}</h1>
-        <Link
-          to="/app/settings"
-          className="h-10 w-10 rounded-full glass grid place-items-center"
-        >
+        <Link to="/app/settings" className="h-10 w-10 rounded-full glass grid place-items-center">
           <Settings className="h-4.5 w-4.5" />
         </Link>
       </div>
@@ -50,10 +47,7 @@ function Profile() {
       >
         <div className="relative inline-block">
           <img
-            src={
-              user?.avatar ??
-              "https://api.dicebear.com/9.x/notionists/svg?seed=guest"
-            }
+            src={user?.avatar ?? "https://api.dicebear.com/9.x/notionists/svg?seed=guest"}
             alt="avatar"
             className="h-24 w-24 rounded-full ring-4 ring-primary-soft"
           />
@@ -63,12 +57,8 @@ function Profile() {
             </div>
           )}
         </div>
-        <div className="mt-4 font-display text-xl font-semibold">
-          {user?.name ?? "Guest"}
-        </div>
-        <div className="text-sm text-muted-foreground">
-          {user?.email ?? "Not signed in"}
-        </div>
+        <div className="mt-4 font-display text-xl font-semibold">{user?.name ?? "Guest"}</div>
+        <div className="text-sm text-muted-foreground">{user?.email ?? "Not signed in"}</div>
 
         <Link
           to="/app/subscription"
@@ -86,13 +76,8 @@ function Profile() {
           { v: String(user?.stats.saved ?? 0), l: "Saved" },
           { v: String(user?.stats.streak ?? 0), l: "Streak" },
         ].map((s) => (
-          <div
-            key={s.l}
-            className="p-4 rounded-2xl glass-strong shadow-card text-center"
-          >
-            <div className="font-display text-2xl font-semibold text-gradient">
-              {s.v}
-            </div>
+          <div key={s.l} className="p-4 rounded-2xl glass-strong shadow-card text-center">
+            <div className="font-display text-2xl font-semibold text-gradient">{s.v}</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">{s.l}</div>
           </div>
         ))}

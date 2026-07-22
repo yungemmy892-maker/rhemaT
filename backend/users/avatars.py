@@ -18,7 +18,13 @@ logger = logging.getLogger(__name__)
 
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024  # 8MB — generous for a phone camera photo
 TARGET_SIZE = 512  # square thumbnail, plenty for any avatar display size
-ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
+ALLOWED_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+}
 REQUEST_TIMEOUT = 15
 
 # L3: be explicit about the decompression-bomb pixel ceiling rather than
@@ -31,7 +37,11 @@ class AvatarUploadError(Exception):
 
 
 def _supabase_configured() -> bool:
-    return bool(settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY and settings.SUPABASE_STORAGE_BUCKET)
+    return bool(
+        settings.SUPABASE_URL
+        and settings.SUPABASE_SERVICE_ROLE_KEY
+        and settings.SUPABASE_STORAGE_BUCKET
+    )
 
 
 def _process_image(uploaded_file) -> Image.Image:
@@ -42,7 +52,9 @@ def _process_image(uploaded_file) -> Image.Image:
 
     content_type = getattr(uploaded_file, "content_type", None)
     if content_type and content_type not in ALLOWED_CONTENT_TYPES:
-        raise AvatarUploadError("That file type isn't supported. Please upload a JPEG, PNG, WEBP, or HEIC image.")
+        raise AvatarUploadError(
+            "That file type isn't supported. Please upload a JPEG, PNG, WEBP, or HEIC image."
+        )
 
     try:
         image = Image.open(uploaded_file)
@@ -117,7 +129,9 @@ def _supabase_public_url(path: str) -> str:
     return f"{base}/storage/v1/object/public/{bucket}/{path}"
 
 
-def _save_to_supabase(image: Image.Image, filename: str, old_avatar_path: str | None) -> str:
+def _save_to_supabase(
+    image: Image.Image, filename: str, old_avatar_path: str | None
+) -> str:
     buffer = io.BytesIO()
     image.save(buffer, "JPEG", quality=88)
     buffer.seek(0)
@@ -139,7 +153,9 @@ def _save_to_supabase(image: Image.Image, filename: str, old_avatar_path: str | 
         resp.raise_for_status()
     except requests.RequestException as exc:
         logger.exception("Failed to upload avatar to Supabase Storage")
-        raise AvatarUploadError("Couldn't save the image right now — please try again.") from exc
+        raise AvatarUploadError(
+            "Couldn't save the image right now — please try again."
+        ) from exc
 
     public_base_prefix = f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/public/{settings.SUPABASE_STORAGE_BUCKET}/"
 
@@ -152,16 +168,23 @@ def _save_to_supabase(image: Image.Image, filename: str, old_avatar_path: str | 
         try:
             requests.delete(
                 _supabase_object_url(old_path),
-                headers={"Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}"},
+                headers={
+                    "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}"
+                },
                 timeout=REQUEST_TIMEOUT,
             )
         except requests.RequestException:
-            logger.exception("Failed to delete old avatar from Supabase Storage (non-fatal): %s", old_path)
+            logger.exception(
+                "Failed to delete old avatar from Supabase Storage (non-fatal): %s",
+                old_path,
+            )
 
     return _supabase_public_url(path)
 
 
-def _save_to_local_disk(image: Image.Image, filename: str, old_avatar_path: str | None) -> str:
+def _save_to_local_disk(
+    image: Image.Image, filename: str, old_avatar_path: str | None
+) -> str:
     avatars_dir = os.path.join(settings.MEDIA_ROOT, "avatars")
     os.makedirs(avatars_dir, exist_ok=True)
 

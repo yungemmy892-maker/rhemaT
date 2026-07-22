@@ -31,7 +31,9 @@ class MarkAllReadView(APIView):
     """POST /api/v1/notifications/mark-all-read/"""
 
     def post(self, request):
-        Notification.objects(user_id=str(request.user.id), read=False).update(set__read=True)
+        Notification.objects(user_id=str(request.user.id), read=False).update(
+            set__read=True
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -72,5 +74,7 @@ class PushUnsubscribeView(APIView):
     def post(self, request):
         endpoint = request.data.get("endpoint")
         if endpoint:
-            PushSubscription.objects(user_id=str(request.user.id), endpoint=endpoint).delete()
+            PushSubscription.objects(
+                user_id=str(request.user.id), endpoint=endpoint
+            ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

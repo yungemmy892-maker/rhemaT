@@ -34,5 +34,7 @@ class SearchHistory(me.Document):
             "verseId": self.verse_id,
             "matched": self.matched,
             "confidence": self.confidence,
-            "timestamp": int(self.created_at.replace(tzinfo=datetime.timezone.utc).timestamp() * 1000),
+            "timestamp": int(
+                self.created_at.replace(tzinfo=datetime.timezone.utc).timestamp() * 1000
+            ),
         }

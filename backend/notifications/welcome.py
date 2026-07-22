@@ -13,7 +13,7 @@ def send_welcome(user) -> None:
         Notification(
             user_id=str(user.id),
             kind="welcome",
-            title="Welcome to VerseID \U0001F44B",
+            title="Welcome to VerseID \U0001f44b",
             body=(
                 "Tap the mic and point it at any verse being read aloud — "
                 "we'll tell you exactly what it is."

@@ -194,13 +194,12 @@ export const bibleApi = {
 
   books: () =>
     api
-      .get<
-        { book: string; display: string; testament: "OT" | "NT"; order: number }[]
-      >("/bible/books/")
+      .get<{ book: string; display: string; testament: "OT" | "NT"; order: number }[]>(
+        "/bible/books/",
+      )
       .then((r) => r.data),
 
-  languages: () =>
-    api.get<Language[]>("/bible/languages/").then((r) => r.data),
+  languages: () => api.get<Language[]>("/bible/languages/").then((r) => r.data),
 
   translations: (langCode: string) =>
     api
@@ -233,8 +232,7 @@ export const searchApi = {
 
   clearHistory: () => api.delete("/search/history/").then(() => undefined),
 
-  deleteHistoryItem: (id: string) =>
-    api.delete(`/search/history/${id}/`).then(() => undefined),
+  deleteHistoryItem: (id: string) => api.delete(`/search/history/${id}/`).then(() => undefined),
 };
 
 // ---------------------------------------------------------------------------
@@ -265,13 +263,14 @@ export const billingApi = {
     api
       .post<PaymentInit>("/billing/initiate/", {
         interval,
-        callback_url:
-          callbackUrl ?? `${window.location.origin}/app/subscription?status=success`,
+        callback_url: callbackUrl ?? `${window.location.origin}/app/subscription?status=success`,
       })
       .then((r) => r.data),
 
   verify: (reference: string) =>
-    api.post<{ user: AuthUser; status: string }>("/billing/verify/", { reference }).then((r) => r.data),
+    api
+      .post<{ user: AuthUser; status: string }>("/billing/verify/", { reference })
+      .then((r) => r.data),
 
   cancel: () => api.post<AuthUser>("/billing/cancel/").then((r) => r.data),
 };
@@ -282,13 +281,7 @@ export const billingApi = {
 
 export interface AppNotification {
   id: string;
-  kind:
-    | "verse_of_day"
-    | "saved_to_library"
-    | "pro_upsell"
-    | "new_voice"
-    | "streak"
-    | "welcome";
+  kind: "verse_of_day" | "saved_to_library" | "pro_upsell" | "new_voice" | "streak" | "welcome";
   title: string;
   body: string;
   unread: boolean;

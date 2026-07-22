@@ -54,11 +54,7 @@ function Discover() {
       <h2 className="mt-8 font-display text-lg font-semibold">Browse by theme</h2>
       <div className="mt-3 grid grid-cols-2 gap-3">
         {THEMES.map((t, i) => (
-          <Link
-            key={t.name}
-            to="/app/results"
-            search={{ q: t.query }}
-          >
+          <Link key={t.name} to="/app/results" search={{ q: t.query }}>
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -77,13 +73,22 @@ function Discover() {
       <div className="mt-3 space-y-2.5">
         {popularLoading
           ? [0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-[72px] rounded-2xl glass-strong shadow-card animate-pulse" />
+              <div
+                key={i}
+                className="h-[72px] rounded-2xl glass-strong shadow-card animate-pulse"
+              />
             ))
           : popular.map((v) => (
               <Link
                 key={v.id}
                 to="/app/results"
-                search={{ q: "", book: v.book, chapter: v.chapter, verse: v.verse, version: v.version }}
+                search={{
+                  q: "",
+                  book: v.book,
+                  chapter: v.chapter,
+                  verse: v.verse,
+                  version: v.version,
+                }}
                 className="block p-4 rounded-2xl glass-strong shadow-card hover:bg-primary-soft transition"
               >
                 <div className="font-medium text-sm">

@@ -86,7 +86,9 @@ class SavedVersesView(APIView):
                         body=f"{verse.ref} was added to your saved verses.",
                     ).save()
 
-        return Response({"verseId": verse_id, "saved": saved}, status=status.HTTP_200_OK)
+        return Response(
+            {"verseId": verse_id, "saved": saved}, status=status.HTTP_200_OK
+        )
 
 
 class CollectionsView(APIView):
@@ -97,6 +99,7 @@ class CollectionsView(APIView):
 
     def get(self, request):
         from bible.models import SUPPORTED_VERSIONS
+
         version = request.query_params.get("version", "KJV").upper()
         if version not in SUPPORTED_VERSIONS:
             version = "KJV"
@@ -109,12 +112,14 @@ class CollectionsView(APIView):
                 v = resolve_verse(vid, version)
                 if v:
                     verses.append(v.to_dict())
-            results.append({
-                "name": name,
-                "count": len(verses),
-                "verseIds": verse_ids,
-                "verses": verses,
-            })
+            results.append(
+                {
+                    "name": name,
+                    "count": len(verses),
+                    "verseIds": verse_ids,
+                    "verses": verses,
+                }
+            )
         return Response(results)
 
 

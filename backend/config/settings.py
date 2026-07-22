@@ -148,7 +148,9 @@ connect(
     # Fail fast instead of hanging a request/worker forever if Mongo is
     # unreachable — was unset before, so pymongo's 30s wire-protocol default
     # applied everywhere, including gunicorn's own request timeout window.
-    serverSelectionTimeoutMS=int(os.environ.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", "10000")),
+    serverSelectionTimeoutMS=int(
+        os.environ.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", "10000")
+    ),
     # Atlas connection strings already include retryWrites=true, but that's
     # easy to drop by accident when someone hand-types a local/self-hosted
     # MONGO_URI — set it explicitly here too so a transient network blip
@@ -227,7 +229,7 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
- 
+
 # ---------------------------------------------------------------------------
 # Hugging Face Inference API (semantic search — search/embeddings.py, search/faiss_index.py)
 # Free token from https://huggingface.co/settings/tokens. Leave unset to
@@ -254,8 +256,8 @@ PAYSTACK_PUBLIC_KEY = os.environ.get("PAYSTACK_PUBLIC_KEY", "")
 
 # NGN pricing (kobo = smallest unit, 100 kobo = ₦1)
 # Monthly: ₦1,000  |  Annual: ₦9,000  (saves ₦3,000 vs monthly)
-PLAN_MONTHLY_KOBO = 100_000    # ₦1,000
-PLAN_ANNUAL_KOBO = 900_000     # ₦9,000
+PLAN_MONTHLY_KOBO = 100_000  # ₦1,000
+PLAN_ANNUAL_KOBO = 900_000  # ₦9,000
 
 # ---------------------------------------------------------------------------
 # Web Push (VAPID) — for the daily verse-of-the-day push notification.
@@ -282,7 +284,9 @@ EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "VerseID <noreply@verseid.app>")
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL", "VerseID <noreply@verseid.app>"
+)
 
 # Base URL of the deployed frontend, used to build links inside transactional
 # emails (welcome email CTA, future password-reset links, etc).
@@ -418,8 +422,12 @@ X_FRAME_OPTIONS = "DENY"
 #    slow and painful to get removed from. Both default OFF and require
 #    deliberately opting in via env var once you're certain every
 #    current and future subdomain is HTTPS-only.
-SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
-SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get("SECURE_HSTS_INCLUDE_SUBDOMAINS", "False") == "True"
+SECURE_HSTS_SECONDS = int(
+    os.environ.get("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000")
+)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = (
+    os.environ.get("SECURE_HSTS_INCLUDE_SUBDOMAINS", "False") == "True"
+)
 SECURE_HSTS_PRELOAD = os.environ.get("SECURE_HSTS_PRELOAD", "False") == "True"
 
 # ---------------------------------------------------------------------------

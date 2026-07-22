@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class AuthApiConfig(AppConfig):
-    name = 'auth_api'
+    name = "auth_api"

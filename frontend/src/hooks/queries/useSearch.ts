@@ -68,7 +68,7 @@ export function useDeleteHistoryItem() {
       const prev = queryClient.getQueryData(queryKeys.recentSearches);
       queryClient.setQueryData(
         queryKeys.recentSearches,
-        (old: { id: string }[] | undefined) => old?.filter((item) => item.id !== id) ?? []
+        (old: { id: string }[] | undefined) => old?.filter((item) => item.id !== id) ?? [],
       );
       return { prev };
     },

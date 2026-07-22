@@ -130,7 +130,12 @@ class User(me.Document):
             "avatar": _resolve_avatar_url(self.avatar),
             "plan": "Pro" if self.is_pro() else "Free",
             "planExpiresAt": (
-                int(self.plan_expires_at.replace(tzinfo=datetime.timezone.utc).timestamp() * 1000)
+                int(
+                    self.plan_expires_at.replace(
+                        tzinfo=datetime.timezone.utc
+                    ).timestamp()
+                    * 1000
+                )
                 if self.plan_expires_at
                 else None
             ),

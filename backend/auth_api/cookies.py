@@ -17,7 +17,9 @@ def generate_csrf_token() -> str:
     return secrets.token_urlsafe(32)
 
 
-def set_auth_cookies(response, *, refresh_token: str, csrf_token: str, max_age_seconds: int) -> None:
+def set_auth_cookies(
+    response, *, refresh_token: str, csrf_token: str, max_age_seconds: int
+) -> None:
     """Set the refresh + CSRF cookies on an outgoing Response. Call this
     from every endpoint that issues or rotates a refresh token."""
     common = dict(

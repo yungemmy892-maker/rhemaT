@@ -13,7 +13,9 @@ class SavedVerse(me.Document):
 
     id = me.StringField(primary_key=True, default=_gen_id)
     user_id = me.StringField(required=True)
-    verse_id = me.StringField(required=True)  # e.g. "john-3-16", matches Verse.to_dict()["id"]
+    verse_id = me.StringField(
+        required=True
+    )  # e.g. "john-3-16", matches Verse.to_dict()["id"]
     version = me.StringField(choices=("KJV", "WEB"), default="KJV")
     created_at = me.DateTimeField(default=datetime.datetime.utcnow)
 

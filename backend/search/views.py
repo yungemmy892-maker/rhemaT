@@ -1,5 +1,3 @@
-import datetime
-
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -81,7 +79,10 @@ class IdentifyView(APIView):
             user.touch_streak()
             user.save()
 
-            if user.streak_count != previous_streak and user.streak_count in STREAK_MILESTONES:
+            if (
+                user.streak_count != previous_streak
+                and user.streak_count in STREAK_MILESTONES
+            ):
                 Notification(
                     user_id=str(user.id),
                     kind="streak",
@@ -98,7 +99,12 @@ class IdentifyView(APIView):
             )
 
         return Response(
-            {"matched": True, "query": query, "dailySearchesRemaining": remaining, **result},
+            {
+                "matched": True,
+                "query": query,
+                "dailySearchesRemaining": remaining,
+                **result,
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -115,7 +121,9 @@ class RecentSearchesView(APIView):
         results = []
         for item in items:
             data = item.to_dict()
-            verse = resolve_verse(item.verse_id, item.version) if item.verse_id else None
+            verse = (
+                resolve_verse(item.verse_id, item.version) if item.verse_id else None
+            )
             data["verse"] = verse.to_dict() if verse else None
             results.append(data)
         return Response(results)

@@ -38,7 +38,9 @@ def _resolve_version(request) -> str:
 
 
 def _lookup(book, chapter, verse, version="KJV"):
-    return Verse.objects(book=book, chapter=chapter, verse=verse, version=version).first()
+    return Verse.objects(
+        book=book, chapter=chapter, verse=verse, version=version
+    ).first()
 
 
 class VerseOfDayView(APIView):
@@ -49,7 +51,9 @@ class VerseOfDayView(APIView):
     """
 
     permission_classes = [AllowAny]
-    CACHE_TTL = 60 * 60 * 25  # a bit over a day; the date in the key is what actually rolls it over
+    CACHE_TTL = (
+        60 * 60 * 25
+    )  # a bit over a day; the date in the key is what actually rolls it over
 
     def get(self, request):
         version = _resolve_version(request)
@@ -103,11 +107,15 @@ class VerseDetailView(APIView):
         chapter = request.query_params.get("chapter")
         verse_num = request.query_params.get("verse")
         if not (book and chapter and verse_num):
-            return Response({"detail": "book, chapter and verse are required."}, status=400)
+            return Response(
+                {"detail": "book, chapter and verse are required."}, status=400
+            )
         try:
             chapter_i, verse_i = int(chapter), int(verse_num)
         except ValueError:
-            return Response({"detail": "chapter and verse must be integers."}, status=400)
+            return Response(
+                {"detail": "chapter and verse must be integers."}, status=400
+            )
 
         cache_key = f"bible:verse:{book}:{chapter_i}:{verse_i}:{version}"
         data = cache.get(cache_key)
@@ -145,7 +153,9 @@ class ChapterView(APIView):
         cache_key = f"bible:chapter:{book}:{chapter_num}:{version}"
         data = cache.get(cache_key)
         if data is None:
-            verses = Verse.objects(book=book, chapter=chapter_num, version=version).order_by("verse")
+            verses = Verse.objects(
+                book=book, chapter=chapter_num, version=version
+            ).order_by("verse")
             if not verses:
                 return Response({"detail": "Chapter not found."}, status=404)
             data = [v.to_dict() for v in verses]
@@ -172,14 +182,20 @@ class BooksListView(APIView):
             pipeline_books = Verse.objects.distinct("book")
             books = []
             for book in pipeline_books:
-                v = Verse.objects(book=book).only("book", "book_display", "testament", "book_index").first()
+                v = (
+                    Verse.objects(book=book)
+                    .only("book", "book_display", "testament", "book_index")
+                    .first()
+                )
                 if v:
-                    books.append({
-                        "book": v.book,
-                        "display": v.book_display,
-                        "testament": v.testament,
-                        "order": v.book_index,
-                    })
+                    books.append(
+                        {
+                            "book": v.book,
+                            "display": v.book_display,
+                            "testament": v.testament,
+                            "order": v.book_index,
+                        }
+                    )
             books.sort(key=lambda b: b["order"])
             cache.set(self.CACHE_KEY, books, self.CACHE_TTL)
 

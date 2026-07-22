@@ -85,7 +85,11 @@ function VoiceSearch() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <Link to="/app/home" aria-label="Back to Home" className="h-10 w-10 rounded-full glass grid place-items-center">
+        <Link
+          to="/app/home"
+          aria-label="Back to Home"
+          className="h-10 w-10 rounded-full glass grid place-items-center"
+        >
           <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
         <Link
@@ -110,7 +114,9 @@ function VoiceSearch() {
         </div>
 
         <h2 className="mt-10 font-display text-2xl font-semibold">
-          {phase === "listening" ? t("voice.listening", "Listening…") : t("voice.identifying", "Identifying verse…")}
+          {phase === "listening"
+            ? t("voice.listening", "Listening…")
+            : t("voice.identifying", "Identifying verse…")}
         </h2>
         <p className="mt-3 text-muted-foreground min-h-[1.5em] px-6">
           {transcript ? (

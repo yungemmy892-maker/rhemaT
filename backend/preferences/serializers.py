@@ -22,6 +22,8 @@ class SettingsUpdateSerializer(serializers.Serializer):
     dailyVerseTime = serializers.ChoiceField(
         choices=["Morning", "Midday", "Evening"], required=False
     )
-    bibleVersion = serializers.ChoiceField(choices=list(SUPPORTED_VERSIONS), required=False)
+    bibleVersion = serializers.ChoiceField(
+        choices=list(SUPPORTED_VERSIONS), required=False
+    )
     language = serializers.CharField(required=False)
     theme = serializers.ChoiceField(choices=["system", "light", "dark"], required=False)

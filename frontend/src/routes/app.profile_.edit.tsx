@@ -52,9 +52,7 @@ function EditProfile() {
     try {
       await uploadAvatar(file);
     } catch (err) {
-      setAvatarError(
-        (err as { message?: string })?.message || "Couldn't upload that photo.",
-      );
+      setAvatarError((err as { message?: string })?.message || "Couldn't upload that photo.");
     } finally {
       setAvatarUploading(false);
     }
@@ -85,18 +83,13 @@ function EditProfile() {
     setPasswordSaving(true);
     setPasswordError(null);
     try {
-      await changePassword(
-        user?.hasPassword ? currentPassword : undefined,
-        newPassword,
-      );
+      await changePassword(user?.hasPassword ? currentPassword : undefined, newPassword);
       setCurrentPassword("");
       setNewPassword("");
       setPasswordSaved(true);
       setTimeout(() => setPasswordSaved(false), 1800);
     } catch (err) {
-      setPasswordError(
-        (err as { message?: string })?.message || "Couldn't change your password.",
-      );
+      setPasswordError((err as { message?: string })?.message || "Couldn't change your password.");
     } finally {
       setPasswordSaving(false);
     }
@@ -124,10 +117,7 @@ function EditProfile() {
           className="relative h-16 w-16 rounded-full ring-2 ring-primary-soft overflow-hidden shrink-0 group"
         >
           <img
-            src={
-              user?.avatar ??
-              "https://api.dicebear.com/9.x/notionists/svg?seed=guest"
-            }
+            src={user?.avatar ?? "https://api.dicebear.com/9.x/notionists/svg?seed=guest"}
             alt="avatar"
             className="h-full w-full object-cover"
           />
@@ -143,9 +133,7 @@ function EditProfile() {
         <div className="min-w-0 flex-1">
           <div className="font-semibold truncate">{user?.name}</div>
           <div className="text-sm text-muted-foreground truncate">{user?.email}</div>
-          {avatarError && (
-            <p className="text-xs text-destructive mt-1">{avatarError}</p>
-          )}
+          {avatarError && <p className="text-xs text-destructive mt-1">{avatarError}</p>}
         </div>
         <button
           type="button"
@@ -220,11 +208,7 @@ function EditProfile() {
                 onClick={() => setShowCurrent((v) => !v)}
                 className="text-muted-foreground"
               >
-                {showCurrent ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </Field>
           )}
@@ -247,13 +231,11 @@ function EditProfile() {
           </Field>
           {!user?.hasPassword && (
             <p className="text-xs text-muted-foreground">
-              Your account currently uses Google Sign-In only. Setting a password
-              lets you also sign in with email.
+              Your account currently uses Google Sign-In only. Setting a password lets you also sign
+              in with email.
             </p>
           )}
-          {passwordError && (
-            <p className="text-xs text-destructive">{passwordError}</p>
-          )}
+          {passwordError && <p className="text-xs text-destructive">{passwordError}</p>}
           <button
             type="submit"
             disabled={passwordSaving || newPassword.length < 6}
@@ -294,9 +276,7 @@ function EditProfile() {
             >
               <div className="flex items-start gap-3">
                 <div className="flex-1">
-                  <div className="font-display text-lg font-semibold">
-                    Update profile photo
-                  </div>
+                  <div className="font-display text-lg font-semibold">Update profile photo</div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Choose how you'd like to add a photo.
                   </p>

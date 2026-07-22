@@ -1,5 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, HelpCircle, Mic, Search, Bookmark, Bell, Crown, User, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ArrowLeft,
+  HelpCircle,
+  Mic,
+  Search,
+  Bookmark,
+  Bell,
+  Crown,
+  User,
+  Shield,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/help")({
@@ -14,7 +26,8 @@ export const Route = createFileRoute("/help")({
       { property: "og:title", content: "Help & Support - VerseID" },
       {
         property: "og:description",
-        content: "Answers to common questions about VerseID's voice search, translations, and account settings.",
+        content:
+          "Answers to common questions about VerseID's voice search, translations, and account settings.",
       },
       { property: "og:url", content: "https://verseid.top/help" },
       {
@@ -113,7 +126,11 @@ function Help() {
       <div className="mx-auto max-w-2xl px-5 py-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
-          <Link to="/" aria-label="Back" className="h-10 w-10 rounded-full glass grid place-items-center">
+          <Link
+            to="/"
+            aria-label="Back"
+            className="h-10 w-10 rounded-full glass grid place-items-center"
+          >
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <div className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center">
@@ -128,12 +145,42 @@ function Help() {
         {/* Quick feature tiles */}
         <div className="grid grid-cols-2 gap-3 mb-8">
           {[
-            { Icon: Mic, label: "Voice search", desc: "Speak any verse to find it", to: "/app/voice" },
-            { Icon: Search, label: "Text search", desc: "Type a phrase to identify", to: "/app/text" },
-            { Icon: Bookmark, label: "Library", desc: "Saved verses & history", to: "/app/library" },
-            { Icon: Bell, label: "Notifications", desc: "Daily verse & alerts", to: "/app/settings" },
-            { Icon: Crown, label: "Pro plan", desc: "Unlimited searches (₦1,000/mo)", to: "/app/subscription" },
-            { Icon: User, label: "Profile", desc: "Edit name, photo & password", to: "/app/profile/edit" },
+            {
+              Icon: Mic,
+              label: "Voice search",
+              desc: "Speak any verse to find it",
+              to: "/app/voice",
+            },
+            {
+              Icon: Search,
+              label: "Text search",
+              desc: "Type a phrase to identify",
+              to: "/app/text",
+            },
+            {
+              Icon: Bookmark,
+              label: "Library",
+              desc: "Saved verses & history",
+              to: "/app/library",
+            },
+            {
+              Icon: Bell,
+              label: "Notifications",
+              desc: "Daily verse & alerts",
+              to: "/app/settings",
+            },
+            {
+              Icon: Crown,
+              label: "Pro plan",
+              desc: "Unlimited searches (₦1,000/mo)",
+              to: "/app/subscription",
+            },
+            {
+              Icon: User,
+              label: "Profile",
+              desc: "Edit name, photo & password",
+              to: "/app/profile/edit",
+            },
           ].map(({ Icon, label, desc, to }) => (
             <Link
               key={label}
@@ -227,10 +274,18 @@ function Help() {
         </div>
 
         <div className="mt-8 flex gap-4 text-xs text-muted-foreground">
-          <Link to="/pricing" className="hover:text-foreground transition">Pricing</Link>
-          <Link to="/privacy" className="hover:text-foreground transition">Privacy</Link>
-          <Link to="/terms" className="hover:text-foreground transition">Terms</Link>
-          <Link to="/" className="hover:text-foreground transition">Home</Link>
+          <Link to="/pricing" className="hover:text-foreground transition">
+            Pricing
+          </Link>
+          <Link to="/privacy" className="hover:text-foreground transition">
+            Privacy
+          </Link>
+          <Link to="/terms" className="hover:text-foreground transition">
+            Terms
+          </Link>
+          <Link to="/" className="hover:text-foreground transition">
+            Home
+          </Link>
         </div>
       </div>
     </div>

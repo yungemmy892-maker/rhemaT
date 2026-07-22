@@ -39,7 +39,9 @@ class Command(BaseCommand):
             query["current_period_end__lte"] = now
 
         due_subs = list(Subscription.objects(**query))
-        self.stdout.write(f"{len(due_subs)} active subscription(s) past their period end.")
+        self.stdout.write(
+            f"{len(due_subs)} active subscription(s) past their period end."
+        )
 
         renewed = failed = skipped = 0
 
@@ -98,7 +100,11 @@ class Command(BaseCommand):
                     email=user.email,
                     amount_kobo=sub.amount_kobo,
                     authorization_code=sub.paystack_authorization_code,
-                    metadata={"user_id": str(user.id), "interval": sub.interval, "renewal": True},
+                    metadata={
+                        "user_id": str(user.id),
+                        "interval": sub.interval,
+                        "renewal": True,
+                    },
                     reference=reference,
                 )
             except PaystackDuplicateReference:
@@ -109,13 +115,17 @@ class Command(BaseCommand):
                 try:
                     verified = verify_transaction(reference)
                 except PaystackError as exc:
-                    self._handle_failure(sub, user, f"Could not verify prior attempt: {exc}")
+                    self._handle_failure(
+                        sub, user, f"Could not verify prior attempt: {exc}"
+                    )
                     failed += 1
                     continue
 
                 if verified.get("status") != "success":
                     self._handle_failure(
-                        sub, user, "Prior renewal attempt unresolved — needs manual review"
+                        sub,
+                        user,
+                        "Prior renewal attempt unresolved — needs manual review",
                     )
                     failed += 1
                     continue
@@ -126,7 +136,9 @@ class Command(BaseCommand):
                 continue
 
             if result.get("status") != "success":
-                self._handle_failure(sub, user, result.get("gateway_response") or "Charge declined")
+                self._handle_failure(
+                    sub, user, result.get("gateway_response") or "Charge declined"
+                )
                 failed += 1
                 continue
 
@@ -165,13 +177,18 @@ class Command(BaseCommand):
                 logger.critical(
                     "PAYSTACK CHARGED sub=%s user=%s amount_kobo=%s reference=%s "
                     "but DB write failed — subscription NOT marked renewed.",
-                    sub.id, user.id, sub.amount_kobo, reference,
+                    sub.id,
+                    user.id,
+                    sub.amount_kobo,
+                    reference,
                     exc_info=True,
                 )
                 raise
 
         self.stdout.write(
-            self.style.SUCCESS(f"Renewed: {renewed}, Failed: {failed}, Skipped: {skipped}")
+            self.style.SUCCESS(
+                f"Renewed: {renewed}, Failed: {failed}, Skipped: {skipped}"
+            )
         )
 
     def _handle_failure(self, sub: Subscription, user: User, reason: str) -> None:

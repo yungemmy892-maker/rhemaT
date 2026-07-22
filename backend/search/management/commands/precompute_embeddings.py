@@ -16,7 +16,11 @@ class Command(BaseCommand):
     help = "Precompute and store FAISS embeddings for semantic verse search."
 
     def handle(self, *args, **options):
-        verses = list(Verse.objects(version=EMBEDDING_VERSION).order_by("book_index", "chapter", "verse"))
+        verses = list(
+            Verse.objects(version=EMBEDDING_VERSION).order_by(
+                "book_index", "chapter", "verse"
+            )
+        )
         if not verses:
             raise CommandError(
                 f"No {EMBEDDING_VERSION} verses found — run `manage.py load_bible "
@@ -24,7 +28,9 @@ class Command(BaseCommand):
             )
 
         total = len(verses)
-        self.stdout.write(f"Embedding {total} {EMBEDDING_VERSION} verses in batches of {BATCH_SIZE}...")
+        self.stdout.write(
+            f"Embedding {total} {EMBEDDING_VERSION} verses in batches of {BATCH_SIZE}..."
+        )
 
         rows = []  # (book, chapter, verse, vector)
         for start in range(0, total, BATCH_SIZE):
@@ -61,4 +67,6 @@ class Command(BaseCommand):
         sys.stdout.write("\n")
         self.stdout.write("Building FAISS index...")
         build_index(rows)
-        self.stdout.write(self.style.SUCCESS(f"Done — indexed {len(rows)} verses to search/data/."))
+        self.stdout.write(
+            self.style.SUCCESS(f"Done — indexed {len(rows)} verses to search/data/.")
+        )

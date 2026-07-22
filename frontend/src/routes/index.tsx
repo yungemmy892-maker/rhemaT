@@ -8,10 +8,14 @@ export const Route = createFileRoute("/")({
       { title: "VerseID - Find Any Bible Verse Instantly" },
       {
         name: "description",
-        content: "Hear it. Speak it. Discover it. VerseID identifies any Bible verse from your voice or a few words.",
+        content:
+          "Hear it. Speak it. Discover it. VerseID identifies any Bible verse from your voice or a few words.",
       },
       { property: "og:title", content: "VerseID - Find Any Bible Verse Instantly" },
-      { property: "og:description", content: "Shazam for Bible verses. Speak or type - VerseID finds it." },
+      {
+        property: "og:description",
+        content: "Shazam for Bible verses. Speak or type - VerseID finds it.",
+      },
     ],
     links: [{ rel: "canonical", href: "https://verseid.top/" }],
   }),
@@ -113,9 +117,17 @@ function Landing() {
         <SectionHeader eyebrow="How it works" title="Three taps to scripture" />
         <div className="mt-12 grid sm:grid-cols-3 gap-4">
           {[
-            { n: "01", t: "Tap the mic", d: "Speak the verse you remember — even just a fragment." },
+            {
+              n: "01",
+              t: "Tap the mic",
+              d: "Speak the verse you remember — even just a fragment.",
+            },
             { n: "02", t: "We listen", d: "Smart matching finds the verse across translations." },
-            { n: "03", t: "Discover", d: "Get book, chapter, verse, version and confidence score." },
+            {
+              n: "03",
+              t: "Discover",
+              d: "Get book, chapter, verse, version and confidence score.",
+            },
           ].map((s, i) => (
             <RevealCard key={s.n} delay={i * 0.1}>
               <div className="text-xs font-mono text-primary">{s.n}</div>
@@ -131,8 +143,16 @@ function Landing() {
         <SectionHeader eyebrow="Features" title="Built for quiet moments of clarity" />
         <div className="mt-12 grid sm:grid-cols-2 gap-4">
           {[
-            { Icon: Mic, t: "Voice identification", d: "Recite scripture aloud - we match it instantly." },
-            { Icon: Search, t: "Fuzzy text search", d: "Type a few words; we find the right verse and version." },
+            {
+              Icon: Mic,
+              t: "Voice identification",
+              d: "Recite scripture aloud - we match it instantly.",
+            },
+            {
+              Icon: Search,
+              t: "Fuzzy text search",
+              d: "Type a few words; we find the right verse and version.",
+            },
             { Icon: Wand2, t: "Semantic AI", d: "Understand meaning, not just words." },
             { Icon: ShieldCheck, t: "Private & secure", d: "Your library stays yours, always." },
           ].map((f, i) => (
@@ -152,8 +172,14 @@ function Landing() {
         <SectionHeader eyebrow="Loved by readers" title="A daily companion" />
         <div className="mt-12 grid sm:grid-cols-3 gap-4">
           {[
-            { q: "I heard a verse on the radio and had it identified before the song ended.", a: "Izuo M." },
-            { q: "Beautiful, calming, and genuinely useful. My favorite app this year.", a: "Joshua Dev." },
+            {
+              q: "I heard a verse on the radio and had it identified before the song ended.",
+              a: "Izuo M.",
+            },
+            {
+              q: "Beautiful, calming, and genuinely useful. My favorite app this year.",
+              a: "Joshua Dev.",
+            },
             { q: "Like having a concordance in my pocket - but kinder.", a: "Elijah U." },
           ].map((t, i) => (
             <RevealCard key={t.a} delay={i * 0.08}>
@@ -244,7 +270,9 @@ function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div className="text-center">
       <div className="text-xs uppercase tracking-[0.18em] text-primary font-medium">{eyebrow}</div>
-      <h2 className="mt-3 font-display text-3xl sm:text-5xl font-semibold tracking-tight">{title}</h2>
+      <h2 className="mt-3 font-display text-3xl sm:text-5xl font-semibold tracking-tight">
+        {title}
+      </h2>
     </div>
   );
 }
@@ -267,10 +295,24 @@ function RevealCard({ children, delay = 0 }: { children: React.ReactNode; delay?
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.46-1.7 4.28-5.5 4.28-3.31 0-6.01-2.74-6.01-6.13S8.69 6.12 12 6.12c1.88 0 3.14.8 3.86 1.49l2.63-2.54C16.95 3.6 14.68 2.6 12 2.6 6.86 2.6 2.7 6.76 2.7 12s4.16 9.4 9.3 9.4c5.37 0 8.92-3.77 8.92-9.07 0-.61-.07-1.08-.16-1.55H12z"/>
-      <path fill="#34A853" d="M3.88 7.34l3.2 2.35C7.99 7.66 9.83 6.12 12 6.12c1.88 0 3.14.8 3.86 1.49l2.63-2.54C16.95 3.6 14.68 2.6 12 2.6 8.3 2.6 5.12 4.71 3.88 7.34z" opacity="0"/>
-      <path fill="#FBBC05" d="M12 21.4c2.62 0 4.82-.86 6.43-2.34l-3.06-2.5c-.83.58-1.94.98-3.37.98-2.6 0-4.8-1.74-5.59-4.11l-3.15 2.43C4.5 19.04 7.94 21.4 12 21.4z" opacity="0"/>
-      <path fill="#4285F4" d="M20.92 10.78H12v3.92h5.5c-.24 1.46-1.7 4.28-5.5 4.28v.02c3.27 0 6.02-1.16 8.02-3.16 1.43-1.43 2.06-3.5 2.06-5.6 0-.61-.07-1.08-.16-1.46z"/>
+      <path
+        fill="#EA4335"
+        d="M12 10.2v3.9h5.5c-.24 1.46-1.7 4.28-5.5 4.28-3.31 0-6.01-2.74-6.01-6.13S8.69 6.12 12 6.12c1.88 0 3.14.8 3.86 1.49l2.63-2.54C16.95 3.6 14.68 2.6 12 2.6 6.86 2.6 2.7 6.76 2.7 12s4.16 9.4 9.3 9.4c5.37 0 8.92-3.77 8.92-9.07 0-.61-.07-1.08-.16-1.55H12z"
+      />
+      <path
+        fill="#34A853"
+        d="M3.88 7.34l3.2 2.35C7.99 7.66 9.83 6.12 12 6.12c1.88 0 3.14.8 3.86 1.49l2.63-2.54C16.95 3.6 14.68 2.6 12 2.6 8.3 2.6 5.12 4.71 3.88 7.34z"
+        opacity="0"
+      />
+      <path
+        fill="#FBBC05"
+        d="M12 21.4c2.62 0 4.82-.86 6.43-2.34l-3.06-2.5c-.83.58-1.94.98-3.37.98-2.6 0-4.8-1.74-5.59-4.11l-3.15 2.43C4.5 19.04 7.94 21.4 12 21.4z"
+        opacity="0"
+      />
+      <path
+        fill="#4285F4"
+        d="M20.92 10.78H12v3.92h5.5c-.24 1.46-1.7 4.28-5.5 4.28v.02c3.27 0 6.02-1.16 8.02-3.16 1.43-1.43 2.06-3.5 2.06-5.6 0-.61-.07-1.08-.16-1.46z"
+      />
     </svg>
   );
 }

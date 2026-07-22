@@ -79,7 +79,11 @@
   /* Premium gradients & shadows */
   --gradient-primary: linear-gradient(135deg, oklch(0.66 0.22 295), oklch(0.74 0.18 320));
   --gradient-soft: linear-gradient(180deg, oklch(0.98 0.02 300), oklch(0.985 0.005 300));
-  --gradient-hero: radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.88 0.12 305 / 0.5), transparent 60%);
+  --gradient-hero: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    oklch(0.88 0.12 305 / 0.5),
+    transparent 60%
+  );
   --shadow-glow: 0 20px 60px -20px oklch(0.62 0.22 300 / 0.4);
   --shadow-card: 0 4px 24px -8px oklch(0.4 0.05 285 / 0.08);
   --shadow-elevated: 0 12px 40px -12px oklch(0.4 0.05 285 / 0.14);
@@ -163,16 +167,31 @@
 }
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.9); opacity: 0.7; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 @keyframes float-slow {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  50% { transform: translateY(-30px) translateX(20px); }
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+  }
+  50% {
+    transform: translateY(-30px) translateX(20px);
+  }
 }
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @utility animate-pulse-ring {
@@ -186,7 +205,8 @@
   * {
     border-color: var(--color-border);
   }
-  html, body {
+  html,
+  body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -195,7 +215,10 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
@@ -209,7 +232,9 @@
    `useReducedMotion()` wired into each one; that's a larger sweep that
    still needs doing, tracked separately from this CSS-level mitigation. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

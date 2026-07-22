@@ -30,7 +30,11 @@ function TextSearch() {
   return (
     <div>
       <div className="flex items-center gap-2">
-        <Link to="/app/home" aria-label="Back to Home" className="h-10 w-10 rounded-full glass grid place-items-center shrink-0">
+        <Link
+          to="/app/home"
+          aria-label="Back to Home"
+          className="h-10 w-10 rounded-full glass grid place-items-center shrink-0"
+        >
           <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
         <div className="flex-1 min-w-0 flex items-center gap-2 h-12 px-4 rounded-full glass-strong shadow-card">
@@ -44,12 +48,20 @@ function TextSearch() {
             className="flex-1 min-w-0 bg-transparent outline-none text-sm"
           />
           {q && (
-            <button onClick={() => setQ("")} aria-label="Clear search" className="text-muted-foreground">
+            <button
+              onClick={() => setQ("")}
+              aria-label="Clear search"
+              className="text-muted-foreground"
+            >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
-        <Link to="/app/voice" aria-label="Search by voice" className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center shrink-0 shadow-glow">
+        <Link
+          to="/app/voice"
+          aria-label="Search by voice"
+          className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center shrink-0 shadow-glow"
+        >
           <Mic className="h-4.5 w-4.5 text-white" />
         </Link>
       </div>

@@ -1,0 +1,110 @@
+# Frontend CI/CD — Vite + React (TanStack Start) app in frontend/.
+#
+# Pull requests: install, lint, format-check, build. Push to main: the
+# same, then deploy to Vercel if — and only if — all of that passed.
+name: Frontend CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+
+concurrency:
+  group: frontend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: frontend
+    # See backend.yml's identical comment: explicitly requesting bash is
+    # what turns on pipefail, which is what makes `command | tee log`
+    # below actually fail the step when `command` fails.
+    shell: bash
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  build:
+    name: Lint, format, build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (ESLint)
+        run: npm run lint | tee eslint.log
+
+      - name: Formatting check (Prettier)
+        # package.json only has "format" (--write, mutates files) — no
+        # check-mode script exists yet, so this calls prettier directly
+        # rather than through npm run. Honors the repo's existing
+        # .prettierrc / .prettierignore automatically either way.
+        run: npx prettier --check . | tee prettier.log
+
+      - name: Build (Vite)
+        run: npm run build | tee build.log
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-ci-logs-${{ github.run_id }}
+          path: frontend/*.log
+          retention-days: 14
+          if-no-files-found: ignore
+
+  deploy:
+    name: Deploy to Vercel
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # This is Vercel's own currently-documented GitHub Actions pattern
+      # (pull -> build -> deploy --prebuilt), not a third-party Action —
+      # deliberately, since a deploy step is not where you want to add an
+      # extra, less-auditable maintainer dependency.
+      #
+      # Note this build is separate from, and in addition to, the "Build
+      # (Vite)" step in the job above: that one is a pure correctness
+      # check (does the code compile) using your own `vite build`; this
+      # one is Vercel's own build (`vercel build`), which produces the
+      # Build Output API-format .vercel/output/ folder Vercel's edge
+      # network actually serves from. They're not redundant with each
+      # other even though both technically "build the frontend."
+      - name: Pull Vercel environment (production)
+        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Build via Vercel
+        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Deploy prebuilt output to Vercel
+        run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"

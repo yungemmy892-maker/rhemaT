@@ -14,6 +14,7 @@ stemming/stopword removal, which can behave slightly differently from the
 offline check — re-run this after loading data to confirm real-world
 behavior, especially if you tune MIN_CONFIDENCE.
 """
+
 import os
 import sys
 
@@ -65,7 +66,13 @@ def run_set(label, queries, expect_match=True):
             mark = "✗" if expect_match else "?"
             print(f"  {mark} {query!r} -> NO MATCH (expected {expected_ref})")
             continue
-        plain_ref = result["verse"]["book"] + " " + str(result["verse"]["chapter"]) + ":" + str(result["verse"]["verse"])
+        plain_ref = (
+            result["verse"]["book"]
+            + " "
+            + str(result["verse"]["chapter"])
+            + ":"
+            + str(result["verse"]["verse"])
+        )
         mark = "✓" if plain_ref == expected_ref else "✗"
         print(
             f"  {mark} {query!r} -> {_ref(result)} "
@@ -86,7 +93,9 @@ def main():
         if result is None:
             print(f"  ✓ {query!r} -> NO MATCH (correct)")
         else:
-            print(f"  ✗ {query!r} -> {_ref(result)} (confidence={result['confidence']}) — false positive")
+            print(
+                f"  ✗ {query!r} -> {_ref(result)} (confidence={result['confidence']}) — false positive"
+            )
 
 
 if __name__ == "__main__":

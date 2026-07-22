@@ -9,7 +9,8 @@ export const Route = createFileRoute("/pricing")({
       { title: "Pricing - VerseID" },
       {
         name: "description",
-        content: "VerseID pricing: 6 free verse identifications a day, or go Pro for unlimited searches, both KJV & WEB translations, and priority support.",
+        content:
+          "VerseID pricing: 6 free verse identifications a day, or go Pro for unlimited searches, both KJV & WEB translations, and priority support.",
       },
       { property: "og:title", content: "VerseID Pricing" },
       {
@@ -22,7 +23,8 @@ export const Route = createFileRoute("/pricing")({
           "@context": "https://schema.org",
           "@type": "Product",
           name: "VerseID Pro",
-          description: "Unlimited Bible verse identifications, both KJV & WEB translations, full search history, custom collections, and priority support.",
+          description:
+            "Unlimited Bible verse identifications, both KJV & WEB translations, full search history, custom collections, and priority support.",
           offers: [
             {
               "@type": "Offer",
@@ -47,7 +49,12 @@ export const Route = createFileRoute("/pricing")({
   component: Pricing,
 });
 
-const FREE_FEATURES = ["6 verse identifications a day", "Saved verses", "Full search history", "Custom collections"];
+const FREE_FEATURES = [
+  "6 verse identifications a day",
+  "Saved verses",
+  "Full search history",
+  "Custom collections",
+];
 
 const PRO_FEATURES = [
   "Unlimited verse identifications",
@@ -71,7 +78,11 @@ function Pricing() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-5 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <Link to="/" aria-label="Back" className="h-10 w-10 rounded-full glass grid place-items-center">
+          <Link
+            to="/"
+            aria-label="Back"
+            className="h-10 w-10 rounded-full glass grid place-items-center"
+          >
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <div>
@@ -127,11 +138,16 @@ function Pricing() {
               </div>
 
               <p className="mt-4 text-3xl font-display font-semibold">
-                ₦{isLoading ? "…" : (plan === "monthly" ? monthlyNaira : annualMonthly).toLocaleString("en-NG")}
+                ₦
+                {isLoading
+                  ? "…"
+                  : (plan === "monthly" ? monthlyNaira : annualMonthly).toLocaleString("en-NG")}
                 <span className="text-base font-normal">/mo</span>
               </p>
               {plan === "annual" && !isLoading && (
-                <p className="text-xs text-white/75">Billed as ₦{annualNaira.toLocaleString("en-NG")}/year</p>
+                <p className="text-xs text-white/75">
+                  Billed as ₦{annualNaira.toLocaleString("en-NG")}/year
+                </p>
               )}
 
               <ul className="mt-5 space-y-2.5">
@@ -162,10 +178,18 @@ function Pricing() {
         </div>
 
         <div className="mt-12 flex gap-4 text-xs text-muted-foreground">
-          <Link to="/terms" className="hover:text-foreground transition">Terms</Link>
-          <Link to="/privacy" className="hover:text-foreground transition">Privacy Policy</Link>
-          <Link to="/help" className="hover:text-foreground transition">Help</Link>
-          <Link to="/" className="hover:text-foreground transition">Home</Link>
+          <Link to="/terms" className="hover:text-foreground transition">
+            Terms
+          </Link>
+          <Link to="/privacy" className="hover:text-foreground transition">
+            Privacy Policy
+          </Link>
+          <Link to="/help" className="hover:text-foreground transition">
+            Help
+          </Link>
+          <Link to="/" className="hover:text-foreground transition">
+            Home
+          </Link>
         </div>
       </div>
     </div>

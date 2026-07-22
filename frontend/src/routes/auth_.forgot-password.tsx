@@ -235,7 +235,9 @@ function ForgotPassword() {
                   title="Enter your code"
                   subtitle={
                     <>
-                      We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>. It expires in 10 minutes.
+                      We sent a 6-digit code to{" "}
+                      <span className="font-medium text-foreground">{email}</span>. It expires in 10
+                      minutes.
                     </>
                   }
                 />
@@ -261,7 +263,11 @@ function ForgotPassword() {
 
                   {error && <p className="text-xs text-destructive text-center">{error}</p>}
 
-                  <SubmitButton loading={loading} label="Verify code" disabled={codeValue.length !== 6} />
+                  <SubmitButton
+                    loading={loading}
+                    label="Verify code"
+                    disabled={codeValue.length !== 6}
+                  />
 
                   <div className="text-center">
                     <button
@@ -302,7 +308,11 @@ function ForgotPassword() {
                       required
                       minLength={6}
                     />
-                    <button type="button" onClick={() => setShowPw(!showPw)} className="text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(!showPw)}
+                      className="text-muted-foreground"
+                    >
                       {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </Field>
@@ -338,8 +348,8 @@ function ForgotPassword() {
                   Password reset
                 </h1>
                 <p className="mt-2 text-sm text-muted-foreground px-4">
-                  Your password has been updated. You've been signed out of all devices for security —
-                  sign in again with your new password.
+                  Your password has been updated. You've been signed out of all devices for security
+                  — sign in again with your new password.
                 </p>
                 <Link
                   to="/auth"

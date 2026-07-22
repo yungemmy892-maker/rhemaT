@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class NotificationsConfig(AppConfig):
-    name = 'notifications'
+    name = "notifications"
 
     # NOTE: this used to start an in-process thread here that called
     # send_daily_verse on a timer (see git history / the old

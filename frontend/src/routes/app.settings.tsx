@@ -77,7 +77,11 @@ function Settings() {
     return (
       <div>
         <div className="flex items-center gap-3">
-          <Link to="/app/profile" aria-label="Back to Profile" className="h-10 w-10 rounded-full glass grid place-items-center">
+          <Link
+            to="/app/profile"
+            aria-label="Back to Profile"
+            className="h-10 w-10 rounded-full glass grid place-items-center"
+          >
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display text-2xl font-semibold">{t("settings.title", "Settings")}</h1>
@@ -91,8 +95,11 @@ function Settings() {
     );
   }
 
-  const currentLang = languages.find((l) => l.name === settings.language) ||
-    { name: settings.language, native: settings.language, region: "" };
+  const currentLang = languages.find((l) => l.name === settings.language) || {
+    name: settings.language,
+    native: settings.language,
+    region: "",
+  };
 
   // Group languages by region for the picker
   const regions = Array.from(new Set(languages.map((l) => l.region)));
@@ -100,7 +107,11 @@ function Settings() {
   return (
     <div>
       <div className="flex items-center gap-3">
-        <Link to="/app/profile" aria-label="Back to Profile" className="h-10 w-10 rounded-full glass grid place-items-center">
+        <Link
+          to="/app/profile"
+          aria-label="Back to Profile"
+          className="h-10 w-10 rounded-full glass grid place-items-center"
+        >
           <ArrowLeft className="h-4.5 w-4.5" />
         </Link>
         <h1 className="font-display text-2xl font-semibold">{t("settings.title", "Settings")}</h1>
@@ -207,22 +218,14 @@ function Settings() {
                   Blocked in browser — tap ⓘ in the address bar to allow.
                 </div>
               )}
-              {push.error && (
-                <div className="text-xs text-destructive">{push.error}</div>
-              )}
+              {push.error && <div className="text-xs text-destructive">{push.error}</div>}
             </div>
             {push.status === "subscribed" ? (
-              <button
-                onClick={push.unsubscribe}
-                className="text-xs text-destructive font-medium"
-              >
+              <button onClick={push.unsubscribe} className="text-xs text-destructive font-medium">
                 Turn off
               </button>
             ) : push.status === "unsubscribed" ? (
-              <button
-                onClick={push.subscribe}
-                className="text-xs text-primary font-medium"
-              >
+              <button onClick={push.subscribe} className="text-xs text-primary font-medium">
                 Enable
               </button>
             ) : null}
@@ -269,9 +272,9 @@ function Settings() {
         </div>
         {settings.bibleVersion === "DRA" && (
           <div className="mx-4 mb-4 px-4 py-3 rounded-2xl bg-primary-soft text-xs text-secondary-foreground leading-relaxed">
-            Douay-Rheims uses different verse numbering from other translations,
-            so voice and text search only match against DRA while it's selected
-            — matches from other versions won't show up.
+            Douay-Rheims uses different verse numbering from other translations, so voice and text
+            search only match against DRA while it's selected — matches from other versions won't
+            show up.
           </div>
         )}
       </Group>
@@ -338,9 +341,7 @@ function Settings() {
                                     {lang.native}
                                   </span>
                                 )}
-                                {active && (
-                                  <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                                )}
+                                {active && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
                               </button>
                             );
                           })}
@@ -445,8 +446,8 @@ function Settings() {
                 <div className="flex-1">
                   <div className="font-display text-lg font-semibold">Delete your account?</div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    This permanently removes your saved verses, history and preferences. This
-                    action cannot be undone.
+                    This permanently removes your saved verses, history and preferences. This action
+                    cannot be undone.
                   </p>
                 </div>
                 <button

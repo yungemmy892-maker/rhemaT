@@ -159,30 +159,35 @@ verseid-frontend/
 ## 8 · Key patterns
 
 ### Authentication
+
 - `AuthContext` manages session state globally. `isReady` starts `false` while a stored access token is being verified — the landing page and static routes render immediately without waiting because the no-token path resolves synchronously.
 - `/app/*` routes are guarded by `app.tsx` which redirects to `/auth` when `isReady && !user`.
 
 ### API calls
+
 - All API calls go through `src/services/client.ts` (Axios instance). It automatically adds the `Authorization: Bearer <token>` header and refreshes the access token silently if a 401 is received (single-flight — concurrent 401s only trigger one refresh).
 
 ### Quota
+
 - Free users get 20 searches/day. The identify endpoint returns `dailySearchesRemaining` on every response. A 429 response means the quota is exceeded — the client maps this to a structured `IdentifyQuotaExceeded` result that shows an upgrade prompt instead of a generic error.
 
 ### Voice search
+
 - `useVoiceRecognition` wraps the browser's `SpeechRecognition` / `webkitSpeechRecognition` API. Interim transcripts display live as the user speaks. The final transcript is sent to `/search/identify/` — no audio ever leaves the device.
 
 ### Text-to-speech
+
 - The "Listen" button on the Results screen uses `window.speechSynthesis` (browser built-in, free, works offline). Tapping again stops playback.
 
 ---
 
 ## 9 · Free vs Pro
 
-| Feature | Free | Pro |
-|---|---|---|
-| Daily verse identifications | 20 / day | Unlimited |
-| KJV + WEB matching | ✓ | ✓ |
-| Saved verses | ✓ | ✓ |
-| History & collections | ✓ | ✓ |
-| Daily notifications | ✓ | ✓ |
-| Price | Free | ₦1,000/mo · ₦9,000/yr |
+| Feature                     | Free     | Pro                   |
+| --------------------------- | -------- | --------------------- |
+| Daily verse identifications | 20 / day | Unlimited             |
+| KJV + WEB matching          | ✓        | ✓                     |
+| Saved verses                | ✓        | ✓                     |
+| History & collections       | ✓        | ✓                     |
+| Daily notifications         | ✓        | ✓                     |
+| Price                       | Free     | ₦1,000/mo · ₦9,000/yr |

@@ -17,6 +17,7 @@ run) or faiss isn't installed, everything here degrades to returning None/
 empty rather than raising — matching.py falls back to lexical-only search
 in that case.
 """
+
 import json
 import logging
 import threading
@@ -75,7 +76,9 @@ def _load():
             _index = faiss.read_index(str(INDEX_PATH))
             _meta = json.loads(META_PATH.read_text())
         except Exception:
-            logger.exception("Failed to load FAISS index — falling back to lexical-only search")
+            logger.exception(
+                "Failed to load FAISS index — falling back to lexical-only search"
+            )
             _index = False
             _meta = False
 

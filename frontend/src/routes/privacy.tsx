@@ -7,7 +7,8 @@ export const Route = createFileRoute("/privacy")({
       { title: "Privacy Policy - VerseID" },
       {
         name: "description",
-        content: "How VerseID collects, uses, and protects your data, including voice search and account information.",
+        content:
+          "How VerseID collects, uses, and protects your data, including voice search and account information.",
       },
       { property: "og:url", content: "https://verseid.top/privacy" },
     ],
@@ -21,7 +22,11 @@ function Privacy() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-5 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <Link to="/" aria-label="Back" className="h-10 w-10 rounded-full glass grid place-items-center">
+          <Link
+            to="/"
+            aria-label="Back"
+            className="h-10 w-10 rounded-full glass grid place-items-center"
+          >
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <div className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center">
@@ -35,9 +40,9 @@ function Privacy() {
 
         <div className="prose prose-sm max-w-none space-y-8 text-foreground">
           <Section title="Who we are">
-            VerseID is a Bible verse identification app that helps you find any verse from a few spoken
-            or typed words. We take your privacy seriously and collect only what is necessary to provide
-            the service.
+            VerseID is a Bible verse identification app that helps you find any verse from a few
+            spoken or typed words. We take your privacy seriously and collect only what is necessary
+            to provide the service.
           </Section>
 
           <Section title="What we collect">
@@ -61,24 +66,24 @@ function Privacy() {
                 preferences, and notification schedule.
               </li>
               <li>
-                <strong className="text-foreground">Profile photo</strong> - if you upload one, stored
-                securely on our servers and never shared with third parties.
+                <strong className="text-foreground">Profile photo</strong> - if you upload one,
+                stored securely on our servers and never shared with third parties.
               </li>
               <li>
                 <strong className="text-foreground">Payment reference</strong> - if you subscribe to
-                Pro, we store the Paystack transaction reference and your subscription status. We never
-                see or store your card number — all card data is handled entirely by Paystack.
+                Pro, we store the Paystack transaction reference and your subscription status. We
+                never see or store your card number — all card data is handled entirely by Paystack.
               </li>
             </ul>
           </Section>
 
           <Section title="Voice and speech">
-            When you use the voice search feature, your speech is processed entirely by your browser's
-            built-in Web Speech API. Audio is never uploaded to our servers only the text transcript
-            that your browser produces is sent to us to find a matching verse. To catch paraphrases and
-            misremembered wording, that text may also be sent to a third-party AI service (Hugging
-            Face) to generate a semantic embedding used purely for matching see "Third-party
-            services" below. This applies equally to typed text search.
+            When you use the voice search feature, your speech is processed entirely by your
+            browser's built-in Web Speech API. Audio is never uploaded to our servers only the text
+            transcript that your browser produces is sent to us to find a matching verse. To catch
+            paraphrases and misremembered wording, that text may also be sent to a third-party AI
+            service (Hugging Face) to generate a semantic embedding used purely for matching see
+            "Third-party services" below. This applies equally to typed text search.
           </Section>
 
           <Section title="How we use your data">
@@ -86,9 +91,9 @@ function Privacy() {
               <li>To identify Bible verses from your queries and return results.</li>
               <li>To maintain your search history, saved verses, and reading streak.</li>
               <li>
-                To send you the daily verse notification (if you've enabled it) — delivered as both a
-                push notification and an email at your chosen time, so you don't miss it if one channel
-                is unavailable.
+                To send you the daily verse notification (if you've enabled it) — delivered as both
+                a push notification and an email at your chosen time, so you don't miss it if one
+                channel is unavailable.
               </li>
               <li>
                 To send account-related emails: a welcome email when you sign up, and password reset
@@ -103,29 +108,31 @@ function Privacy() {
             <ul className="space-y-2 list-disc list-inside text-muted-foreground">
               <li>
                 <strong className="text-foreground">Google Identity Services</strong> — for optional
-                Google Sign-In. If you use this, Google's privacy policy applies to the sign-in step.
+                Google Sign-In. If you use this, Google's privacy policy applies to the sign-in
+                step.
               </li>
               <li>
                 <strong className="text-foreground">Paystack</strong> - for Pro subscription
-                payments. Paystack is PCI-DSS compliant and handles all card data. Their privacy policy
-                is at paystack.com/privacy.
+                payments. Paystack is PCI-DSS compliant and handles all card data. Their privacy
+                policy is at paystack.com/privacy.
               </li>
               <li>
                 <strong className="text-foreground">DiceBear</strong> — generates a default avatar
-                image from your name if you don't have a Google profile photo and haven't uploaded one.
-                No personal data is shared - only an anonymous seed word.
+                image from your name if you don't have a Google profile photo and haven't uploaded
+                one. No personal data is shared - only an anonymous seed word.
               </li>
               <li>
                 <strong className="text-foreground">Hugging Face</strong> - powers AI-based semantic
-                verse matching. Your search query text may be sent to Hugging Face's inference API to
-                generate a numeric representation of its meaning, used only to find candidate verses.
-                No account information accompanies this request. Their privacy policy is at
+                verse matching. Your search query text may be sent to Hugging Face's inference API
+                to generate a numeric representation of its meaning, used only to find candidate
+                verses. No account information accompanies this request. Their privacy policy is at
                 huggingface.co/privacy.
               </li>
               <li>
-                <strong className="text-foreground">Google Cloud Translation API</strong> - translates
-                the app's interface text if you select a language other than English. Only fixed
-                interface strings are translated, never your personal data or search queries.
+                <strong className="text-foreground">Google Cloud Translation API</strong> -
+                translates the app's interface text if you select a language other than English.
+                Only fixed interface strings are translated, never your personal data or search
+                queries.
               </li>
             </ul>
           </Section>
@@ -154,10 +161,18 @@ function Privacy() {
         </div>
 
         <div className="mt-12 flex gap-4 text-xs text-muted-foreground">
-          <Link to="/pricing" className="hover:text-foreground transition">Pricing</Link>
-          <Link to="/terms" className="hover:text-foreground transition">Terms of Service</Link>
-          <Link to="/help" className="hover:text-foreground transition">Help</Link>
-          <Link to="/" className="hover:text-foreground transition">Home</Link>
+          <Link to="/pricing" className="hover:text-foreground transition">
+            Pricing
+          </Link>
+          <Link to="/terms" className="hover:text-foreground transition">
+            Terms of Service
+          </Link>
+          <Link to="/help" className="hover:text-foreground transition">
+            Help
+          </Link>
+          <Link to="/" className="hover:text-foreground transition">
+            Home
+          </Link>
         </div>
       </div>
     </div>

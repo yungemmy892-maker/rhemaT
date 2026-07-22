@@ -42,14 +42,14 @@ class Verse(me.Document):
     saved item.
     """
 
-    book = me.StringField(required=True)             # canonical key, e.g. "1Corinthians"
-    book_display = me.StringField(required=True)      # "1 Corinthians"
+    book = me.StringField(required=True)  # canonical key, e.g. "1Corinthians"
+    book_display = me.StringField(required=True)  # "1 Corinthians"
     testament = me.StringField(choices=("OT", "NT"), required=True)
-    book_index = me.IntField(required=True)            # 0-based canonical order
+    book_index = me.IntField(required=True)  # 0-based canonical order
     chapter = me.IntField(required=True)
     verse = me.IntField(required=True)
     text = me.StringField(required=True)
-    ref = me.StringField(required=True)                # "1 Corinthians 13:4"
+    ref = me.StringField(required=True)  # "1 Corinthians 13:4"
     version = me.StringField(choices=SUPPORTED_VERSIONS, required=True)
 
     # Precomputed lowercase text for fast substring/phrase search, so the

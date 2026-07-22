@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class BibleConfig(AppConfig):
-    name = 'bible'
+    name = "bible"

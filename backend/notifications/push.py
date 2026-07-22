@@ -4,8 +4,8 @@ the HTTP POST to the push service). This avoids pywebpush's aiohttp
 dependency, which fails to install on many platforms without a Rust/C
 compiler toolchain available.
 """
+
 import json
-import os
 from urllib.parse import urlparse
 
 import requests
@@ -40,7 +40,7 @@ def _build_headers(endpoint: str, vapid: Vapid01) -> dict:
     vapid_headers = vapid.sign(claim)
     return {
         "Content-Type": "application/json",
-        "TTL": "86400",                       # deliver within 24 hours or drop
+        "TTL": "86400",  # deliver within 24 hours or drop
         "Authorization": vapid_headers["Authorization"],
         "Crypto-Key": vapid_headers["Crypto-Key"],
     }

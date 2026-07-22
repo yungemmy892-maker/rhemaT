@@ -3,7 +3,6 @@ import json
 import logging
 
 from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -15,7 +14,6 @@ from users.models import User
 
 from .models import PaystackEvent, Subscription
 from .paystack import (
-    PaystackError,
     initialize_transaction,
     verify_transaction,
     verify_webhook_signature,
@@ -80,14 +78,21 @@ class InitiatePaymentView(APIView):
                 metadata={
                     "user_id": str(request.user.id),
                     "interval": interval,
-                    "cancel_action": data["callback_url"].replace("status=success", "status=cancelled"),
+                    "cancel_action": data["callback_url"].replace(
+                        "status=success", "status=cancelled"
+                    ),
                 },
                 callback_url=data["callback_url"],
             )
         except Exception as exc:
             logger.error("Paystack initiate error: %s", exc)
             return Response(
-                {"error": {"code": 502, "message": "Payment gateway error. Please try again."}},
+                {
+                    "error": {
+                        "code": 502,
+                        "message": "Payment gateway error. Please try again.",
+                    }
+                },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
@@ -122,13 +127,23 @@ class VerifyPaymentView(APIView):
         except Exception as exc:
             logger.error("Paystack verify error: %s", exc)
             return Response(
-                {"error": {"code": 502, "message": "Could not verify payment. Please contact support."}},
+                {
+                    "error": {
+                        "code": 502,
+                        "message": "Could not verify payment. Please contact support.",
+                    }
+                },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
         if tx["status"] != "success":
             return Response(
-                {"error": {"code": 402, "message": f"Payment not completed (status: {tx['status']})."}},
+                {
+                    "error": {
+                        "code": 402,
+                        "message": f"Payment not completed (status: {tx['status']}).",
+                    }
+                },
                 status=status.HTTP_402_PAYMENT_REQUIRED,
             )
 
@@ -189,11 +204,15 @@ class PaystackWebhookView(APIView):
         if event_id and PaystackEvent.objects(event_id=str(event_id)).first():
             return HttpResponse(status=200)
 
-        PaystackEvent(event_id=str(event_id), event_type=event_type, payload=payload).save()
+        PaystackEvent(
+            event_id=str(event_id), event_type=event_type, payload=payload
+        ).save()
 
         data = payload.get("data", {})
         customer_code = data.get("customer", {}).get("customer_code")
-        sub = Subscription.objects(paystack_subscription_code=data.get("subscription_code")).first()
+        sub = Subscription.objects(
+            paystack_subscription_code=data.get("subscription_code")
+        ).first()
         user_id = sub.user_id if sub else None
 
         if event_type == "charge.success":
@@ -243,9 +262,13 @@ def _activate_pro(user_id: str, interval: str, tx_data: dict):
     user.save()
 
     Subscription.objects(user_id=user_id).upsert_one(
-        set__paystack_customer_code=tx_data.get("customer", {}).get("customer_code", ""),
+        set__paystack_customer_code=tx_data.get("customer", {}).get(
+            "customer_code", ""
+        ),
         set__paystack_subscription_code=tx_data.get("subscription_code", ""),
-        set__paystack_authorization_code=tx_data.get("authorization", {}).get("authorization_code", ""),
+        set__paystack_authorization_code=tx_data.get("authorization", {}).get(
+            "authorization_code", ""
+        ),
         set__interval=interval,
         set__amount_kobo=tx_data.get("amount", 0),
         set__status="active",

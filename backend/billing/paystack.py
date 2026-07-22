@@ -28,7 +28,9 @@ def _headers():
     }
 
 
-def initialize_transaction(email: str, amount_kobo: int, metadata: dict, callback_url: str) -> dict:
+def initialize_transaction(
+    email: str, amount_kobo: int, metadata: dict, callback_url: str
+) -> dict:
     """
     Creates a Paystack transaction and returns the authorization URL the
     frontend redirects to for payment.
@@ -73,7 +75,7 @@ def charge_authorization(
     metadata: dict,
     reference: str,
 ) -> dict:
-   
+
     try:
         resp = requests.post(
             f"{PAYSTACK_BASE}/transaction/charge_authorization",
@@ -94,7 +96,9 @@ def charge_authorization(
     try:
         body = resp.json()
     except ValueError as exc:
-        raise PaystackError(f"Non-JSON response from Paystack (HTTP {resp.status_code})") from exc
+        raise PaystackError(
+            f"Non-JSON response from Paystack (HTTP {resp.status_code})"
+        ) from exc
 
     # Paystack always returns HTTP 200 for a charge request that was
     # *accepted and attempted* — a declined card, insufficient funds, etc.

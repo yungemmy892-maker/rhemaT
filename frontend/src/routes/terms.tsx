@@ -21,7 +21,11 @@ function Terms() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-5 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <Link to="/" aria-label="Back" className="h-10 w-10 rounded-full glass grid place-items-center">
+          <Link
+            to="/"
+            aria-label="Back"
+            className="h-10 w-10 rounded-full glass grid place-items-center"
+          >
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <div className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center">
@@ -41,24 +45,23 @@ function Terms() {
 
           <Section title="The service">
             VerseID helps you identify Bible verses from voice or text input. The matching engine
-            searches the King James Version (KJV), World English Bible (WEB), American
-            Standard Version (ASV), and Douay-Rheims (DRA) texts, combining fuzzy text matching with
-            AI-based semantic search to catch paraphrases and misremembered wording. We make no
-            guarantee that every verse will be identified correctly matching, especially across
-            translations with very different phrasing, has inherent limitations.
+            searches the King James Version (KJV), World English Bible (WEB), American Standard
+            Version (ASV), and Douay-Rheims (DRA) texts, combining fuzzy text matching with AI-based
+            semantic search to catch paraphrases and misremembered wording. We make no guarantee
+            that every verse will be identified correctly matching, especially across translations
+            with very different phrasing, has inherent limitations.
           </Section>
 
           <Section title="Account security">
-            If you reset your password, you are automatically signed out of all devices as a security
-            measure you'll need to sign back in with your new password. Password reset uses a
-            one-time 6-digit code sent to your registered email, valid for 10 minutes.
+            If you reset your password, you are automatically signed out of all devices as a
+            security measure you'll need to sign back in with your new password. Password reset uses
+            a one-time 6-digit code sent to your registered email, valid for 10 minutes.
           </Section>
 
           <Section title="Free plan">
-            The free plan allows up to{" "}
-            <strong>6 verse identifications per day</strong> (UTC). The limit resets automatically
-            at midnight UTC each day. Saved verses, search history, and collections are available on
-            the free plan with no limit.
+            The free plan allows up to <strong>6 verse identifications per day</strong> (UTC). The
+            limit resets automatically at midnight UTC each day. Saved verses, search history, and
+            collections are available on the free plan with no limit.
           </Section>
 
           <Section title="Pro plan">
@@ -76,15 +79,15 @@ function Terms() {
               current billing period, after which you revert to the free plan.
             </p>
             <p className="mt-2">
-              Prices are subject to change. We will give at least 30 days' notice of any price increase
-              by email before the change takes effect on your subscription.
+              Prices are subject to change. We will give at least 30 days' notice of any price
+              increase by email before the change takes effect on your subscription.
             </p>
           </Section>
 
           <Section title="Refunds">
             Refunds are not available for partial billing periods. If you experience a technical
-            failure that prevents you from using Pro features you were charged for, contact us within
-            7 days and we will review your case.
+            failure that prevents you from using Pro features you were charged for, contact us
+            within 7 days and we will review your case.
           </Section>
 
           <Section title="Accounts">
@@ -125,10 +128,18 @@ function Terms() {
         </div>
 
         <div className="mt-12 flex gap-4 text-xs text-muted-foreground">
-          <Link to="/pricing" className="hover:text-foreground transition">Pricing</Link>
-          <Link to="/privacy" className="hover:text-foreground transition">Privacy Policy</Link>
-          <Link to="/help" className="hover:text-foreground transition">Help</Link>
-          <Link to="/" className="hover:text-foreground transition">Home</Link>
+          <Link to="/pricing" className="hover:text-foreground transition">
+            Pricing
+          </Link>
+          <Link to="/privacy" className="hover:text-foreground transition">
+            Privacy Policy
+          </Link>
+          <Link to="/help" className="hover:text-foreground transition">
+            Help
+          </Link>
+          <Link to="/" className="hover:text-foreground transition">
+            Home
+          </Link>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class BillingConfig(AppConfig):
-    name = 'billing'
+    name = "billing"
 
     # NOTE: this used to start an in-process thread here that called
     # charge_renewals on a timer (see git history / the old

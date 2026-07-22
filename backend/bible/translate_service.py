@@ -51,7 +51,9 @@ def _translate_batch_gemini(texts: list[str], lang_name: str) -> list[str] | Non
 
     model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")
     prompt = _TRANSLATION_PROMPT.format(
-        lang_name=lang_name, count=len(texts), items_json=json.dumps(texts, ensure_ascii=False)
+        lang_name=lang_name,
+        count=len(texts),
+        items_json=json.dumps(texts, ensure_ascii=False),
     )
 
     try:
@@ -60,7 +62,10 @@ def _translate_batch_gemini(texts: list[str], lang_name: str) -> list[str] | Non
             params={"key": api_key},
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
+                "generationConfig": {
+                    "temperature": 0.2,
+                    "responseMimeType": "application/json",
+                },
             },
             timeout=REQUEST_TIMEOUT,
         )
@@ -69,10 +74,15 @@ def _translate_batch_gemini(texts: list[str], lang_name: str) -> list[str] | Non
         text = data["candidates"][0]["content"]["parts"][0]["text"]
         result = _parse_json_array(text, len(texts))
         if result is None:
-            logger.warning("Gemini returned unparseable/wrong-shaped response for lang=%s", lang_name)
+            logger.warning(
+                "Gemini returned unparseable/wrong-shaped response for lang=%s",
+                lang_name,
+            )
         return result
     except Exception:
-        logger.warning("Gemini translation request failed for lang=%s", lang_name, exc_info=True)
+        logger.warning(
+            "Gemini translation request failed for lang=%s", lang_name, exc_info=True
+        )
         return None
 
 
@@ -83,7 +93,9 @@ def _translate_batch_groq(texts: list[str], lang_name: str) -> list[str] | None:
 
     model = getattr(settings, "GROQ_MODEL", "llama-3.3-70b-versatile")
     prompt = _TRANSLATION_PROMPT.format(
-        lang_name=lang_name, count=len(texts), items_json=json.dumps(texts, ensure_ascii=False)
+        lang_name=lang_name,
+        count=len(texts),
+        items_json=json.dumps(texts, ensure_ascii=False),
     )
 
     try:
@@ -101,10 +113,14 @@ def _translate_batch_groq(texts: list[str], lang_name: str) -> list[str] | None:
         text = resp.json()["choices"][0]["message"]["content"]
         result = _parse_json_array(text, len(texts))
         if result is None:
-            logger.warning("Groq returned unparseable/wrong-shaped response for lang=%s", lang_name)
+            logger.warning(
+                "Groq returned unparseable/wrong-shaped response for lang=%s", lang_name
+            )
         return result
     except Exception:
-        logger.warning("Groq translation request failed for lang=%s", lang_name, exc_info=True)
+        logger.warning(
+            "Groq translation request failed for lang=%s", lang_name, exc_info=True
+        )
         return None
 
 
@@ -142,7 +158,9 @@ def get_ui_translations(target_lang_code: str) -> dict[str, str]:
     result.update(cached_by_key)
 
     if missing_keys:
-        translated_texts = _translate_batch([UI_STRINGS[k] for k in missing_keys], target_lang_code)
+        translated_texts = _translate_batch(
+            [UI_STRINGS[k] for k in missing_keys], target_lang_code
+        )
         if translated_texts is not None:
             for key, translated in zip(missing_keys, translated_texts):
                 result[key] = translated
@@ -154,6 +172,8 @@ def get_ui_translations(target_lang_code: str) -> dict[str, str]:
                         text=translated,
                     ).save()
                 except Exception:
-                    logger.exception("Failed to cache translation for %s:%s", target_lang_code, key)
+                    logger.exception(
+                        "Failed to cache translation for %s:%s", target_lang_code, key
+                    )
 
     return {k: v for k, v in result.items() if k in UI_STRINGS}

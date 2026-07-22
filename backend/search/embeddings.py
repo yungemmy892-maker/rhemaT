@@ -30,7 +30,9 @@ def get_embeddings(texts: list[str]) -> list[list[float]] | None:
         resp.raise_for_status()
         vectors = resp.json()
         if not isinstance(vectors, list) or len(vectors) != len(texts):
-            logger.warning("Unexpected HF feature-extraction response shape: %r", vectors)
+            logger.warning(
+                "Unexpected HF feature-extraction response shape: %r", vectors
+            )
             return None
         return vectors
     except Exception:

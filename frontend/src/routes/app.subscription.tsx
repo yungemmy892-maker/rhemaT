@@ -66,7 +66,11 @@ function Subscription() {
 
   return (
     <div>
-      <Link to="/app/profile" aria-label="Back to Profile" className="h-10 w-10 rounded-full glass grid place-items-center">
+      <Link
+        to="/app/profile"
+        aria-label="Back to Profile"
+        className="h-10 w-10 rounded-full glass grid place-items-center"
+      >
         <ArrowLeft className="h-4.5 w-4.5" />
       </Link>
 
@@ -122,7 +126,9 @@ function Subscription() {
                 transition={{ type: "spring", stiffness: 340, damping: 30 }}
               />
             )}
-            <span className={`relative capitalize ${plan === p ? "text-white" : "text-muted-foreground"}`}>
+            <span
+              className={`relative capitalize ${plan === p ? "text-white" : "text-muted-foreground"}`}
+            >
               {p === "monthly" ? "Monthly" : `Annual · ${savings}`}
             </span>
           </button>
@@ -143,7 +149,10 @@ function Subscription() {
               <div className="mt-1 h-10 w-32 rounded-xl glass animate-pulse" />
             ) : (
               <div className="mt-1 font-display text-4xl font-semibold">
-                ₦{plan === "monthly" ? monthlyNaira.toLocaleString("en-NG") : annualMonthly.toLocaleString("en-NG")}
+                ₦
+                {plan === "monthly"
+                  ? monthlyNaira.toLocaleString("en-NG")
+                  : annualMonthly.toLocaleString("en-NG")}
                 <span className="text-base text-muted-foreground font-normal">/mo</span>
               </div>
             )}
@@ -170,10 +179,8 @@ function Subscription() {
       {/* Free plan note */}
       <div className="mt-4 p-4 rounded-2xl glass text-sm text-muted-foreground text-center">
         Free plan includes{" "}
-        <span className="text-foreground font-medium">
-          {pricing?.freeLimit ?? 20} searches
-        </span>{" "}
-        per day.
+        <span className="text-foreground font-medium">{pricing?.freeLimit ?? 20} searches</span> per
+        day.
       </div>
 
       {isPro ? (
@@ -183,7 +190,12 @@ function Subscription() {
             <p className="text-sm font-medium text-primary">You're on Pro</p>
             {user?.planExpiresAt && (
               <p className="text-xs text-muted-foreground mt-1">
-                Renews {new Date(user.planExpiresAt).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}
+                Renews{" "}
+                {new Date(user.planExpiresAt).toLocaleDateString("en-NG", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
               </p>
             )}
           </div>
@@ -234,15 +246,23 @@ function Subscription() {
                 <div className="flex-1">
                   <div className="font-display text-lg font-semibold">Cancel Pro?</div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    You'll keep Pro features until the end of your billing period, then revert to 6 searches/day.
+                    You'll keep Pro features until the end of your billing period, then revert to 6
+                    searches/day.
                   </p>
                 </div>
-                <button onClick={() => setCancelConfirm(false)} aria-label="Close" className="h-8 w-8 rounded-full grid place-items-center hover:bg-muted">
+                <button
+                  onClick={() => setCancelConfirm(false)}
+                  aria-label="Close"
+                  className="h-8 w-8 rounded-full grid place-items-center hover:bg-muted"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-2">
-                <button onClick={() => setCancelConfirm(false)} className="h-12 rounded-2xl glass-strong font-medium text-sm">
+                <button
+                  onClick={() => setCancelConfirm(false)}
+                  className="h-12 rounded-2xl glass-strong font-medium text-sm"
+                >
                   Keep Pro
                 </button>
                 <button

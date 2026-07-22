@@ -15,12 +15,7 @@ import {
   ChevronDown,
   Image as ImageIcon,
 } from "lucide-react";
-import {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { z } from "zod";
 import { useIdentifyQuery } from "@/hooks/queries/useSearch";
 import { useVerseByRef } from "@/hooks/queries/useBible";
@@ -297,7 +292,9 @@ async function shareAsImage(verse: Verse) {
             files: [file],
             title: verse.ref,
           });
-        } catch {}
+        } catch (error) {
+          console.error("Failed to share image:", error);
+        }
       } else {
         // Fallback: download the image
         const url = URL.createObjectURL(blob);
@@ -337,8 +334,7 @@ function ChapterPanel({
   }, [book, chapter, version]);
 
   useEffect(() => {
-    if (!loading)
-      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!loading) highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [loading]);
 
   if (loading)
@@ -359,9 +355,7 @@ function ChapterPanel({
             key={v.verse}
             ref={isHighlight ? highlightRef : undefined}
             className={`p-3 rounded-xl text-sm leading-relaxed transition ${
-              isHighlight
-                ? "bg-primary/10 border border-primary/30 font-medium"
-                : "glass"
+              isHighlight ? "bg-primary/10 border border-primary/30 font-medium" : "glass"
             }`}
           >
             <span className="text-[11px] text-primary font-bold mr-2">{v.verse}</span>
@@ -375,8 +369,15 @@ function ChapterPanel({
 
 /* ── main component ─────────────────────────────────────────────────────────── */
 function Results() {
-  const { q, book, chapter, verse: verseNum, version, confidence: confidenceParam, noMatch } =
-    Route.useSearch();
+  const {
+    q,
+    book,
+    chapter,
+    verse: verseNum,
+    version,
+    confidence: confidenceParam,
+    noMatch,
+  } = Route.useSearch();
   const navigate = useNavigate();
   const t = useT();
   const { data: settings } = useSettings();
@@ -393,7 +394,13 @@ function Results() {
   // the screen never gets stuck.
   const preferredVersion = (version as BibleVersion | undefined) ?? settings?.bibleVersion;
   const identify = useIdentifyQuery(skipIdentify ? "" : q, isDirect ? undefined : preferredVersion);
-  const direct = useVerseByRef(book, chapter, verseNum, version as BibleVersion | undefined, isDirect);
+  const direct = useVerseByRef(
+    book,
+    chapter,
+    verseNum,
+    version as BibleVersion | undefined,
+    isDirect,
+  );
 
   const isPending = isDirect ? direct.isPending : noMatch ? false : identify.isPending;
   const response = identify.data;
@@ -419,10 +426,7 @@ function Results() {
         <div className="mt-6 h-64 rounded-[2rem] glass-strong shadow-card animate-pulse" />
         <div className="mt-5 grid grid-cols-4 gap-2.5">
           {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-[72px] rounded-2xl glass-strong shadow-card animate-pulse"
-            />
+            <div key={i} className="h-[72px] rounded-2xl glass-strong shadow-card animate-pulse" />
           ))}
         </div>
       </div>
@@ -446,8 +450,8 @@ function Results() {
           </div>
           <h2 className="mt-5 font-display text-2xl font-semibold">Daily limit reached</h2>
           <p className="mt-2 text-muted-foreground text-sm">
-            You've used all {response.dailySearchLimit} free searches today. Upgrade to
-            Pro for unlimited searches.
+            You've used all {response.dailySearchLimit} free searches today. Upgrade to Pro for
+            unlimited searches.
           </p>
           <Link
             to="/app/subscription"
@@ -499,7 +503,9 @@ function Results() {
             onClick={() => navigate({ to: isDirect ? "/app/library" : "/app/text" })}
             className="mt-6 h-12 px-6 rounded-full bg-gradient-primary text-white font-medium shadow-glow"
           >
-            {isDirect ? t("action.backToLibrary", "Back to Library") : t("action.tryAgain", "Try again")}
+            {isDirect
+              ? t("action.backToLibrary", "Back to Library")
+              : t("action.tryAgain", "Try again")}
           </button>
         </div>
       </div>
@@ -524,9 +530,7 @@ function Results() {
       stop();
       return;
     }
-    speak(
-      `${verse.book}, chapter ${verse.chapter}, verse ${verse.verse}. ${verse.text}`,
-    );
+    speak(`${verse.book}, chapter ${verse.chapter}, verse ${verse.verse}. ${verse.text}`);
   };
 
   const handleShareText = async () => {
@@ -534,7 +538,9 @@ function Results() {
     if (navigator.share) {
       try {
         await navigator.share({ title: `${verse.book} ${verse.chapter}:${verse.verse}`, text });
-      } catch {}
+      } catch (error) {
+        console.error("Failed to share text:", error);
+      }
     } else {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -596,9 +602,7 @@ function Results() {
           <div className="mt-2 font-display text-3xl font-semibold">
             {verse.book} {verse.chapter}:{verse.verse}
           </div>
-          <p className="mt-5 font-display text-xl leading-relaxed text-white/95">
-            "{verse.text}"
-          </p>
+          <p className="mt-5 font-display text-xl leading-relaxed text-white/95">"{verse.text}"</p>
 
           {/* Confidence — only shown for a real identify match, not a direct Library open */}
           {confPct !== null && (
@@ -632,9 +636,7 @@ function Results() {
           label={isSaved ? t("action.saved", "Saved") : t("action.save", "Save")}
           active={isSaved}
           disabled={toggleSaved.isPending}
-          onClick={() =>
-            toggleSaved.mutate({ verseId: verse.id, version: verse.version })
-          }
+          onClick={() => toggleSaved.mutate({ verseId: verse.id, version: verse.version })}
         />
         <ActionBtn
           Icon={speaking ? VolumeX : Volume2}
@@ -649,7 +651,9 @@ function Results() {
         />
         <ActionBtn
           Icon={sharing ? Sparkles : ImageIcon}
-          label={sharing ? t("action.creating", "Creating…") : t("action.shareImage", "Share image")}
+          label={
+            sharing ? t("action.creating", "Creating…") : t("action.shareImage", "Share image")
+          }
           onClick={handleShareImage}
         />
       </motion.div>

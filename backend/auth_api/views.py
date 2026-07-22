@@ -151,7 +151,9 @@ class GoogleLoginView(APIView):
         if is_new_user:
             send_welcome(user)
 
-        return _tokens_response({"user": user.to_public_dict()}, user, status.HTTP_200_OK)
+        return _tokens_response(
+            {"user": user.to_public_dict()}, user, status.HTTP_200_OK
+        )
 
 
 class EmailRegisterView(APIView):
@@ -170,7 +172,12 @@ class EmailRegisterView(APIView):
 
         if User.objects(email=data["email"]).first() is not None:
             return Response(
-                {"error": {"code": 409, "message": "An account with this email already exists."}},
+                {
+                    "error": {
+                        "code": 409,
+                        "message": "An account with this email already exists.",
+                    }
+                },
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -219,7 +226,9 @@ class EmailLoginView(APIView):
         user.last_login_at = datetime.datetime.utcnow()
         user.save()
 
-        return _tokens_response({"user": user.to_public_dict()}, user, status.HTTP_200_OK)
+        return _tokens_response(
+            {"user": user.to_public_dict()}, user, status.HTTP_200_OK
+        )
 
 
 class ForgotPasswordView(APIView):
@@ -242,7 +251,9 @@ class ForgotPasswordView(APIView):
         user = User.objects(email=serializer.validated_data["email"]).first()
 
         if user is not None:
-            PasswordResetToken.objects(user_id=str(user.id), used=False).update(set__used=True)
+            PasswordResetToken.objects(user_id=str(user.id), used=False).update(
+                set__used=True
+            )
 
             code = f"{secrets.randbelow(1_000_000):06d}"
             code_hash = hashlib.sha256(code.encode()).hexdigest()
@@ -262,7 +273,9 @@ class ForgotPasswordView(APIView):
                 # with a bare `pass` made real SMTP misconfiguration
                 # completely invisible. Log it so it actually shows up in
                 # the server console/logs during development.
-                logger.exception("Failed to send password reset email to %s", user.email)
+                logger.exception(
+                    "Failed to send password reset email to %s", user.email
+                )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -382,9 +395,18 @@ class RefreshView(APIView):
             )
 
         record = RefreshToken.objects(token_jti=payload["jti"]).first()
-        if not record or record.revoked or record.expires_at < datetime.datetime.utcnow():
+        if (
+            not record
+            or record.revoked
+            or record.expires_at < datetime.datetime.utcnow()
+        ):
             return Response(
-                {"error": {"code": 401, "message": "Refresh token is no longer valid."}},
+                {
+                    "error": {
+                        "code": 401,
+                        "message": "Refresh token is no longer valid.",
+                    }
+                },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
@@ -481,7 +503,12 @@ class ChangePasswordView(APIView):
             current = data.get("current_password")
             if not current or not verify_password(current, user.password_hash):
                 return Response(
-                    {"error": {"code": 401, "message": "Current password is incorrect."}},
+                    {
+                        "error": {
+                            "code": 401,
+                            "message": "Current password is incorrect.",
+                        }
+                    },
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
 
@@ -506,14 +533,24 @@ class AvatarUploadView(APIView):
         uploaded_file = request.FILES.get("avatar")
         if uploaded_file is None:
             return Response(
-                {"error": {"code": 400, "message": "No file uploaded — expected field 'avatar'."}},
+                {
+                    "error": {
+                        "code": 400,
+                        "message": "No file uploaded — expected field 'avatar'.",
+                    }
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
-            new_path = save_avatar(str(request.user.id), uploaded_file, request.user.avatar)
+            new_path = save_avatar(
+                str(request.user.id), uploaded_file, request.user.avatar
+            )
         except AvatarUploadError as exc:
-            return Response({"error": {"code": 400, "message": str(exc)}}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": {"code": 400, "message": str(exc)}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         request.user.avatar = new_path
         request.user.save()

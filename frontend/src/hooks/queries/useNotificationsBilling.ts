@@ -26,7 +26,7 @@ export function useMarkAllRead() {
       qc.setQueryData(
         queryKeys.notifications,
         (old: { unread: boolean }[] | undefined) =>
-          old?.map((n) => ({ ...n, unread: false })) ?? []
+          old?.map((n) => ({ ...n, unread: false })) ?? [],
       );
       return { prev };
     },
@@ -59,9 +59,15 @@ export function useInitiatePayment() {
       callbackUrl?: string;
     }) => billingApi.initiate(interval, callbackUrl),
     onSuccess: (data) => {
-      // Open Paystack's hosted checkout in the same tab.
-      window.location.href = data.authorization_url;
-    },
+      console.log("Payment response:", data);
+
+        window.location.href = data.authorization_url;
+  // or:
+  // window.location.assign(data.authorization_url);
+      },
+      onError: (err) => {
+        console.error(err);
+      },
   });
 }
 

@@ -16,7 +16,7 @@ BRAND = {
     "muted": "#6B6575",
     "primary": "#A855F7",
     "gradient_start": "#8B5CF6",  # violet-500 — matches the "verse_of_day" tint
-    "gradient_end": "#D946EF",    # fuchsia-500
+    "gradient_end": "#D946EF",  # fuchsia-500
     "radius": "20px",
 }
 
@@ -32,7 +32,9 @@ FONT_SANS = "'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-s
 LOGO_URL = f"{settings.FRONTEND_URL.rstrip('/')}/logo-glyph.png"
 
 
-def _daily_verse_html(name: str, verse_ref: str, verse_text: str, version: str, app_url: str) -> str:
+def _daily_verse_html(
+    name: str, verse_ref: str, verse_text: str, version: str, app_url: str
+) -> str:
     b = BRAND
     # M1: user-controlled (settable via registration / Edit Profile), so it
     # must be escaped before landing in an HTML f-string template.
@@ -127,7 +129,9 @@ def _daily_verse_html(name: str, verse_ref: str, verse_text: str, version: str, 
 """
 
 
-def send_daily_verse_email(to_email: str, name: str, verse_ref: str, verse_text: str, version: str):
+def send_daily_verse_email(
+    to_email: str, name: str, verse_ref: str, verse_text: str, version: str
+):
     app_url = f"{settings.FRONTEND_URL.rstrip('/')}/app/home"
     subject = f"Your verse for today: {verse_ref}"
     text_body = (
@@ -138,7 +142,9 @@ def send_daily_verse_email(to_email: str, name: str, verse_ref: str, verse_text:
     )
 
     msg = EmailMultiAlternatives(subject, text_body, None, [to_email])
-    msg.attach_alternative(_daily_verse_html(name, verse_ref, verse_text, version, app_url), "text/html")
+    msg.attach_alternative(
+        _daily_verse_html(name, verse_ref, verse_text, version, app_url), "text/html"
+    )
     msg.send(fail_silently=False)
 
 

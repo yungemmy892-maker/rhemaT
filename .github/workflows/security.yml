@@ -1,0 +1,165 @@
+# Security scanning — SAST (Bandit) + dependency audits (pip-audit, npm
+# audit) + filesystem/secret scan (Trivy). Runs on every PR and push to
+# main across the whole repo, plus a weekly schedule so a dependency that
+# becomes vulnerable *after* it was already merged still gets caught —
+# that's not something a PR-only or push-only trigger can ever do, since
+# nothing about the code changes when a new CVE is published against it.
+#
+# "Fail on Critical only" is implemented per-tool below, not as one
+# global switch — because each tool has a different, and sometimes
+# non-existent, notion of "Critical." Read each job's comments; two of
+# the four needed a real design decision, not just a flag.
+name: Security Scans
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # 03:17 UTC every Monday — off-the-hour to avoid piling onto GitHub's
+    # top-of-hour cron traffic spike.
+    - cron: "17 3 * * 1"
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bandit:
+    name: Bandit (Python SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      # Bandit's severity scale is LOW / MEDIUM / HIGH — there is no
+      # "Critical" tier to map "fail on Critical only" onto directly.
+      # HIGH is the closest real equivalent and is what this gates on.
+      #
+      # Also: Bandit couples what it *reports* to what it *fails on* —
+      # both are controlled by the same --severity-level flag, with no
+      # way to report everything but only fail on HIGH (this is a real,
+      # long-standing Bandit limitation — see PyCQA/bandit#696). So this
+      # runs Bandit twice: once with --exit-zero for a complete report
+      # (all severities, uploaded as an artifact so LOW/MEDIUM findings
+      # aren't just thrown away), and once more, unset, purely to decide
+      # pass/fail on HIGH-severity + HIGH-confidence findings only.
+      - name: Full report (all severities, non-blocking)
+        run: |
+          bandit -r . -x ./media,./staticfiles \
+            -f json -o bandit-full-report.json --exit-zero
+        working-directory: backend
+
+      - name: Gate on HIGH severity + HIGH confidence
+        run: |
+          bandit -r . -x ./media,./staticfiles \
+            --severity-level high --confidence-level high
+        working-directory: backend
+
+      - name: Upload full report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-full-report
+          path: backend/bandit-full-report.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  pip-audit:
+    name: pip-audit (Python dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      # Honest limitation, not an oversight: pip-audit has no built-in
+      # severity filter or fail-level flag (confirmed against
+      # pypa/pip-audit#654, still open) — its own exit code is a flat
+      # "were there any known vulnerabilities at all," with no way to
+      # say "only fail on Critical/High" the way npm audit and Trivy
+      # both can. Making this job hard-fail on ANY finding, including a
+      # theoretical low-severity one with no available fix, would
+      # violate the "Critical only" rule in the opposite direction —
+      # so this runs in report-only mode: it always produces and uploads
+      # a full report, and does NOT fail the job. Two options if you
+      # want this gating for real: (a) route Python dependency alerts
+      # through GitHub's own Dependabot/security advisories instead,
+      # which does carry real severity data from the GitHub Advisory
+      # Database, or (b) the third-party `pip-audit-extra` package adds
+      # a --fail-level flag — not used here since it's a low-adoption,
+      # pre-1.0 package I'm not comfortable defaulting you into for a
+      # production gate without your own sign-off.
+      - name: Run pip-audit (report-only, does not fail the job)
+        run: pip-audit -r requirements.txt --desc -f json -o pip-audit-report.json || true
+        working-directory: backend
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: backend/pip-audit-report.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  npm-audit:
+    name: npm audit (frontend dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      # --audit-level=critical: npm still reports every finding at every
+      # severity in the step's log either way — this flag only changes
+      # what the exit code (and therefore pass/fail) is based on. That's
+      # the real, documented behavior, not "hides everything below
+      # critical," which is a common misreading of this flag.
+      - name: Run npm audit (fails only on Critical)
+        run: npm audit --audit-level=critical
+        working-directory: frontend
+
+  trivy:
+    name: Trivy (filesystem scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Installed via Trivy's own official install script rather than a
+      # pinned third-party Action version — avoids committing this
+      # workflow to a specific Action release tag that may be stale by
+      # the time you actually run this.
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+
+      - name: Run Trivy filesystem scan (fails only on Critical)
+        run: |
+          trivy fs \
+            --severity CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --format table \
+            .

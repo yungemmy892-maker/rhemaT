@@ -3,7 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Bookmark, Clock, Layers, X, ChevronRight, Trash2 } from "lucide-react";
 import { useSavedVerses, useCollections } from "@/hooks/queries/usePreferences";
-import { useRecentSearches, useClearHistory, useDeleteHistoryItem } from "@/hooks/queries/useSearch";
+import {
+  useRecentSearches,
+  useClearHistory,
+  useDeleteHistoryItem,
+} from "@/hooks/queries/useSearch";
 import { useSettings } from "@/hooks/queries/usePreferences";
 import { useT } from "@/context/I18nContext";
 import type { Collection, Verse } from "@/services/api";
@@ -27,30 +31,32 @@ const TAB_LABELS: Record<Tab, { key: string; fallback: string }> = {
 
 /* Gradient per collection name — stays consistent */
 const COLLECTION_GRADIENTS: Record<string, string> = {
-  Comfort:   "from-violet-500 to-fuchsia-500",
-  Strength:  "from-purple-600 to-indigo-500",
+  Comfort: "from-violet-500 to-fuchsia-500",
+  Strength: "from-purple-600 to-indigo-500",
   Gratitude: "from-pink-500 to-rose-400",
-  Prayer:    "from-sky-500 to-cyan-400",
+  Prayer: "from-sky-500 to-cyan-400",
 };
 
 function Library() {
   const t = useT();
-  const [tab, setTab]                         = useState<Tab>("Saved");
-  const [openCollection, setOpenCollection]   = useState<Collection | null>(null);
-  const [confirmClear, setConfirmClear]       = useState(false);
+  const [tab, setTab] = useState<Tab>("Saved");
+  const [openCollection, setOpenCollection] = useState<Collection | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
-  const { data: settings }                              = useSettings();
-  const version                                         = settings?.bibleVersion ?? "KJV";
-  const { data: saved = [],       isLoading: savedLoading }       = useSavedVerses();
+  const { data: settings } = useSettings();
+  const version = settings?.bibleVersion ?? "KJV";
+  const { data: saved = [], isLoading: savedLoading } = useSavedVerses();
   const { data: collections = [], isLoading: collectionsLoading } = useCollections(version);
-  const { data: recent = [],      isLoading: recentLoading }      = useRecentSearches();
-  const clearHistory      = useClearHistory();
+  const { data: recent = [], isLoading: recentLoading } = useRecentSearches();
+  const clearHistory = useClearHistory();
   const deleteHistoryItem = useDeleteHistoryItem();
 
   return (
     <div>
       <h1 className="font-display text-3xl font-semibold">{t("library.title", "Library")}</h1>
-      <p className="text-sm text-muted-foreground mt-1">{t("library.subtitle", "Your saved verses & history")}</p>
+      <p className="text-sm text-muted-foreground mt-1">
+        {t("library.subtitle", "Your saved verses & history")}
+      </p>
 
       {/* Tabs */}
       <div className="mt-6 relative flex p-1 rounded-2xl glass-strong shadow-card">
@@ -67,7 +73,9 @@ function Library() {
                 transition={{ type: "spring", stiffness: 340, damping: 30 }}
               />
             )}
-            <span className={`relative ${tab === tabValue ? "text-white" : "text-muted-foreground"}`}>
+            <span
+              className={`relative ${tab === tabValue ? "text-white" : "text-muted-foreground"}`}
+            >
               {t(TAB_LABELS[tabValue].key, TAB_LABELS[tabValue].fallback)}
             </span>
           </button>
@@ -78,7 +86,9 @@ function Library() {
         <div className="mt-4 flex items-center justify-end gap-3">
           {confirmClear ? (
             <>
-              <span className="text-xs text-muted-foreground">{t("library.clearAllConfirm", "Clear all history?")}</span>
+              <span className="text-xs text-muted-foreground">
+                {t("library.clearAllConfirm", "Clear all history?")}
+              </span>
               <button
                 className="text-xs font-medium text-muted-foreground"
                 onClick={() => setConfirmClear(false)}
@@ -117,7 +127,13 @@ function Library() {
               <Link
                 key={v.id}
                 to="/app/results"
-                search={{ q: "", book: v.book, chapter: v.chapter, verse: v.verse, version: v.version }}
+                search={{
+                  q: "",
+                  book: v.book,
+                  chapter: v.chapter,
+                  verse: v.verse,
+                  version: v.version,
+                }}
               >
                 <VerseRow
                   title={`${v.book} ${v.chapter}:${v.verse}`}
@@ -127,7 +143,10 @@ function Library() {
               </Link>
             ))
           ) : (
-            <EmptyState Icon={Bookmark} text={t("library.emptySaved", "No saved verses yet. Tap save on any result.")} />
+            <EmptyState
+              Icon={Bookmark}
+              text={t("library.emptySaved", "No saved verses yet. Tap save on any result.")}
+            />
           ))}
 
         {/* ── Collections ────────────────────────────────────────── */}
@@ -135,7 +154,10 @@ function Library() {
           (collectionsLoading ? (
             <div className="grid grid-cols-2 gap-3">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="aspect-square rounded-3xl glass-strong shadow-card animate-pulse" />
+                <div
+                  key={i}
+                  className="aspect-square rounded-3xl glass-strong shadow-card animate-pulse"
+                />
               ))}
             </div>
           ) : (
@@ -154,7 +176,9 @@ function Library() {
                     <Layers className="h-5 w-5 opacity-80" />
                     <div className="text-left">
                       <div className="font-display text-xl font-semibold">{c.name}</div>
-                      <div className="text-xs text-white/80">{c.count} verses · {version}</div>
+                      <div className="text-xs text-white/80">
+                        {c.count} verses · {version}
+                      </div>
                     </div>
                   </motion.button>
                 );
@@ -204,9 +228,7 @@ function Library() {
                       })}
                     </span>
                   </div>
-                  <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">
-                    "{r.query}"
-                  </p>
+                  <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">"{r.query}"</p>
                 </Link>
                 <button
                   onClick={() => deleteHistoryItem.mutate(r.id)}
@@ -219,7 +241,10 @@ function Library() {
               </motion.div>
             ))
           ) : (
-            <EmptyState Icon={Clock} text={t("library.emptyHistory", "Your search history will appear here.")} />
+            <EmptyState
+              Icon={Clock}
+              text={t("library.emptyHistory", "Your search history will appear here.")}
+            />
           ))}
       </div>
 
@@ -279,7 +304,13 @@ function Library() {
                     <Link
                       key={v.id}
                       to="/app/results"
-                      search={{ q: "", book: v.book, chapter: v.chapter, verse: v.verse, version: v.version }}
+                      search={{
+                        q: "",
+                        book: v.book,
+                        chapter: v.chapter,
+                        verse: v.verse,
+                        version: v.version,
+                      }}
                       onClick={() => setOpenCollection(null)}
                     >
                       <motion.div

@@ -23,6 +23,7 @@ class HasAdminKey(BasePermission):
             request.headers.get("X-Admin-Key") or "", key
         )
 
+
 def _day_start(d: datetime.date) -> datetime.datetime:
     return datetime.datetime.combine(d, datetime.time.min)
 
@@ -58,24 +59,38 @@ class AdminStatsView(APIView):
         month_ago = now - datetime.timedelta(days=30)
 
         total_users = User.objects.count()
-        google_signups = User.objects(google_id__exists=True, google_id__ne=None).count()
+        google_signups = User.objects(
+            google_id__exists=True, google_id__ne=None
+        ).count()
 
         pro_users = User.objects(plan="Pro").count()
 
         active_subs = list(Subscription.objects(status="active"))
         mrr_kobo = sum(
-            (sub.amount_kobo or 0) if sub.interval == "monthly" else (sub.amount_kobo or 0) / 12
+            (
+                (sub.amount_kobo or 0)
+                if sub.interval == "monthly"
+                else (sub.amount_kobo or 0) / 12
+            )
             for sub in active_subs
         )
 
         # Top 10 most-identified verses (matched searches only).
         verse_counter: Counter = Counter()
-        for row in SearchHistory.objects(matched=True, verse_id__ne=None).only("verse_id"):
+        for row in SearchHistory.objects(matched=True, verse_id__ne=None).only(
+            "verse_id"
+        ):
             verse_counter[row.verse_id] += 1
         top_verses = []
         for verse_id, count in verse_counter.most_common(10):
             verse = resolve_verse(verse_id)
-            top_verses.append({"verseId": verse_id, "ref": verse.ref if verse else verse_id, "count": count})
+            top_verses.append(
+                {
+                    "verseId": verse_id,
+                    "ref": verse.ref if verse else verse_id,
+                    "count": count,
+                }
+            )
 
         recent_users = [
             {
@@ -97,13 +112,17 @@ class AdminStatsView(APIView):
                     "newToday": User.objects(created_at__gte=today_start).count(),
                     "newThisWeek": User.objects(created_at__gte=week_ago).count(),
                     "newThisMonth": User.objects(created_at__gte=month_ago).count(),
-                    "activeLast7Days": User.objects(last_login_at__gte=week_ago).count(),
+                    "activeLast7Days": User.objects(
+                        last_login_at__gte=week_ago
+                    ).count(),
                     "googleSignups": google_signups,
                     "emailSignups": total_users - google_signups,
                     "proUsers": pro_users,
                     "freeUsers": total_users - pro_users,
                     "totalSearches": SearchHistory.objects.count(),
-                    "searchesToday": SearchHistory.objects(created_at__gte=today_start).count(),
+                    "searchesToday": SearchHistory.objects(
+                        created_at__gte=today_start
+                    ).count(),
                     "totalSaved": SavedVerse.objects.count(),
                     "activeSubscriptions": len(active_subs),
                     "mrrNaira": round(mrr_kobo / 100, 2),

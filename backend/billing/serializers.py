@@ -19,7 +19,9 @@ class InitiatePaymentSerializer(serializers.Serializer):
         # frontend origin.
         allowed_prefix = settings.FRONTEND_URL.rstrip("/")
         if not value.startswith(allowed_prefix):
-            raise serializers.ValidationError("callback_url must point to the VerseID app.")
+            raise serializers.ValidationError(
+                "callback_url must point to the VerseID app."
+            )
         return value
 
     def validate(self, attrs):
@@ -27,7 +29,9 @@ class InitiatePaymentSerializer(serializers.Serializer):
         # so it always passes the allowlist check above regardless of which
         # environment (dev/prod) this is running in.
         if not attrs.get("callback_url"):
-            attrs["callback_url"] = f"{settings.FRONTEND_URL.rstrip('/')}/app/subscription?status=success"
+            attrs["callback_url"] = (
+                f"{settings.FRONTEND_URL.rstrip('/')}/app/subscription?status=success"
+            )
         return attrs
 
 
