@@ -1,26 +1,15 @@
-import datetime
 import logging
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone as dj_timezone
 
+from notifications.email import send_pro_expired_email
 from notifications.models import Notification
 from users.models import User
 
 from billing.models import Subscription
+from billing.services import now_utc
 
 logger = logging.getLogger(__name__)
-
-
-def _now() -> datetime.datetime:
-    """
-    UTC "now" via Django's non-deprecated timezone-aware clock, with
-    tzinfo stripped before use — matches the naive-UTC convention every
-    other DateTimeField in this codebase relies on (see the identical
-    helper in billing/views.py and charge_renewals.py for the full
-    rationale).
-    """
-    return dj_timezone.now().replace(tzinfo=None)
 
 
 class Command(BaseCommand):
@@ -31,15 +20,13 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **options):
-        now = _now()
+        now = now_utc()
 
-        due = Subscription.objects(
-            status="cancelled", current_period_end__lt=now
-        )
+        due = Subscription.objects(status="cancelled", current_period_end__lt=now)
         due_subs = list(due)
         self.stdout.write(f"{len(due_subs)} cancelled subscription(s) past their period end.")
 
-        expired = skipped = 0
+        expired = lost_race = orphaned = 0
 
         for sub in due_subs:
             # Atomically claim this subscription for expiry — mirrors the
@@ -53,19 +40,61 @@ class Command(BaseCommand):
                 id=sub.id, status="cancelled"
             ).update(set__status="expired", set__updated_at=now)
             if not claimed:
-                skipped += 1
+                lost_race += 1
                 continue
 
             user = User.objects(id=sub.user_id).first()
             if user is None:
-                skipped += 1
+                # A Subscription with no matching User is a data-integrity
+                # problem worth a human's attention, not just a silent
+                # skip — the subscription itself is already correctly
+                # marked "expired" above (that claim doesn't depend on
+                # the user existing), so this orphan won't keep coming
+                # back on every future run; it just won't self-heal
+                # either. Log it distinctly from "lost the race" so it's
+                # findable.
+                logger.warning(
+                    "expire_subscriptions: Subscription %s references "
+                    "missing user_id=%s — subscription marked expired, "
+                    "but no user record to downgrade or notify.",
+                    sub.id,
+                    sub.user_id,
+                )
+                orphaned += 1
                 continue
 
             user.plan = "Free"
             user.plan_expires_at = None
             user.save()
+
+            Notification(
+                user_id=str(user.id),
+                kind="pro_upsell",
+                title="Your Pro access has ended",
+                body=(
+                    "The Pro billing period you already paid for has finished, so "
+                    "your account is back on the Free plan. Resubscribe any time "
+                    "from your Profile."
+                ),
+            ).save()
+
+            try:
+                send_pro_expired_email(user.email, user.name.split(" ")[0])
+            except Exception:
+                # Never let an email provider hiccup stop the actual
+                # downgrade — the in-app notification above already
+                # covers it; this is a nice-to-have on top, not the
+                # source of truth. Still needs to be visible in logs
+                # though, since a real SMTP outage silently means nobody
+                # gets this email until someone notices.
+                logger.exception(
+                    "Failed to send Pro-expired email to %s", user.email
+                )
+
             expired += 1
 
         self.stdout.write(
-            self.style.SUCCESS(f"Expired: {expired}, Skipped: {skipped}")
+            self.style.SUCCESS(
+                f"Expired: {expired}, Lost race: {lost_race}, Orphaned: {orphaned}"
+            )
         )

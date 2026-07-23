@@ -2,7 +2,6 @@ import datetime
 import logging
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone as dj_timezone
 
 from notifications.models import Notification
 from users.models import User
@@ -14,22 +13,11 @@ from billing.paystack import (
     charge_authorization,
     verify_transaction,
 )
+from billing.services import now_utc, record_payment
 
 logger = logging.getLogger(__name__)
 
 MAX_RENEWAL_ATTEMPTS = 3
-
-
-def _now() -> datetime.datetime:
-    """
-    UTC "now" via Django's non-deprecated timezone-aware clock, with
-    tzinfo stripped before use. MongoEngine's DateTimeFields across this
-    codebase are all naive UTC (the Mongo connection isn't configured with
-    tz_aware=True), so an aware datetime compared directly against a value
-    read back from a Subscription document (e.g. `current_period_end`)
-    would raise "can't compare offset-naive and offset-aware datetimes".
-    """
-    return dj_timezone.now().replace(tzinfo=None)
 
 
 class Command(BaseCommand):
@@ -44,7 +32,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         force = options["force"]
-        now = _now()
+        now = now_utc()
         today = now.date()
 
         query = {"status": "active"}
@@ -166,10 +154,37 @@ class Command(BaseCommand):
             new_period_end = base + datetime.timedelta(days=days)
 
             try:
-                sub.renewal_attempts = 0
-                sub.current_period_end = new_period_end
-                sub.updated_at = now
-                sub.save()
+                # Compare-and-swap, not a plain sub.save(). This is the
+                # actual guard against the PaystackDuplicateReference
+                # recovery path above being reached concurrently by two
+                # processes for the exact same renewal reference (a
+                # redelivered Celery task, an overlapping manual --force
+                # run) — only an update that still matches the OLD
+                # current_period_end applies; a losing process's update
+                # matches zero documents, so it can back out here instead
+                # of double-extending the period and sending a second
+                # "renewed" notification on top of the winner's.
+                claimed_finalize = Subscription.objects(
+                    id=sub.id, current_period_end=sub.current_period_end
+                ).update(
+                    set__renewal_attempts=0,
+                    set__current_period_end=new_period_end,
+                    set__updated_at=now,
+                    set__last_reference=reference,
+                )
+                if not claimed_finalize:
+                    skipped += 1
+                    continue
+
+                # Audit-trail entry for this renewal charge — the same
+                # ledger /billing/verify/ and the webhook write to (see
+                # billing/services.py). Best-effort here: a duplicate
+                # insert is expected and NOT an error (e.g. a retry
+                # recovering from a prior crash reuses the identical
+                # reference — see the crash-recovery comment below), since
+                # the compare-and-swap above, not this call, is what
+                # actually decided whether this process gets to finalize.
+                record_payment(reference, str(user.id), sub.interval, sub.amount_kobo)
 
                 user.plan = "Pro"
                 user.plan_expires_at = new_period_end
@@ -186,17 +201,20 @@ class Command(BaseCommand):
                 ).save()
                 renewed += 1
             except Exception:
-                # Paystack has ALREADY charged the customer at this point.
-                # Don't swallow this into "failed" bookkeeping below — the
-                # subscription is now in a charged-but-unrecorded state.
-                # The next run will detect this via the same reference
-                # (current_period_end never advanced) and reconcile
-                # automatically via the PaystackDuplicateReference path
-                # above, but this needs to be loud so a human notices if
-                # it keeps happening.
+                # Paystack has ALREADY charged the customer at this point,
+                # and — if the compare-and-swap above succeeded before
+                # this raised — Subscription.current_period_end may
+                # already be advanced too, even though user.plan/
+                # plan_expires_at or the notification below it didn't
+                # finish. Don't swallow this into "failed" bookkeeping;
+                # it needs a human to reconcile this specific user, since
+                # a subscription that no longer looks "due" won't be
+                # picked up for automatic retry on the next run.
                 logger.critical(
                     "PAYSTACK CHARGED sub=%s user=%s amount_kobo=%s reference=%s "
-                    "but DB write failed — subscription NOT marked renewed.",
+                    "but a DB write failed partway through finalizing the "
+                    "renewal — verify Subscription/User state for this user "
+                    "manually.",
                     sub.id,
                     user.id,
                     sub.amount_kobo,

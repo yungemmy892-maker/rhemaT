@@ -198,7 +198,7 @@ def _welcome_html(name: str, app_url: str) -> str:
                       Hi {name},
                       <br/><br/>
                       Your account is ready. VerseID listens for any Bible verse being read aloud — a
-                      sermon, a friend, a memory and tells you exactly what it is and where it's from.
+                      sermon, a friend, a memory — and tells you exactly what it is and where it's from.
                     </td>
                   </tr>
 
@@ -442,4 +442,76 @@ def send_password_changed_email(to_email: str, name: str, first_time: bool = Fal
     msg.attach_alternative(
         _password_changed_html(name, headline, message), "text/html"
     )
+    msg.send(fail_silently=False)
+
+
+def _pro_expired_html(name: str, resubscribe_url: str) -> str:
+    b = BRAND
+    # M1: user-controlled, must be escaped before interpolation.
+    name = html.escape(name)
+    return f"""\
+<!DOCTYPE html>
+<html>
+  <body style="margin:0;padding:0;background:{b['bg']};font-family:{FONT_SANS};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{b['bg']};padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;">
+
+            <tr>
+              <td align="center" style="padding-bottom:24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="40" style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});" align="center" valign="middle">
+                      <img src="{LOGO_URL}" width="20" height="20" alt="VerseID" style="display:block;" />
+                    </td>
+                    <td style="padding-left:10px;font-family:{FONT_DISPLAY};font-size:20px;font-weight:600;color:{b['foreground']};">VerseID</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="background:{b['surface']};border:1px solid {b['border']};border-radius:{b['radius']};padding:36px 32px;text-align:center;">
+                <div style="width:52px;height:52px;line-height:52px;text-align:center;border-radius:16px;margin:0 auto;background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});font-size:22px;">⏳</div>
+                <div style="font-family:{FONT_DISPLAY};font-size:22px;font-weight:600;color:{b['foreground']};margin-top:18px;">
+                  Your Pro access has ended
+                </div>
+                <p style="font-size:14px;line-height:1.6;color:{b['muted']};margin:10px 0 26px;">
+                  Hi {name}, the Pro billing period you already paid for has now finished,
+                  so your VerseID account is back on the Free plan.
+                </p>
+                <a href="{resubscribe_url}" style="display:inline-block;padding:13px 32px;border-radius:999px;background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">
+                  Resubscribe to Pro
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:22px 12px;font-size:12px;color:{b['muted']};">
+                VerseID - Find any Bible verse instantly.
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+
+
+def send_pro_expired_email(to_email: str, name: str) -> None:
+    resubscribe_url = f"{settings.FRONTEND_URL.rstrip('/')}/app/subscription"
+    subject = "Your VerseID Pro access has ended"
+    text_body = (
+        f"Hi {name},\n\n"
+        "The Pro billing period you already paid for has now finished, so your "
+        "VerseID account is back on the Free plan.\n\n"
+        f"Resubscribe any time: {resubscribe_url}\n"
+    )
+
+    msg = EmailMultiAlternatives(subject, text_body, None, [to_email])
+    msg.attach_alternative(_pro_expired_html(name, resubscribe_url), "text/html")
     msg.send(fail_silently=False)

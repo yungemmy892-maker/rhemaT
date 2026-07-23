@@ -1,10 +1,8 @@
-import datetime
 import json
 import logging
 
 from django.conf import settings
 from django.http import HttpResponse
-from django.utils import timezone as dj_timezone
 from mongoengine.errors import NotUniqueError
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -21,6 +19,7 @@ from .paystack import (
     verify_webhook_signature,
 )
 from .serializers import InitiatePaymentSerializer, VerifyPaymentSerializer
+from .services import activate_pro, record_payment
 
 logger = logging.getLogger(__name__)
 
@@ -37,22 +36,6 @@ NGN_PRICES = {
         "savings": "Save ₦3,000",
     },
 }
-
-
-def _now() -> datetime.datetime:
-    """
-    UTC "now" using Django's non-deprecated timezone-aware clock instead of
-    the deprecated `datetime.datetime.utcnow()`, but with tzinfo stripped
-    before it touches anything. Every DateTimeField written by MongoEngine
-    across this whole codebase is naive UTC (the Mongo connection isn't
-    configured with tz_aware=True — see config/settings.py), so comparing
-    an aware `timezone.now()` directly against a value read back from a
-    Subscription/User document would raise
-    "can't compare offset-naive and offset-aware datetimes". Stripping
-    tzinfo here keeps every read/write/comparison in this file consistent
-    with that existing naive-UTC convention.
-    """
-    return dj_timezone.now().replace(tzinfo=None)
 
 
 class PricingView(APIView):
@@ -140,14 +123,11 @@ class VerifyPaymentView(APIView):
         serializer.is_valid(raise_exception=True)
         reference = serializer.validated_data["reference"]
 
-        # Idempotency guard. Payment.reference is the durable, permanent
-        # record that this exact Paystack transaction has already been
-        # processed. Without this check, a double-tap on "Subscribe", a
-        # browser back+resubmit, or the frontend retrying a slow response
-        # could all call _activate_pro() more than once for the very same
-        # charge. Checked first (before even calling Paystack) so a
-        # request we already know is a repeat doesn't cost an extra
-        # outbound verify call either.
+        # Fast-path idempotency check. Payment.reference is the durable,
+        # permanent record that this exact Paystack transaction has
+        # already been processed. This check alone can't fully prevent a
+        # race (see below) — it's here so a request we already KNOW is a
+        # repeat doesn't cost an extra outbound Paystack verify call.
         if Payment.objects(reference=reference).first():
             user = User.objects(id=request.user.id).first()
             return Response({"user": user.to_public_dict(), "status": "already_verified"})
@@ -181,8 +161,21 @@ class VerifyPaymentView(APIView):
         interval = metadata.get("interval", "monthly")
         user_id = metadata.get("user_id", str(request.user.id))
 
-        _activate_pro(user_id, interval, tx)
-        _record_payment(reference, user_id, interval, tx.get("amount", 0))
+        # Record the Payment BEFORE activating Pro — this ordering (ledger
+        # entry first, side effect second) is what actually makes this
+        # endpoint safe against a race, not the pre-check above. Two
+        # concurrent requests for a brand-new reference (double-tap,
+        # browser back+resubmit) can both sail past the pre-check before
+        # either has written anything; record_payment()'s unique index is
+        # the real lock. Whichever request loses this insert stops right
+        # here instead of also calling activate_pro() — the winner
+        # already has it covered — so a single charge can never activate
+        # (and reset the paid period on) Pro more than once.
+        if not record_payment(reference, user_id, interval, tx.get("amount", 0)):
+            user = User.objects(id=request.user.id).first()
+            return Response({"user": user.to_public_dict(), "status": "already_verified"})
+
+        activate_pro(user_id, interval, tx)
 
         user = User.objects(id=request.user.id).first()
         return Response({"user": user.to_public_dict(), "status": "activated"})
@@ -195,7 +188,8 @@ class CancelSubscriptionView(APIView):
     until your billing ends", so `user.plan` and `user.plan_expires_at`
     are left untouched here; expire_subscriptions.py (run hourly) is what
     actually flips a cancelled-and-lapsed subscription over to Free once
-    current_period_end has passed.
+    current_period_end has passed — and sends its own separate
+    "your Pro access has ended" notification/email at that point.
     """
 
     permission_classes = [IsAuthenticated]
@@ -236,16 +230,35 @@ class PaystackWebhookView(APIView):
         event_id = payload.get("id") or payload.get("data", {}).get("id", "")
         event_type = payload.get("event", "")
 
-        # Idempotency — skip duplicates
-        if event_id and PaystackEvent.objects(event_id=str(event_id)).first():
-            return HttpResponse(status=200)
-
-        PaystackEvent(
-            event_id=str(event_id), event_type=event_type, payload=payload
-        ).save()
+        if event_id:
+            # Idempotency — skip duplicates. The .first() check below is
+            # only a fast-path optimization, NOT the actual guard: Paystack
+            # can (and does) redeliver a webhook, and two near-simultaneous
+            # deliveries of the same event can both see "not found" here
+            # before either has saved. event_id's unique index is what
+            # actually prevents a duplicate PaystackEvent row — so the
+            # insert itself is wrapped in try/except: whichever delivery
+            # loses that race just stops (200, no reprocessing) instead of
+            # raising a 500 that would make Paystack retry the "duplicate"
+            # unnecessarily.
+            if PaystackEvent.objects(event_id=str(event_id)).first():
+                return HttpResponse(status=200)
+            try:
+                PaystackEvent(
+                    event_id=str(event_id), event_type=event_type, payload=payload
+                ).save(force_insert=True)
+            except NotUniqueError:
+                return HttpResponse(status=200)
+        else:
+            # No event id to dedupe on — shouldn't happen for a real
+            # Paystack delivery, but don't collide every id-less payload
+            # onto the same empty-string unique key (which would silently
+            # drop every one after the first) or crash on a malformed one.
+            # Just log it and keep processing without an idempotency
+            # record for this particular delivery.
+            logger.warning("Paystack webhook payload missing an event id: %r", payload)
 
         data = payload.get("data", {})
-        customer_code = data.get("customer", {}).get("customer_code")
         sub = Subscription.objects(
             paystack_subscription_code=data.get("subscription_code")
         ).first()
@@ -256,27 +269,27 @@ class PaystackWebhookView(APIView):
             uid = metadata.get("user_id") or user_id
             interval = metadata.get("interval", "monthly")
             charge_reference = data.get("reference", "")
-            # Renewal charges (charge_renewals.py) already activate Pro and
-            # send their own "renewed" notification synchronously right
-            # after the charge succeeds — skip here to avoid a duplicate,
-            # contradictory "Welcome to Pro 🎉" notification on a renewal.
+            # Renewal charges (charge_renewals.py) already record their own
+            # Payment row and activate Pro synchronously right after the
+            # charge succeeds — skip here to avoid a duplicate, contradictory
+            # "Welcome to Pro 🎉" notification on a renewal.
             if uid and not metadata.get("renewal"):
-                # This webhook can race — or simply duplicate-deliver, or
-                # arrive after — the same charge already processed via
-                # /billing/verify/. Payment.reference is the shared
-                # idempotency ledger between both entry points, so a
-                # reference that's already recorded is skipped entirely
-                # rather than re-running _activate_pro().
-                already_processed = bool(
-                    charge_reference
-                    and Payment.objects(reference=charge_reference).first()
-                )
-                if not already_processed:
-                    _activate_pro(uid, interval, data)
-                    if charge_reference:
-                        _record_payment(
-                            charge_reference, uid, interval, data.get("amount", 0)
-                        )
+                if not charge_reference:
+                    logger.warning(
+                        "charge.success webhook missing data.reference — "
+                        "skipping activation (can't safely dedupe without "
+                        "one). payload=%r",
+                        payload,
+                    )
+                # Record BEFORE activating — same ordering as
+                # VerifyPaymentView, for the same reason: this webhook can
+                # race (or simply duplicate-deliver, or arrive after) the
+                # same charge already processed via /billing/verify/, and
+                # record_payment()'s unique index — not a pre-check — is
+                # what actually prevents activate_pro() from running twice
+                # for one charge.
+                elif record_payment(charge_reference, uid, interval, data.get("amount", 0)):
+                    activate_pro(uid, interval, data)
 
         elif event_type in ("subscription.disable", "subscription.not_renew"):
             if sub:
@@ -294,97 +307,7 @@ class PaystackWebhookView(APIView):
                     user_id=user_id,
                     kind="pro_upsell",
                     title="Payment failed",
-                    body="We couldn't renew your Pro subscription — please update your payment details.",
+                    body="We couldn't renew your Pro subscription please update your payment details.",
                 ).save()
 
         return HttpResponse(status=200)
-
-
-def _record_payment(
-    reference: str,
-    user_id: str,
-    interval: str,
-    amount_kobo: int,
-    gateway_status: str = "success",
-) -> None:
-    """
-    Writes the permanent Payment ledger entry for a processed charge. This
-    is what makes /billing/verify/ (and the charge.success webhook)
-    idempotent — a unique index on `reference` means this is safe to call
-    from more than one code path for the very same transaction (verify and
-    the webhook can both observe the same charge); a second insert for an
-    already-recorded reference is swallowed rather than raised, since by
-    definition someone else already wrote the durable record this call was
-    trying to create.
-    """
-    try:
-        Payment(
-            reference=reference,
-            user_id=user_id,
-            interval=interval,
-            amount_kobo=amount_kobo,
-            gateway="paystack",
-            status=gateway_status,
-            paid_at=_now(),
-        ).save(force_insert=True)
-    except NotUniqueError:
-        pass
-
-
-def _activate_pro(user_id: str, interval: str, tx_data: dict):
-    """
-    Shared helper: marks user as Pro and upserts the Subscription record.
-
-    Notification is idempotent. This gets called from more than one place
-    (a fresh /billing/verify/, the charge.success webhook, and — via those
-    — potentially more than once for what's effectively the same
-    activation) so unconditionally sending "Welcome to VerseID Pro" every
-    time would spam a duplicate "welcome" notification for something that
-    isn't new. It only notifies when this activation is a genuine
-    (re)activation — no existing subscription, one that wasn't active, or
-    one whose period had already lapsed — not a no-op re-run against an
-    already-active subscription.
-    """
-    user = User.objects(id=user_id).first()
-    if user is None:
-        return
-
-    now = _now()
-    days = 30 if interval == "monthly" else 365
-    expires_at = now + datetime.timedelta(days=days)
-
-    existing_sub = Subscription.objects(user_id=user_id).first()
-    should_notify = (
-        existing_sub is None
-        or existing_sub.status != "active"
-        or existing_sub.current_period_end is None
-        or existing_sub.current_period_end < now
-    )
-
-    user.plan = "Pro"
-    user.plan_expires_at = expires_at
-    user.save()
-
-    Subscription.objects(user_id=user_id).upsert_one(
-        set__paystack_customer_code=tx_data.get("customer", {}).get(
-            "customer_code", ""
-        ),
-        set__paystack_subscription_code=tx_data.get("subscription_code", ""),
-        set__paystack_authorization_code=tx_data.get("authorization", {}).get(
-            "authorization_code", ""
-        ),
-        set__interval=interval,
-        set__amount_kobo=tx_data.get("amount", 0),
-        set__status="active",
-        set__current_period_end=expires_at,
-        set__last_reference=tx_data.get("reference", ""),
-        set__updated_at=now,
-    )
-
-    if should_notify:
-        Notification(
-            user_id=user_id,
-            kind="pro_upsell",
-            title="Welcome to VerseID Pro 🎉",
-            body="Unlimited searches and all premium features are now unlocked.",
-        ).save()
