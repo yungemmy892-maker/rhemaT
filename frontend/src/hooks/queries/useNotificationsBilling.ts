@@ -59,15 +59,11 @@ export function useInitiatePayment() {
       callbackUrl?: string;
     }) => billingApi.initiate(interval, callbackUrl),
     onSuccess: (data) => {
-      console.log("Payment response:", data);
-
-        window.location.href = data.authorization_url;
-  // or:
-  // window.location.assign(data.authorization_url);
-      },
-      onError: (err) => {
-        console.error(err);
-      },
+      window.location.href = data.authorization_url;
+    },
+    onError: (err) => {
+      console.error(err);
+    },
   });
 }
 
@@ -76,8 +72,11 @@ export function useVerifyPayment() {
   return useMutation({
     mutationFn: (reference: string) => billingApi.verify(reference),
     onSuccess: (data) => {
-      // Refresh auth user so plan/quota reflect the upgrade immediately
+      // Optimistic update so plan/quota reflect the upgrade immediately...
       qc.setQueryData(queryKeys.me, data.user);
+      // ...then invalidate so the next read is guaranteed fresh from the
+      // server rather than trusting this response shape indefinitely.
+      qc.invalidateQueries({ queryKey: queryKeys.me });
     },
   });
 }

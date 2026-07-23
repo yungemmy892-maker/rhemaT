@@ -357,7 +357,10 @@ CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": f"{REDIS_URL}/0",
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+        },
         # Per-endpoint TIMEOUT is set explicitly at each cache.set() call
         # (see bible/views.py) since cache lifetime varies a lot by what's
         # being cached (Bible text is static; verse-of-day changes daily).
@@ -365,6 +368,14 @@ CACHES = {
         "TIMEOUT": 300,
     },
 }
+
+# IGNORE_EXCEPTIONS above means a Redis outage no longer breaks requests —
+# but it would also mean it fails completely silently otherwise. This
+# makes django-redis log every ignored exception (at ERROR, via the
+# "django_redis.cache" logger configured below) so an actual outage is
+# still visible in production logs instead of just quietly degrading
+# forever.
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 
 # ---------------------------------------------------------------------------
 # Celery — background/scheduled jobs (config/celery.py). Replaces the old
@@ -408,20 +419,7 @@ X_FRAME_OPTIONS = "DENY"
 # HSTS tells the browser "never try plain HTTP for this host again, for
 # the next N seconds" — genuinely dangerous to get wrong, since a browser
 # that's already seen this header will refuse HTTP even if you need to
-# roll back. Only ever enabled outside DEBUG (local dev is plain HTTP,
-# where this header would be actively harmful) and split into three
-# separately-gated pieces rather than one on/off switch:
-#
-#  - SECONDS: the actual protection, and the safe part — worst case if
-#    you need to undo it, you wait out the max-age. Defaults on in
-#    production (1 year) since verseid.top / api.verseid.top are
-#    HTTPS-only already.
-#  - INCLUDE_SUBDOMAINS / PRELOAD: much bigger blast radius — the former
-#    breaks any OTHER subdomain under verseid.top that isn't HTTPS-ready,
-#    the latter means submitting to a hardcoded browser list that's
-#    slow and painful to get removed from. Both default OFF and require
-#    deliberately opting in via env var once you're certain every
-#    current and future subdomain is HTTPS-only.
+# roll back.
 SECURE_HSTS_SECONDS = int(
     os.environ.get("SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000")
 )
@@ -430,15 +428,6 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = (
 )
 SECURE_HSTS_PRELOAD = os.environ.get("SECURE_HSTS_PRELOAD", "False") == "True"
 
-# ---------------------------------------------------------------------------
-# Logging — plain stdout/stderr, which is where it needs to go: every
-# process here (gunicorn web workers, Celery worker, Celery beat) already
-# has its logs collected by the host from stdout/stderr, not from a file
-# (see gunicorn.conf.py's accesslog/errorlog = "-"). No new infra
-# dependency (e.g. Sentry) added here — this just makes sure Python's
-# logging module actually reaches that same stream with useful formatting,
-# instead of Django's un-configured default (which drops most app-level
-# logger.info/.warning calls silently once DEBUG=False).
 # ---------------------------------------------------------------------------
 
 LOGGING = {
@@ -461,11 +450,6 @@ LOGGING = {
         "level": "INFO",
     },
     "loggers": {
-        # Django's own internal logger — INFO is noisy in production
-        # (every request gets a line via django.server/django.request at
-        # INFO), so this is WARNING+ once DEBUG is off. django.request
-        # below overrides that specifically for request-handling errors,
-        # which should always surface regardless.
         "django": {
             "handlers": ["console"],
             "level": "INFO" if DEBUG else "WARNING",

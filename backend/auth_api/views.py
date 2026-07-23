@@ -11,7 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from notifications.email import send_password_reset_email
+from notifications.email import send_password_changed_email, send_password_reset_email
 from notifications.welcome import send_welcome
 from users.avatars import AvatarUploadError, save_avatar
 from users.models import PasswordResetToken, RefreshToken, User
@@ -358,6 +358,17 @@ class ResetPasswordView(APIView):
         # Reset is a credential change — sign the user out of every device.
         RefreshToken.objects(user_id=str(user.id)).delete()
 
+        try:
+            send_password_changed_email(user.email, user.name.split(" ")[0])
+        except Exception:
+            # Same reasoning as ForgotPasswordView below: never fail the
+            # actual password reset over a notification email — just make
+            # sure a real SMTP problem shows up in logs instead of
+            # vanishing silently.
+            logger.exception(
+                "Failed to send password-changed email to %s", user.email
+            )
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -499,7 +510,13 @@ class ChangePasswordView(APIView):
         data = serializer.validated_data
         user = request.user
 
-        if user.password_hash:
+        # Captured before overwriting — distinguishes a real password
+        # change (had one already) from a Google-only account setting a
+        # password for the first time, since those two get different
+        # notification copy below.
+        had_password = bool(user.password_hash)
+
+        if had_password:
             current = data.get("current_password")
             if not current or not verify_password(current, user.password_hash):
                 return Response(
@@ -514,6 +531,19 @@ class ChangePasswordView(APIView):
 
         user.password_hash = hash_password(data["new_password"])
         user.save()
+
+        try:
+            send_password_changed_email(
+                user.email, user.name.split(" ")[0], first_time=not had_password
+            )
+        except Exception:
+            # Never fail the actual password change over a notification
+            # email — just make sure a real SMTP problem is visible in
+            # logs instead of silently vanishing.
+            logger.exception(
+                "Failed to send password-changed email to %s", user.email
+            )
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

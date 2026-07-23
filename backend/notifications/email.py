@@ -198,7 +198,7 @@ def _welcome_html(name: str, app_url: str) -> str:
                       Hi {name},
                       <br/><br/>
                       Your account is ready. VerseID listens for any Bible verse being read aloud — a
-                      sermon, a friend, a memory — and tells you exactly what it is and where it's from.
+                      sermon, a friend, a memory and tells you exactly what it is and where it's from.
                     </td>
                   </tr>
 
@@ -359,4 +359,87 @@ def send_welcome_email(to_email: str, name: str) -> None:
 
     msg = EmailMultiAlternatives(subject, text_body, None, [to_email])
     msg.attach_alternative(_welcome_html(name, app_url), "text/html")
+    msg.send(fail_silently=False)
+
+
+def _password_changed_html(name: str, headline: str, message: str) -> str:
+    b = BRAND
+    # M1: user-controlled, must be escaped before interpolation.
+    name = html.escape(name)
+    return f"""\
+<!DOCTYPE html>
+<html>
+  <body style="margin:0;padding:0;background:{b['bg']};font-family:{FONT_SANS};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{b['bg']};padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;">
+
+            <tr>
+              <td align="center" style="padding-bottom:24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="40" style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});" align="center" valign="middle">
+                      <img src="{LOGO_URL}" width="20" height="20" alt="VerseID" style="display:block;" />
+                    </td>
+                    <td style="padding-left:10px;font-family:{FONT_DISPLAY};font-size:20px;font-weight:600;color:{b['foreground']};">VerseID</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="background:{b['surface']};border:1px solid {b['border']};border-radius:{b['radius']};padding:36px 32px;text-align:center;">
+                <div style="width:52px;height:52px;line-height:52px;text-align:center;border-radius:16px;margin:0 auto;background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});font-size:22px;">🔒</div>
+                <div style="font-family:{FONT_DISPLAY};font-size:22px;font-weight:600;color:{b['foreground']};margin-top:18px;">
+                  {headline}
+                </div>
+                <p style="font-size:14px;line-height:1.6;color:{b['muted']};margin:10px 0 4px;">
+                  Hi {name}, {message}
+                </p>
+                <p style="font-size:13px;line-height:1.6;color:{b['foreground']};background:{b['bg']};border:1px solid {b['border']};border-radius:12px;padding:12px 14px;margin-top:22px;">
+                  If this wasn't you, please reset your password immediately and contact support.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:22px 12px;font-size:12px;color:{b['muted']};">
+                VerseID — Find any Bible verse instantly.
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+
+
+def send_password_changed_email(to_email: str, name: str, first_time: bool = False) -> None:
+    if first_time:
+        subject = "A password was added to your VerseID account"
+        headline = "Password added"
+        message = (
+            "a password was just added to your VerseID account you can now "
+            "sign in with your email and password, as well as Google."
+        )
+    else:
+        subject = "Your VerseID password was changed"
+        headline = "Password changed"
+        message = "your VerseID password was just changed."
+
+    text_body = (
+        f"Hi {name},\n\n"
+        f"{message[0].upper()}{message[1:]}\n\n"
+        "If this wasn't you, please reset your password immediately and "
+        "contact support.\n"
+    )
+
+    msg = EmailMultiAlternatives(subject, text_body, None, [to_email])
+    msg.attach_alternative(
+        _password_changed_html(name, headline, message), "text/html"
+    )
     msg.send(fail_silently=False)

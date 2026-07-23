@@ -18,6 +18,15 @@ app.conf.beat_schedule = {
         "task": "billing.tasks.charge_renewals",
         "schedule": crontab(minute=0, hour="*/6"),
     },
+    # Downgrades cancelled subscriptions once their paid-up period has
+    # actually ended (see billing/management/commands/expire_subscriptions.py).
+    # Runs hourly so nobody keeps Pro access much longer than promised, but
+    # doesn't need charge_renewals' 6-hour cadence since there's no
+    # external charge to coordinate here.
+    "expire-cancelled-subscriptions": {
+        "task": "billing.tasks.expire_subscriptions",
+        "schedule": crontab(minute=0),
+    },
     # Matches notifications/scheduler.py's old INTERVAL_SECONDS (15 min).
     "send-daily-verse": {
         "task": "notifications.tasks.send_daily_verse",

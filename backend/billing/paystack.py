@@ -1,8 +1,11 @@
 import hashlib
 import hmac
+import logging
 
 import requests
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 PAYSTACK_BASE = "https://api.paystack.co"
 
@@ -51,6 +54,12 @@ def initialize_transaction(
         resp.raise_for_status()
         return resp.json()["data"]
     except requests.RequestException as exc:
+        logger.error(
+            "Paystack initialize_transaction failed: email=%s amount_kobo=%s error=%s",
+            email,
+            amount_kobo,
+            exc,
+        )
         raise PaystackError(str(exc)) from exc
 
 
@@ -65,6 +74,11 @@ def verify_transaction(reference: str) -> dict:
         resp.raise_for_status()
         return resp.json()["data"]
     except requests.RequestException as exc:
+        logger.error(
+            "Paystack verify_transaction failed: reference=%s error=%s",
+            reference,
+            exc,
+        )
         raise PaystackError(str(exc)) from exc
 
 
@@ -91,11 +105,22 @@ def charge_authorization(
             timeout=15,
         )
     except requests.RequestException as exc:
+        logger.error(
+            "Paystack charge failed (request error): reference=%s amount_kobo=%s error=%s",
+            reference,
+            amount_kobo,
+            exc,
+        )
         raise PaystackError(str(exc)) from exc
 
     try:
         body = resp.json()
     except ValueError as exc:
+        logger.error(
+            "Paystack charge failed (non-JSON response): reference=%s http_status=%s",
+            reference,
+            resp.status_code,
+        )
         raise PaystackError(
             f"Non-JSON response from Paystack (HTTP {resp.status_code})"
         ) from exc
@@ -118,10 +143,44 @@ def charge_authorization(
         # confirmed value — trigger this once in a sandbox and check the
         # logged body below to confirm/correct it.
         if code == "duplicate_reference" or "already been used" in message.lower():
+            logger.error(
+                "Paystack charge failed (duplicate reference): reference=%s "
+                "http_status=%s message=%r",
+                reference,
+                resp.status_code,
+                message,
+            )
             raise PaystackDuplicateReference(message or code)
+        logger.error(
+            "Paystack charge failed: reference=%s amount_kobo=%s http_status=%s "
+            "code=%r message=%r raw=%r",
+            reference,
+            amount_kobo,
+            resp.status_code,
+            code,
+            message,
+            body,
+        )
         raise PaystackError(
             f"{message or code or 'Unknown error'} "
             f"(HTTP {resp.status_code}, code={code!r}, raw={body!r})"
+        )
+
+    if body.get("data", {}).get("status") != "success":
+        # Paystack returns HTTP 200 + status:true for a charge that was
+        # *accepted and attempted* even when the actual outcome is a
+        # decline (insufficient funds, expired card, etc) — that's not an
+        # exception-worthy PaystackError (charge_renewals.py's retry logic
+        # already handles a declined `result.get("status") != "success"`
+        # response), but it's still a failure worth a log line so it shows
+        # up in production logs/alerting rather than only ever being
+        # visible via the in-app "Payment failed" notification.
+        logger.error(
+            "Paystack charge declined: reference=%s amount_kobo=%s "
+            "gateway_response=%r",
+            reference,
+            amount_kobo,
+            body.get("data", {}).get("gateway_response"),
         )
 
     return body["data"]

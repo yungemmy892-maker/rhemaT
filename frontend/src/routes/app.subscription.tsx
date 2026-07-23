@@ -44,7 +44,18 @@ function Subscription() {
   useEffect(() => {
     if (status === "success" && reference) {
       verifyPayment.mutate(reference, {
-        onSuccess: () => refreshUser(),
+        onSuccess: async () => {
+          await refreshUser();
+          // Leave the success message on screen just long enough to
+          // register, then move off this URL entirely — refreshing,
+          // sharing, or hitting back on a page parked at
+          // ?status=success&reference=... would otherwise silently
+          // re-run verification against a reference that's already been
+          // processed every time.
+          setTimeout(() => {
+            navigate({ to: "/app/profile", replace: true });
+          }, 1500);
+        },
       });
     }
   }, [status, reference]);
@@ -84,7 +95,9 @@ function Subscription() {
           {verifyPayment.isPending
             ? "Verifying your payment…"
             : verifyPayment.isSuccess
-              ? "🎉 Welcome to Pro! All features are now unlocked."
+              ? verifyPayment.data?.status === "already_verified"
+                ? "Payment already verified — you're on Pro."
+                : "🎉 Welcome to Pro! All features are now unlocked."
               : "Payment received - refreshing your account…"}
         </motion.div>
       )}

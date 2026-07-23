@@ -33,6 +33,12 @@ class Subscription(me.Document):
     # renewal mechanism and these fields drive its retry policy.
     renewal_attempts = me.IntField(default=0)
     last_renewal_attempt_date = me.DateField(null=True)
+    # Debugging aid — the most recent Paystack transaction reference this
+    # subscription was activated/renewed from (initial charge or a
+    # charge_renewals.py renewal). Not used for any logic; just makes it
+    # possible to look at a Subscription document and immediately know
+    # which Paystack transaction to go check when something looks off.
+    last_reference = me.StringField()
     created_at = me.DateTimeField(default=datetime.datetime.utcnow)
     updated_at = me.DateTimeField(default=datetime.datetime.utcnow)
 
@@ -53,3 +59,36 @@ class PaystackEvent(me.Document):
     processed_at = me.DateTimeField(default=datetime.datetime.utcnow)
 
     meta = {"collection": "paystack_events", "indexes": ["event_id"], "strict": False}
+
+
+PAYMENT_STATUSES = ("success", "failed")
+
+
+class Payment(me.Document):
+    """
+    Permanent, append-only record of every successful (and, best-effort,
+    failed) Paystack charge — the initial subscribe AND every renewal.
+
+    This is the idempotency ledger for /billing/verify/: that endpoint used
+    to have no durable record that a given `reference` had already been
+    processed, so a double-submit (double-tap, browser back+resubmit, retry
+    after a slow response) could call _activate_pro() more than once for
+    the same charge. `reference` is unique so a second insert attempt for
+    the same Paystack transaction fails fast instead of silently
+    re-activating Pro.
+    """
+
+    id = me.StringField(primary_key=True, default=_gen_id)
+    reference = me.StringField(required=True, unique=True)
+    user_id = me.StringField(required=True)
+    interval = me.StringField(choices=BILLING_INTERVALS, required=True)
+    amount_kobo = me.IntField(required=True)
+    gateway = me.StringField(default="paystack")
+    status = me.StringField(choices=PAYMENT_STATUSES, default="success")
+    paid_at = me.DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {
+        "collection": "payments",
+        "indexes": ["reference", "user_id"],
+        "strict": False,
+    }

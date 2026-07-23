@@ -2,6 +2,7 @@ import datetime
 import logging
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone as dj_timezone
 
 from notifications.models import Notification
 from users.models import User
@@ -19,6 +20,18 @@ logger = logging.getLogger(__name__)
 MAX_RENEWAL_ATTEMPTS = 3
 
 
+def _now() -> datetime.datetime:
+    """
+    UTC "now" via Django's non-deprecated timezone-aware clock, with
+    tzinfo stripped before use. MongoEngine's DateTimeFields across this
+    codebase are all naive UTC (the Mongo connection isn't configured with
+    tz_aware=True), so an aware datetime compared directly against a value
+    read back from a Subscription document (e.g. `current_period_end`)
+    would raise "can't compare offset-naive and offset-aware datetimes".
+    """
+    return dj_timezone.now().replace(tzinfo=None)
+
+
 class Command(BaseCommand):
     help = "Auto-renews Pro subscriptions by charging the saved card via Paystack."
 
@@ -31,7 +44,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         force = options["force"]
-        now = datetime.datetime.utcnow()
+        now = _now()
         today = now.date()
 
         query = {"status": "active"}
@@ -143,7 +156,14 @@ class Command(BaseCommand):
                 continue
 
             days = 30 if sub.interval == "monthly" else 365
-            new_period_end = now + datetime.timedelta(days=days)
+            # Anchor the new period on whichever is later: now, or the
+            # period's existing end date. A renewal charge that runs a bit
+            # early or a bit late (cron jitter, a retry that succeeds a
+            # day after the first attempt) must not simply add `days` from
+            # `now` — that would silently discard whatever time was left
+            # on the subscription the user already paid for.
+            base = max(now, sub.current_period_end)
+            new_period_end = base + datetime.timedelta(days=days)
 
             try:
                 sub.renewal_attempts = 0
@@ -193,8 +213,12 @@ class Command(BaseCommand):
 
     def _handle_failure(self, sub: Subscription, user: User, reason: str) -> None:
         sub.renewal_attempts = (sub.renewal_attempts or 0) + 1
+        is_first_attempt = sub.renewal_attempts == 1
 
         if sub.renewal_attempts >= MAX_RENEWAL_ATTEMPTS:
+            # Final retry — always notify. This is the user's last chance
+            # to know their Pro access actually ended, not just that one
+            # more charge attempt failed.
             sub.status = "past_due"
             sub.save()
             user.plan = "Free"
@@ -211,12 +235,18 @@ class Command(BaseCommand):
             ).save()
         else:
             sub.save()
-            Notification(
-                user_id=str(user.id),
-                kind="pro_upsell",
-                title="Payment failed",
-                body=(
-                    f"We couldn't renew your Pro subscription ({reason}). We'll try again - "
-                    "please make sure your card has sufficient funds and hasn't expired."
-                ),
-            ).save()
+            # Only notify on the FIRST failed attempt. Repeating "Payment
+            # failed" on every intermediate retry is noisy and tells the
+            # user nothing new — the next thing worth surfacing is either
+            # a successful renewal (silent recovery) or the final
+            # "Pro subscription ended" notice above once retries run out.
+            if is_first_attempt:
+                Notification(
+                    user_id=str(user.id),
+                    kind="pro_upsell",
+                    title="Payment failed",
+                    body=(
+                        f"We couldn't renew your Pro subscription ({reason}). We'll try again - "
+                        "please make sure your card has sufficient funds and hasn't expired."
+                    ),
+                ).save()
