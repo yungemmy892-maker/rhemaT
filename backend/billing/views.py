@@ -130,7 +130,9 @@ class VerifyPaymentView(APIView):
         # repeat doesn't cost an extra outbound Paystack verify call.
         if Payment.objects(reference=reference).first():
             user = User.objects(id=request.user.id).first()
-            return Response({"user": user.to_public_dict(), "status": "already_verified"})
+            return Response(
+                {"user": user.to_public_dict(), "status": "already_verified"}
+            )
 
         try:
             tx = verify_transaction(reference)
@@ -173,7 +175,9 @@ class VerifyPaymentView(APIView):
         # (and reset the paid period on) Pro more than once.
         if not record_payment(reference, user_id, interval, tx.get("amount", 0)):
             user = User.objects(id=request.user.id).first()
-            return Response({"user": user.to_public_dict(), "status": "already_verified"})
+            return Response(
+                {"user": user.to_public_dict(), "status": "already_verified"}
+            )
 
         activate_pro(user_id, interval, tx)
 
@@ -288,7 +292,9 @@ class PaystackWebhookView(APIView):
                 # record_payment()'s unique index — not a pre-check — is
                 # what actually prevents activate_pro() from running twice
                 # for one charge.
-                elif record_payment(charge_reference, uid, interval, data.get("amount", 0)):
+                elif record_payment(
+                    charge_reference, uid, interval, data.get("amount", 0)
+                ):
                     activate_pro(uid, interval, data)
 
         elif event_type in ("subscription.disable", "subscription.not_renew"):

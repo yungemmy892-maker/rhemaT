@@ -24,7 +24,9 @@ class Command(BaseCommand):
 
         due = Subscription.objects(status="cancelled", current_period_end__lt=now)
         due_subs = list(due)
-        self.stdout.write(f"{len(due_subs)} cancelled subscription(s) past their period end.")
+        self.stdout.write(
+            f"{len(due_subs)} cancelled subscription(s) past their period end."
+        )
 
         expired = lost_race = orphaned = 0
 
@@ -36,9 +38,9 @@ class Command(BaseCommand):
             # Beat/worker processes overlapping, or a manual + scheduled
             # run colliding) just matches zero documents and moves on,
             # instead of both racing to write the same user.
-            claimed = Subscription.objects(
-                id=sub.id, status="cancelled"
-            ).update(set__status="expired", set__updated_at=now)
+            claimed = Subscription.objects(id=sub.id, status="cancelled").update(
+                set__status="expired", set__updated_at=now
+            )
             if not claimed:
                 lost_race += 1
                 continue
@@ -87,9 +89,7 @@ class Command(BaseCommand):
                 # source of truth. Still needs to be visible in logs
                 # though, since a real SMTP outage silently means nobody
                 # gets this email until someone notices.
-                logger.exception(
-                    "Failed to send Pro-expired email to %s", user.email
-                )
+                logger.exception("Failed to send Pro-expired email to %s", user.email)
 
             expired += 1
 

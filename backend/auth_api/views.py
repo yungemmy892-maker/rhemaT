@@ -365,9 +365,7 @@ class ResetPasswordView(APIView):
             # actual password reset over a notification email — just make
             # sure a real SMTP problem shows up in logs instead of
             # vanishing silently.
-            logger.exception(
-                "Failed to send password-changed email to %s", user.email
-            )
+            logger.exception("Failed to send password-changed email to %s", user.email)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -540,9 +538,7 @@ class ChangePasswordView(APIView):
             # Never fail the actual password change over a notification
             # email — just make sure a real SMTP problem is visible in
             # logs instead of silently vanishing.
-            logger.exception(
-                "Failed to send password-changed email to %s", user.email
-            )
+            logger.exception("Failed to send password-changed email to %s", user.email)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

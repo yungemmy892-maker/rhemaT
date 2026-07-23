@@ -418,7 +418,9 @@ def _password_changed_html(name: str, headline: str, message: str) -> str:
 """
 
 
-def send_password_changed_email(to_email: str, name: str, first_time: bool = False) -> None:
+def send_password_changed_email(
+    to_email: str, name: str, first_time: bool = False
+) -> None:
     if first_time:
         subject = "A password was added to your VerseID account"
         headline = "Password added"
@@ -439,9 +441,7 @@ def send_password_changed_email(to_email: str, name: str, first_time: bool = Fal
     )
 
     msg = EmailMultiAlternatives(subject, text_body, None, [to_email])
-    msg.attach_alternative(
-        _password_changed_html(name, headline, message), "text/html"
-    )
+    msg.attach_alternative(_password_changed_html(name, headline, message), "text/html")
     msg.send(fail_silently=False)
 
 
