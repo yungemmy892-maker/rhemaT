@@ -28,9 +28,6 @@ defaults:
     # below actually fail the step when `command` fails.
     shell: bash
 
-env:
-  NODE_VERSION: "22"
-
 jobs:
   build:
     name: Lint, format, build
@@ -39,28 +36,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+      # frontend/bun.lock is this project's actual, committed lockfile —
+      # frontend/package-lock.json is in frontend/.gitignore and has never
+      # been committed. The old setup-node + npm ci combo below was
+      # therefore broken the same way as security.yml's npm-audit job
+      # (see that file's comment for the full explanation): the cache
+      # step couldn't resolve a path that doesn't exist in the repo, and
+      # `npm ci` right after it would fail outright for the same reason.
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          bun-version: latest
+
+      - name: Cache Bun install cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Lint (ESLint)
-        run: npm run lint | tee eslint.log
+        run: bun run lint | tee eslint.log
 
       - name: Formatting check (Prettier)
         # package.json only has "format" (--write, mutates files) — no
         # check-mode script exists yet, so this calls prettier directly
         # rather than through npm run. Honors the repo's existing
         # .prettierrc / .prettierignore automatically either way.
-        run: npx prettier --check . | tee prettier.log
+        run: bunx prettier --check . | tee prettier.log
 
       - name: Build (Vite)
-        run: npm run build | tee build.log
+        run: bun run build | tee build.log
 
       - name: Upload logs
         if: failure()
@@ -93,13 +102,6 @@ jobs:
       # deliberately, since a deploy step is not where you want to add an
       # extra, less-auditable maintainer dependency.
       #
-      # Note this build is separate from, and in addition to, the "Build
-      # (Vite)" step in the job above: that one is a pure correctness
-      # check (does the code compile) using your own `vite build`; this
-      # one is Vercel's own build (`vercel build`), which produces the
-      # Build Output API-format .vercel/output/ folder Vercel's edge
-      # network actually serves from. They're not redundant with each
-      # other even though both technically "build the frontend."
       - name: Pull Vercel environment (production)
         run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
 

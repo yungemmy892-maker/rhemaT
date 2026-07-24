@@ -1,24 +1,3 @@
-# Backend CI/CD — Django + MongoEngine app in backend/.
-#
-# Pull requests: install, lint, format-check, Django system check, tests,
-# static-file collection. Any failed step fails the whole job (see the
-# pipefail note below — this isn't automatic, it has to be turned on).
-#
-# Push to main: everything above, then deploy to Pxxl — but only if it
-# all passed first (see the `deploy` job's `needs: test`).
-#
-# IMPORTANT — read before enabling the deploy job for real:
-# If your Pxxl "web" project already has GitHub auto-deploy turned on
-# (the project was set up by connecting the repo directly in the Pxxl
-# dashboard, which is how this repo's Pxxl projects were originally
-# created), then Pxxl is ALREADY redeploying on every push to main,
-# completely independent of this workflow and NOT gated by whether
-# tests pass. Turning on the `deploy` job below without first setting
-# that project's auto-deploy to manual/off gives you two uncoordinated
-# deploys per push — one CI-gated (this workflow), one not (Pxxl's own
-# watcher) — which can race, or worse, let a broken commit reach
-# production via the ungated path even though this workflow correctly
-# blocked it. Pick one deploy path, not both.
 name: Backend CI/CD
 
 on:
@@ -27,14 +6,13 @@ on:
     paths:
       - "backend/**"
       - ".github/workflows/backend.yml"
+
   push:
     branches: [main]
     paths:
       - "backend/**"
       - ".github/workflows/backend.yml"
 
-# Only the newest run per branch/PR matters — an in-flight run for a commit
-# that's already been superseded is wasted runner time, so cancel it.
 concurrency:
   group: backend-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -42,14 +20,6 @@ concurrency:
 defaults:
   run:
     working-directory: backend
-    # Explicitly requesting bash (rather than leaving `shell` unset) is
-    # what actually turns on `-o pipefail`, not just `-e`. Without this,
-    # every `command | tee some.log` step below would report success
-    # even when `command` itself fails — tee's own exit code (always 0)
-    # would silently become the step's exit code instead. Confirmed
-    # against GitHub's own runner behavior, not assumed: this is a real,
-    # documented gotcha (see actions/runner-images#4459), not a
-    # theoretical one.
     shell: bash
 
 env:
@@ -60,13 +30,6 @@ jobs:
     name: Lint, format, test, build-check
     runs-on: ubuntu-latest
 
-    # Real MongoDB + Redis for the duration of this job — not because
-    # anything in manage.py check/test currently issues a live query
-    # (mongoengine's connect() is lazy; nothing here happens to touch it
-    # today), but because a CI pipeline that silently assumes "the code
-    # doesn't need the database it's written against" is exactly the kind
-    # of gap that stops catching real bugs the day someone adds a test
-    # that actually queries something.
     services:
       mongodb:
         image: mongo:7
@@ -77,6 +40,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
       redis:
         image: redis:7-alpine
         ports:
@@ -88,8 +52,6 @@ jobs:
           --health-retries 5
 
     env:
-      # A throwaway key/DB — this is CI, not production. Never reuse a
-      # real DJANGO_SECRET_KEY here even for convenience.
       DJANGO_SECRET_KEY: ci-only-not-a-real-secret
       DJANGO_DEBUG: "True"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
@@ -97,17 +59,14 @@ jobs:
       REDIS_URL: redis://localhost:6379
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: "pip"
-          # Both files, so a change to either correctly busts the cache —
-          # caching on requirements.txt alone would go stale silently the
-          # next time someone only touches requirements-dev.txt.
+          cache: pip
           cache-dependency-path: |
             backend/requirements.txt
             backend/requirements-dev.txt
@@ -117,38 +76,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Lint (ruff)
-        run: ruff check . | tee ruff.log
+      - name: Lint (Ruff)
+        run: ruff check .
 
-      - name: Formatting check (black)
-        # --diff so a failure's log shows exactly what black would change,
-        # not just "some file somewhere is unformatted."
-        run: black --check --diff . | tee black.log
+      - name: Check formatting (Black)
+        run: black --check --diff .
 
       - name: Django system check
-        run: python manage.py check | tee django-check.log
+        run: python manage.py check
 
       - name: Check for pending migrations
-        # This project has no Django-ORM models — MongoEngine handles all
-        # persistence, and DATABASES is a dummy sqlite entry Django's
-        # internals require but nothing ever touches (see the comment
-        # above DATABASES in config/settings.py). So this will always
-        # print "No changes detected" today. Left in as a real, running
-        # command rather than dropped, so it starts actually protecting
-        # you the moment anyone adds a Django-ORM-backed app in the
-        # future, instead of doing nothing forever with nobody noticing
-        # it was never wired up to begin with.
-        run: python manage.py makemigrations --check --dry-run | tee migrations-check.log
+        run: python manage.py makemigrations --check --dry-run
 
       - name: Run tests
-        # Every app's tests.py is currently Django's own 3-line boilerplate
-        # (`# Create your tests here.`) — this passes today because there
-        # are zero tests to fail, not because anything is verified. Worth
-        # treating that as a gap to close, not a box already checked.
-        run: python manage.py test --verbosity 2 | tee test.log
+        run: python manage.py test --verbosity 2
 
       - name: Collect static files
-        run: python manage.py collectstatic --noinput | tee collectstatic.log
+        run: python manage.py collectstatic --noinput
 
       - name: Upload logs
         if: failure()
@@ -160,47 +104,26 @@ jobs:
           if-no-files-found: ignore
 
   deploy:
-    name: Deploy to Pxxl
+    name: Redeploy Backend on Pxxl
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    if: github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+
     runs-on: ubuntu-latest
-    # A GitHub Environment gives you a place (repo Settings → Environments
-    # → production) to require manual approval before this job runs, and
-    # to scope PXXL_API_KEY so it's only ever readable by jobs targeting
-    # this environment — not by every job in the repo.
+
     environment: production
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Install Pxxl CLI
-        run: npm install -g pxxl-cli
+        run: npm install -g @pxxlapp/pxxl
 
-      - name: Authenticate with Pxxl
-        run: pxxl login --api-key "${{ secrets.PXXL_API_KEY }}"
+      - name: Verify Pxxl authentication
+        env:
+          PXXL_API_KEY: ${{ secrets.PXXLAPIKEY }}
+        run: pxxl whoami
 
-      - name: Deploy web service to Pxxl
-        # Only the "web" project is deployed here — the two Celery
-        # services (celery-worker, celery-beat) are deliberately NOT
-        # included by default. They were configured through Pxxl's
-        # dashboard (Base Directory picker, per-service Start Command),
-        # and re-driving them from a CLI command here risks silently
-        # drifting from those exact settings if this ever gets out of
-        # sync with the dashboard. If you want them CI-gated too, the
-        # repeatable pattern is to add one more step per service:
-        #
-        #   - name: Deploy celery-worker to Pxxl
-        #     run: pxxl deploy --name "${{ secrets.PXXL_WORKER_PROJECT_NAME }}"
-        #   - name: Deploy celery-beat to Pxxl
-        #     run: pxxl deploy --name "${{ secrets.PXXL_BEAT_PROJECT_NAME }}"
-        #
-        # One honest flag: I can't fully confirm from here whether
-        # `pxxl deploy --name <project>` is the exact correct invocation
-        # for REDEPLOYING an existing, already-created project (versus
-        # creating a brand-new one, which is the flow Pxxl's own docs
-        # show). Run `pxxl deploy --help` locally once with the real CLI
-        # to confirm the flags before trusting this in production —
-        # cheap to verify, expensive to find out wrong via a failed
-        # production deploy.
-        run: pxxl deploy --name "${{ secrets.PXXL_WEB_PROJECT_NAME }}"
+      - name: Redeploy backend
+        env:
+          PXXL_API_KEY: ${{ secrets.PXXLAPIKEY }}
+        run: pxxl redeploy "${{ secrets.PXXLPROJECTID }}"

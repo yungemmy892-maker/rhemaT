@@ -1,14 +1,3 @@
-# Security scanning — SAST (Bandit) + dependency audits (pip-audit, npm
-# audit) + filesystem/secret scan (Trivy). Runs on every PR and push to
-# main across the whole repo, plus a weekly schedule so a dependency that
-# becomes vulnerable *after* it was already merged still gets caught —
-# that's not something a PR-only or push-only trigger can ever do, since
-# nothing about the code changes when a new CVE is published against it.
-#
-# "Fail on Critical only" is implemented per-tool below, not as one
-# global switch — because each tool has a different, and sometimes
-# non-existent, notion of "Critical." Read each job's comments; two of
-# the four needed a real design decision, not just a flag.
 name: Security Scans
 
 on:
@@ -116,28 +105,50 @@ jobs:
           if-no-files-found: ignore
 
   npm-audit:
-    name: npm audit (frontend dependencies)
+    # Job id left as "npm-audit" on purpose, even though it now runs
+    # `bun audit` — a branch-protection rule can mark a job's id as a
+    # required status check, and renaming the id here would silently
+    # break that (GitHub would just wait forever on a check that no
+    # longer reports). Rename it once you've confirmed nothing in
+    # Settings > Branches references "npm-audit" by that exact name.
+    name: Dependency audit (frontend, Bun)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      # This project's actual, committed lockfile is frontend/bun.lock —
+      # frontend/package-lock.json is in frontend/.gitignore and has never
+      # been committed, which is *why* this job used to fail: setup-node's
+      # `cache-dependency-path: frontend/package-lock.json` pointed at a
+      # file that only ever existed on someone's machine locally, never in
+      # the repo itself, so `actions/glob` matched zero paths ("Some
+      # specified paths were not resolved, unable to cache dependencies")
+      # — and the `npm ci` step right after it would have failed outright
+      # for the same reason (npm ci requires an existing package-lock.json,
+      # it doesn't generate one).
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          bun-version: latest
+
+      - name: Cache Bun install cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
         working-directory: frontend
 
-      # --audit-level=critical: npm still reports every finding at every
-      # severity in the step's log either way — this flag only changes
-      # what the exit code (and therefore pass/fail) is based on. That's
-      # the real, documented behavior, not "hides everything below
-      # critical," which is a common misreading of this flag.
-      - name: Run npm audit (fails only on Critical)
-        run: npm audit --audit-level=critical
+      # --audit-level=critical: bun audit still reports every finding at
+      # every severity in the step's log either way — this flag only
+      # changes what the exit code (and therefore pass/fail) is based on,
+      # same as npm audit. bun audit queries the same npm advisory
+      # registry npm audit does, so coverage is equivalent.
+      - name: Run bun audit (fails only on Critical)
+        run: bun audit --audit-level=critical
         working-directory: frontend
 
   trivy:
