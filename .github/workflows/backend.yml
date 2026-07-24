@@ -6,13 +6,14 @@ on:
     paths:
       - "backend/**"
       - ".github/workflows/backend.yml"
-
   push:
     branches: [main]
     paths:
       - "backend/**"
       - ".github/workflows/backend.yml"
 
+# Only the newest run per branch/PR matters — an in-flight run for a commit
+# that's already been superseded is wasted runner time, so cancel it.
 concurrency:
   group: backend-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -20,6 +21,14 @@ concurrency:
 defaults:
   run:
     working-directory: backend
+    # Explicitly requesting bash (rather than leaving `shell` unset) is
+    # what actually turns on `-o pipefail`, not just `-e`. Without this,
+    # every `command | tee some.log` step below would report success
+    # even when `command` itself fails — tee's own exit code (always 0)
+    # would silently become the step's exit code instead. Confirmed
+    # against GitHub's own runner behavior, not assumed: this is a real,
+    # documented gotcha (see actions/runner-images#4459), not a
+    # theoretical one.
     shell: bash
 
 env:
@@ -30,6 +39,13 @@ jobs:
     name: Lint, format, test, build-check
     runs-on: ubuntu-latest
 
+    # Real MongoDB + Redis for the duration of this job — not because
+    # anything in manage.py check/test currently issues a live query
+    # (mongoengine's connect() is lazy; nothing here happens to touch it
+    # today), but because a CI pipeline that silently assumes "the code
+    # doesn't need the database it's written against" is exactly the kind
+    # of gap that stops catching real bugs the day someone adds a test
+    # that actually queries something.
     services:
       mongodb:
         image: mongo:7
@@ -40,7 +56,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
       redis:
         image: redis:7-alpine
         ports:
@@ -52,6 +67,8 @@ jobs:
           --health-retries 5
 
     env:
+      # A throwaway key/DB — this is CI, not production. Never reuse a
+      # real DJANGO_SECRET_KEY here even for convenience.
       DJANGO_SECRET_KEY: ci-only-not-a-real-secret
       DJANGO_DEBUG: "True"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
@@ -59,14 +76,17 @@ jobs:
       REDIS_URL: redis://localhost:6379
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
+          cache: "pip"
+          # Both files, so a change to either correctly busts the cache —
+          # caching on requirements.txt alone would go stale silently the
+          # next time someone only touches requirements-dev.txt.
           cache-dependency-path: |
             backend/requirements.txt
             backend/requirements-dev.txt
@@ -76,23 +96,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Lint (Ruff)
-        run: ruff check .
+      - name: Lint (ruff)
+        run: ruff check . | tee ruff.log
 
-      - name: Check formatting (Black)
-        run: black --check --diff .
+      - name: Formatting check (black)
+        # --diff so a failure's log shows exactly what black would change,
+        # not just "some file somewhere is unformatted."
+        run: black --check --diff . | tee black.log
 
       - name: Django system check
-        run: python manage.py check
+        run: python manage.py check | tee django-check.log
 
       - name: Check for pending migrations
-        run: python manage.py makemigrations --check --dry-run
+        # This project has no Django-ORM models — MongoEngine handles all
+        # persistence, and DATABASES is a dummy sqlite entry Django's
+        # internals require but nothing ever touches (see the comment
+        # above DATABASES in config/settings.py). So this will always
+        # print "No changes detected" today. Left in as a real, running
+        # command rather than dropped, so it starts actually protecting
+        # you the moment anyone adds a Django-ORM-backed app in the
+        # future, instead of doing nothing forever with nobody noticing
+        # it was never wired up to begin with.
+        run: python manage.py makemigrations --check --dry-run | tee migrations-check.log
 
       - name: Run tests
-        run: python manage.py test --verbosity 2
+        # Every app's tests.py is currently Django's own 3-line boilerplate
+        # (`# Create your tests here.`) — this passes today because there
+        # are zero tests to fail, not because anything is verified. Worth
+        # treating that as a gap to close, not a box already checked.
+        run: python manage.py test --verbosity 2 | tee test.log
 
       - name: Collect static files
-        run: python manage.py collectstatic --noinput
+        run: python manage.py collectstatic --noinput | tee collectstatic.log
 
       - name: Upload logs
         if: failure()
@@ -106,24 +141,67 @@ jobs:
   deploy:
     name: Redeploy Backend on Pxxl
     needs: test
-
-    if: github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
-
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-
+    # A GitHub Environment gives you a place (repo Settings → Environments
+    # → production) to require manual approval before this job runs, and
+    # to scope PXXL_API_KEY so it's only ever readable by jobs targeting
+    # this environment — not by every job in the repo.
     environment: production
 
     steps:
+      - name: Checkout
+        # Every job gets its own fresh runner with nothing checked out —
+        # this is what actually creates the `backend/` folder that
+        # `defaults.run.working-directory: backend` (set once, at the top
+        # of this file, for every job) then `cd`s into before every step
+        # below runs. Drop this step and every step in this job fails
+        # immediately: bash can't start in a working directory that
+        # doesn't exist yet — which is exactly the
+        # "No such file or directory" error from the run this replaces.
+        uses: actions/checkout@v4
+
       - name: Install Pxxl CLI
+        # The npm package is @pxxlapp/pxxl — "pxxl-cli" isn't the real
+        # package. The bare "pxxl" name on npm is reserved, which is why
+        # it's published scoped; the installed binary itself is still
+        # just `pxxl`, so nothing below this step needs to change.
         run: npm install -g @pxxlapp/pxxl
 
       - name: Verify Pxxl authentication
+        # PXXL_API_KEY as an env var always overrides whatever's stored
+        # on disk, per Pxxl's own docs — so every step below that needs
+        # to run an authenticated `pxxl` command sets this env var
+        # directly rather than persisting a login to disk via
+        # `pxxl login`. This step exists purely to fail fast with a clear
+        # "auth is broken" error here, instead of failing confusingly
+        # three steps later on the actual redeploy.
         env:
-          PXXL_API_KEY: ${{ secrets.PXXLAPIKEY }}
+          PXXL_API_KEY: ${{ secrets.PXXL_API_KEY }}
         run: pxxl whoami
 
       - name: Redeploy backend
+        # Only the "web" project is deployed here — the two Celery
+        # services (celery-worker, celery-beat) are deliberately NOT
+        # included by default. They were configured through Pxxl's
+        # dashboard (Base Directory picker, per-service Start Command),
+        # and re-driving them from a CLI command here risks silently
+        # drifting from those exact settings if this ever gets out of
+        # sync with the dashboard. If you want them CI-gated too, the
+        # repeatable pattern is to add one more step per service, each
+        # with its own project-id secret:
+        #
+        #   - name: Redeploy celery-worker
+        #     env:
+        #       PXXL_API_KEY: ${{ secrets.PXXL_API_KEY }}
+        #     run: pxxl redeploy "${{ secrets.PXXL_WORKER_PROJECT_ID }}"
+        #
+        # One honest flag, unresolved: this project's pxxl.toml defines
+        # three services (web, celery-worker, celery-beat) under what may
+        # be one shared project ID — I can't confirm from here whether
+        # `pxxl redeploy <project-id>` alone redeploys only "web" or all
+        # three. Run `pxxl redeploy --help` once with the real CLI to
+        # confirm before trusting this in production.
         env:
-          PXXL_API_KEY: ${{ secrets.PXXLAPIKEY }}
-        run: pxxl redeploy "${{ secrets.PXXLPROJECTID }}"
+          PXXL_API_KEY: ${{ secrets.PXXL_API_KEY }}
+        run: pxxl redeploy "${{ secrets.PXXL_PROJECT_ID }}"

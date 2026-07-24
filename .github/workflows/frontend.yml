@@ -102,6 +102,13 @@ jobs:
       # deliberately, since a deploy step is not where you want to add an
       # extra, less-auditable maintainer dependency.
       #
+      # Note this build is separate from, and in addition to, the "Build
+      # (Vite)" step in the job above: that one is a pure correctness
+      # check (does the code compile) using your own `vite build`; this
+      # one is Vercel's own build (`vercel build`), which produces the
+      # Build Output API-format .vercel/output/ folder Vercel's edge
+      # network actually serves from. They're not redundant with each
+      # other even though both technically "build the frontend."
       - name: Pull Vercel environment (production)
         run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
 
