@@ -38,11 +38,7 @@ jobs:
 
       # frontend/bun.lock is this project's actual, committed lockfile —
       # frontend/package-lock.json is in frontend/.gitignore and has never
-      # been committed. The old setup-node + npm ci combo below was
-      # therefore broken the same way as security.yml's npm-audit job
-      # (see that file's comment for the full explanation): the cache
-      # step couldn't resolve a path that doesn't exist in the repo, and
-      # `npm ci` right after it would fail outright for the same reason.
+      # been committed.
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -94,21 +90,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # This job runs on its own, separate runner from the `build` job
+      # above — nothing installed there carries over. `vercel build`
+      # below detects frontend/bun.lock and shells out to `bun run
+      # build` internally, so Bun has to be installed here too, not just
+      # in `build`.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      # This is Vercel's own currently-documented GitHub Actions pattern
-      # (pull -> build -> deploy --prebuilt), not a third-party Action —
-      # deliberately, since a deploy step is not where you want to add an
-      # extra, less-auditable maintainer dependency.
-      #
-      # Note this build is separate from, and in addition to, the "Build
-      # (Vite)" step in the job above: that one is a pure correctness
-      # check (does the code compile) using your own `vite build`; this
-      # one is Vercel's own build (`vercel build`), which produces the
-      # Build Output API-format .vercel/output/ folder Vercel's edge
-      # network actually serves from. They're not redundant with each
-      # other even though both technically "build the frontend."
       - name: Pull Vercel environment (production)
         run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
 
