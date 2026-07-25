@@ -38,7 +38,11 @@ jobs:
 
       # frontend/bun.lock is this project's actual, committed lockfile —
       # frontend/package-lock.json is in frontend/.gitignore and has never
-      # been committed.
+      # been committed. The old setup-node + npm ci combo below was
+      # therefore broken the same way as security.yml's npm-audit job
+      # (see that file's comment for the full explanation): the cache
+      # step couldn't resolve a path that doesn't exist in the repo, and
+      # `npm ci` right after it would fail outright for the same reason.
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -98,6 +102,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
