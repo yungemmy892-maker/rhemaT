@@ -16,7 +16,7 @@ export default defineConfig({
       // (our SSR error wrapper).
       server: { entry: "server" },
     }),
-    nitro(),
+    nitro({ preset: "vercel" }),
     viteReact(),
   ],
 });
