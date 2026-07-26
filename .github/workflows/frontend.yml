@@ -111,7 +111,7 @@ jobs:
         run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Build via Vercel
-        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+        run: vercel build --prod --force --token="${{ secrets.VERCEL_TOKEN }}"
         env:
           NITRO_PRESET: vercel
 
