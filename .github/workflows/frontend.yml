@@ -23,9 +23,6 @@ concurrency:
 defaults:
   run:
     working-directory: frontend
-    # See backend.yml's identical comment: explicitly requesting bash is
-    # what turns on pipefail, which is what makes `command | tee log`
-    # below actually fail the step when `command` fails.
     shell: bash
 
 jobs:
@@ -36,13 +33,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # frontend/bun.lock is this project's actual, committed lockfile —
-      # frontend/package-lock.json is in frontend/.gitignore and has never
-      # been committed. The old setup-node + npm ci combo below was
-      # therefore broken the same way as security.yml's npm-audit job
-      # (see that file's comment for the full explanation): the cache
-      # step couldn't resolve a path that doesn't exist in the repo, and
-      # `npm ci` right after it would fail outright for the same reason.
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -62,10 +52,6 @@ jobs:
         run: bun run lint | tee eslint.log
 
       - name: Formatting check (Prettier)
-        # package.json only has "format" (--write, mutates files) — no
-        # check-mode script exists yet, so this calls prettier directly
-        # rather than through npm run. Honors the repo's existing
-        # .prettierrc / .prettierignore automatically either way.
         run: bunx prettier --check . | tee prettier.log
 
       - name: Build (Vite)
@@ -94,19 +80,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # This job runs on its own, separate runner from the `build` job
-      # above — nothing installed there carries over. `vercel build`
-      # below detects frontend/bun.lock and shells out to `bun run
-      # build` internally, so Bun has to be installed here too, not just
-      # in `build`.
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
+
       - name: Pull Vercel environment (production)
         run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
 
@@ -114,6 +97,9 @@ jobs:
         run: |
           export PATH="$PWD/node_modules/.bin:$PATH"
           vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+        env:
+          NITRO_PRESET: vercel
+          VERCEL_FORCE_NO_BUILD_CACHE: 1
 
       - name: Deploy prebuilt output to Vercel
         run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
