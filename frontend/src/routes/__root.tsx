@@ -72,12 +72,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           >
             Try again
           </button>
-          <a
-            href="/"
+          <Link
+            to="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
             Go home
-          </a>
+          </Link>
         </div>
       </div>
     </div>
@@ -103,47 +103,47 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Shazam for Bible verses. Speak or type - VerseID finds it.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://verseid.top/" },
+      { property: "og:url", content: "https://www.verseid.top/" },
       { property: "og:site_name", content: "VerseID" },
       {
         property: "og:image",
-        content: "https://verseid.top/og-image.png",
+        content: "https://www.verseid.top/og-image.png",
       },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { property: "og:image:alt", content: "VerseID — Find Any Bible Verse Instantly" },
+      { property: "og:image:alt", content: "VerseID - Find Any Bible Verse Instantly" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "VerseID — Find Any Bible Verse Instantly" },
+      { name: "twitter:title", content: "VerseID - Find Any Bible Verse Instantly" },
       {
         name: "twitter:description",
-        content: "Shazam for Bible verses. Speak or type — VerseID finds it.",
+        content: "Shazam for Bible verses. Speak or type - VerseID finds it.",
       },
-      { name: "twitter:image", content: "https://verseid.top/og-image.png" },
+      { name: "twitter:image", content: "https://www.verseid.top/og-image.png" },
       {
         "script:ld+json": {
           "@context": "https://schema.org",
           "@graph": [
             {
               "@type": "Organization",
-              "@id": "https://verseid.top/#organization",
+              "@id": "https://www.verseid.top/",
               name: "VerseID",
-              url: "https://verseid.top/",
-              logo: "https://verseid.top/logo.png",
+              url: "https://www.verseid.top/",
+              logo: "https://www.verseid.top/logo.png",
             },
             {
               "@type": "WebSite",
-              "@id": "https://verseid.top/#website",
+              "@id": "https://www.verseid.top/#website",
               name: "VerseID",
-              url: "https://verseid.top/",
+              url: "https://www.verseid.top/",
               description:
-                "VerseID identifies any Bible verse from your voice or a few words — speak or type a phrase you remember, and VerseID finds the exact verse.",
-              publisher: { "@id": "https://verseid.top/#organization" },
+                "VerseID identifies any Bible verse from your voice or a few words - speak or type a phrase you remember, and VerseID finds the exact verse.",
+              publisher: { "@id": "https://www.verseid.top/" },
               inLanguage: "en",
             },
             {
               "@type": "WebApplication",
               name: "VerseID",
-              url: "https://verseid.top/",
+              url: "https://www.verseid.top/",
               applicationCategory: "LifestyleApplication",
               operatingSystem: "Any (web-based)",
               description:
