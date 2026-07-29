@@ -3,10 +3,6 @@
   "framework": "tanstack-start",
   "installCommand": "bun install",
   "buildCommand": "bun run build",
-  "git": {
-    "deploymentEnabled": false
-  },
-
   "headers": [
     {
       "source": "/sw.js",
