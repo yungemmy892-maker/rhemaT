@@ -300,7 +300,7 @@ CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(
         "CORS_ALLOWED_ORIGINS",
-        "https://verseid.top,https://www.verseid.top,https://verseid.top,https://www.verseid.top",
+        "https://verseid.top,https://www.verseid.top",
     ).split(",")
     if origin.strip()
 ]
@@ -361,10 +361,6 @@ CACHES = {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "IGNORE_EXCEPTIONS": True,
         },
-        # Per-endpoint TIMEOUT is set explicitly at each cache.set() call
-        # (see bible/views.py) since cache lifetime varies a lot by what's
-        # being cached (Bible text is static; verse-of-day changes daily).
-        # This is just the fallback for any cache.set() that doesn't pass one.
         "TIMEOUT": 300,
     },
 }
