@@ -1896,7 +1896,21 @@ async function handleDeleteUserClick(e) {
       return;
     }
     if (!res.ok && res.status !== 204) {
-      throw new Error(`Server returned ${res.status}`);
+      // The backend sends a JSON { detail: "..." } body on errors like 409
+      // (active subscription) explaining exactly why the delete was
+      // refused — worth surfacing verbatim instead of just the status
+      // code, since "Server returned 409" tells the admin nothing
+      // actionable. Falls back to the status code if the body isn't
+      // JSON or has no detail field (e.g. a 500 from something
+      // unrelated to this view).
+      let message = `Server returned ${res.status}`;
+      try {
+        const body = await res.json();
+        if (body && body.detail) message = body.detail;
+      } catch {
+        // Non-JSON or empty body — keep the status-code fallback above.
+      }
+      throw new Error(message);
     }
 
     if (row) {
