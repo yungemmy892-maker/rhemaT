@@ -131,13 +131,8 @@ BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://localhost:8000")
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/verseid")
 connect(
     host=MONGO_URI,
-    # Pool size is PER PROCESS — every gunicorn worker and every Celery
-    # worker process gets its own pool of this size, so the real ceiling on
-    # simultaneous MongoDB connections is roughly
-    # maxPoolSize x (gunicorn workers + celery worker concurrency).
-    # Defaults to 10, which comfortably fits a handful of processes under
-    # a typical Atlas shared-tier connection limit — raise MONGO_MAX_POOL_SIZE
-    # explicitly if profiling shows requests queuing on pool checkout.
+    retryWrites=True,
+    retryReads=True,
     maxPoolSize=int(os.environ.get("MONGO_MAX_POOL_SIZE", "10")),
     minPoolSize=int(os.environ.get("MONGO_MIN_POOL_SIZE", "0")),
     # Idle pooled connections older than this get closed rather than kept
@@ -149,14 +144,8 @@ connect(
     # unreachable — was unset before, so pymongo's 30s wire-protocol default
     # applied everywhere, including gunicorn's own request timeout window.
     serverSelectionTimeoutMS=int(
-        os.environ.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", "10000")
+        os.environ.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", "30000")
     ),
-    # Atlas connection strings already include retryWrites=true, but that's
-    # easy to drop by accident when someone hand-types a local/self-hosted
-    # MONGO_URI — set it explicitly here too so a transient network blip
-    # during a write gets one automatic retry regardless of what's in the
-    # URI. No-ops harmlessly against a standalone (non-replica-set) Mongo.
-    retryWrites=True,
 )
 
 # ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>VerseID — Admin Dashboard</title>
+<title>VerseID - Admin Dashboard</title>
 <style>
 /* ---------------------------------------------------------------------- */
 /* styles.css — imported inline                                           */
@@ -94,6 +94,21 @@ a { color: inherit; text-decoration: none; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
 
 .hidden { display: none !important; }
+
+/* .sidebar-backdrop is the mobile-only dark overlay behind the slide-out
+   sidebar drawer (see the max-width:860px block below). It's also the
+   FIRST direct child of #app, which is a 2-column CSS grid
+   (grid-template-columns: sidebar-width 1fr). Previously this rule only
+   existed inside the mobile media query, so on any screen WIDER than
+   860px — i.e. desktop, where this overlay is never supposed to be
+   visible at all — it had no display:none and, being display:block by
+   default, silently occupied #app's first grid column. That pushed the
+   real .sidebar into the second (wide) column and crushed .main's
+   actual content into a leftover sliver below it. Base visibility now
+   lives here, same pattern as #sidebar-collapse-btn above and
+   .topbar-menu-btn below: off by default, switched on only inside the
+   mobile breakpoint where it's actually meant to render. */
+.sidebar-backdrop { display: none; }
 
 /* ---------------------------------------------------------------------- */
 /* Gate (admin key entry)                                                 */
@@ -231,6 +246,27 @@ a { color: inherit; text-decoration: none; }
 .nav-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
 .nav-item .icon { width: 18px; height: 18px; flex-shrink: 0; }
 
+/* Count badge next to a nav item (e.g. total users next to "Users").
+   Sits at the end of a .nav-item that also has a .sidebar-spacer before
+   it, so it's pushed flush to the right edge of the sidebar. Hidden
+   automatically when the sidebar is collapsed by the existing
+   "#app.sidebar-collapsed .nav-item span" rule above, since this is
+   itself a <span>. */
+.nav-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 7px;
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-item.active .nav-badge { color: var(--primary); border-color: transparent; background: var(--surface); }
+
 .sidebar-spacer { flex: 1; }
 
 .admin-profile {
@@ -321,13 +357,24 @@ a { color: inherit; text-decoration: none; }
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--foreground);
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
 }
 
 .icon-btn:hover { background: var(--primary-soft); color: var(--primary); }
 .icon-btn:active { transform: scale(0.94); }
 .icon-btn svg { width: 17px; height: 17px; }
 .icon-btn.spinning svg { animation: spin 0.7s linear infinite; }
+.icon-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Compact variant for inline row actions (e.g. delete-user in a table),
+   where a full 36px .icon-btn is too heavy next to table text. */
+.icon-btn-sm { width: 28px; height: 28px; }
+.icon-btn-sm svg { width: 14px; height: 14px; }
+
+/* Delete stays visually "danger" on hover too — the generic .icon-btn
+   hover rule above would otherwise shift it to the violet brand color,
+   which reads as "this is a normal action" for something destructive. */
+.icon-btn.tint-danger:hover { background: var(--danger-soft); color: var(--danger); opacity: 0.85; }
 
 .btn-primary {
   display: inline-flex;
@@ -454,6 +501,7 @@ a { color: inherit; text-decoration: none; }
 .panel-head h3 { font-size: 14px; font-weight: 700; }
 .panel-head .panel-sub { font-size: 11.5px; color: var(--muted); }
 .chart-wrap { position: relative; height: 240px; }
+.chart-fallback { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 12.5px; color: var(--muted); text-align: center; padding: 0 16px; }
 
 /* ---------------------------------------------------------------------- */
 /* Insights                                                               */
@@ -533,6 +581,41 @@ a { color: inherit; text-decoration: none; }
 .verse-count { font-size: 12.5px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
 
 /* ---------------------------------------------------------------------- */
+/* Search users                                                           */
+/* ---------------------------------------------------------------------- */
+.search-input-wrap { position: relative; max-width: 420px; }
+
+.search-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--muted-2);
+  pointer-events: none;
+  display: grid;
+}
+
+.search-input-icon svg { width: 16px; height: 16px; }
+
+.search-input {
+  width: 100%;
+  padding: 11px 14px 11px 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.search-input:focus { border-color: var(--primary); }
+
+.search-hint { font-size: 12px; color: var(--muted-2); margin-top: 8px; }
+.search-results { margin-top: 14px; }
+
+/* ---------------------------------------------------------------------- */
 /* Recent users table                                                     */
 /* ---------------------------------------------------------------------- */
 .table-wrap {
@@ -559,7 +642,7 @@ thead th {
 
 tbody td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 tbody tr:last-child td { border-bottom: none; }
-tbody tr { transition: background 0.15s ease; }
+tbody tr { transition: background 0.15s ease, opacity 0.2s ease; }
 tbody tr:hover { background: var(--surface-2); }
 
 .user-cell { display: flex; align-items: center; gap: 10px; }
@@ -637,14 +720,21 @@ tbody tr:hover { background: var(--surface-2); }
 /* ---------------------------------------------------------------------- */
 /* Responsive                                                             */
 /* ---------------------------------------------------------------------- */
+
+/* #sidebar-collapse-btn used to carry style="display:none" directly on
+   the element in the markup below, which — being an inline style — has
+   higher specificity than ANY rule in this stylesheet, including the
+   "@media (min-width: 861px)" override further down that was supposed
+   to reveal it. The inline style always won, on every viewport width,
+   so the button (and its icon) never actually showed up despite being
+   fully wired (toggleSidebarCollapse(), the #app.sidebar-collapsed
+   rules above, the click listener in wireEvents()). Base visibility now
+   lives here instead — off by default, then switched on for desktop
+   widths below — exactly mirroring how .topbar-menu-btn is handled for
+   the opposite (mobile) breakpoint. */
+#sidebar-collapse-btn { display: none; }
+
 @media (min-width: 861px) {
-  /* Reveals the collapse-sidebar toggle on desktop widths. It's fully
-     wired already (toggleSidebarCollapse(), the #app.sidebar-collapsed
-     rules above, the click listener in wireEvents()) but the button's
-     inline style="display:none" meant nothing ever showed it — the
-     mobile hamburger (.topbar-menu-btn) covers the equivalent job below
-     860px, so the two are meant to be mutually exclusive, not both fixed
-     to display:none. */
   #sidebar-collapse-btn { display: grid; }
 }
 
@@ -668,7 +758,6 @@ tbody tr:hover { background: var(--surface-2); }
   #app.sidebar-open .sidebar { transform: translateX(0); }
 
   .sidebar-backdrop {
-    display: none;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
@@ -689,7 +778,7 @@ tbody tr:hover { background: var(--surface-2); }
   .hero .hero-meta { gap: 14px; }
 }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" defer></script>
 </head>
 <body>
 
@@ -727,18 +816,25 @@ tbody tr:hover { background: var(--surface-2); }
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         <span>Users</span>
         <span class="sidebar-spacer"></span>
+        <span class="nav-badge" id="nav-users">0</span>
       </div>
       <div class="nav-item" data-view="searches">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
         <span>Searches</span>
+        <span class="sidebar-spacer"></span>
+        <span class="nav-badge" id="nav-searches">0</span>
       </div>
       <div class="nav-item" data-view="subscriptions">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></span>
         <span>Subscriptions</span>
+        <span class="sidebar-spacer"></span>
+        <span class="nav-badge" id="nav-subscriptions">0</span>
       </div>
       <div class="nav-item" data-view="saved">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
         <span>Saved Verses</span>
+        <span class="sidebar-spacer"></span>
+        <span class="nav-badge" id="nav-saved">0</span>
       </div>
       <div class="nav-item" data-view="analytics">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span>
@@ -766,7 +862,7 @@ tbody tr:hover { background: var(--surface-2); }
     <!-- Topbar -->
     <header class="topbar">
       <button class="topbar-menu-btn" id="topbar-menu-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
-      <button class="icon-btn" id="sidebar-collapse-btn" title="Collapse sidebar" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      <button class="icon-btn" id="sidebar-collapse-btn" title="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
       <h1>Dashboard</h1>
       <div class="live-badge"><span class="live-dot"></span>Live</div>
       <div class="topbar-spacer"></div>
@@ -829,7 +925,7 @@ tbody tr:hover { background: var(--surface-2); }
           </div>
 
           <div class="section-title">AI Insights</div>
-          <div class="insights-grid" id="insights-grid"></div>
+          <div class="insights-grid" id="insights-grid" data-role="insights-grid"></div>
 
           <div class="section-title">Recent Activity</div>
           <div class="panel"><div class="timeline" id="activity-timeline"></div></div>
@@ -842,6 +938,16 @@ tbody tr:hover { background: var(--surface-2); }
         <section class="view hidden" data-view="users">
           <div class="section-title">User Metrics</div>
           <div class="kpi-grid" id="kpi-grid-users"></div>
+
+          <div class="section-title">Search Users</div>
+          <div class="panel">
+            <div class="search-input-wrap">
+              <span class="search-input-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+              <input type="text" id="user-search-input" class="search-input" placeholder="Search by name or email…" autocomplete="off" />
+            </div>
+            <div class="search-hint" id="search-hint">Type at least 2 characters to search.</div>
+            <div class="search-results" id="user-search-results"></div>
+          </div>
 
           <div class="section-title">Recent Users</div>
           <div data-role="recent-users"></div>
@@ -898,7 +1004,7 @@ tbody tr:hover { background: var(--surface-2); }
           </div>
 
           <div class="section-title">AI Insights</div>
-          <div class="insights-grid" id="insights-grid-2"></div>
+          <div class="insights-grid" id="insights-grid-2" data-role="insights-grid"></div>
         </section>
 
         <!-- === Settings === -->
@@ -915,9 +1021,11 @@ tbody tr:hover { background: var(--surface-2); }
           <div class="section-title">About</div>
           <div class="panel">
             <p style="font-size:13px; color:var(--muted); line-height:1.6;">
-              This dashboard reads exclusively from <code>GET /api/v1/admin/stats/</code> on your
-              existing backend. It does not write, modify, or store any data server-side — everything
-              here is read-only reporting.
+              This dashboard reads from <code>GET /api/v1/admin/stats/</code> and
+              <code>GET /api/v1/admin/users/search/</code> on your existing backend, and can
+              permanently delete a user via <code>DELETE /api/v1/admin/users/&lt;id&gt;/</code>.
+              Every deletion requires an explicit confirmation and cannot be undone. Nothing else
+              here writes, modifies, or stores data server-side.
             </p>
           </div>
         </section>
@@ -945,7 +1053,7 @@ const API_BASE = "/api/v1";
 
 const state = {
   data: null,
-  charts: { signups: null, searches: null },
+  charts: { signups: null, searches: null, signupsAnalytics: null, searchesAnalytics: null },
   currentView: "dashboard",
   sidebarCollapsed: false,
   refreshTimer: null,
@@ -1049,6 +1157,7 @@ function svgIcon(name) {
     inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
     google: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
   };
   return icons[name] || icons.dashboard;
 }
@@ -1068,7 +1177,10 @@ function applyTheme(theme) {
   localStorage.setItem(STORAGE_KEY_THEME, theme);
   const btn = $("#theme-toggle");
   if (btn) btn.innerHTML = theme === "dark" ? svgIcon("sun") : svgIcon("moon");
-  if (state.data) renderCharts(state.data);
+  if (state.data) {
+    renderCharts(state.data);
+    if (state.currentView === "analytics") renderAnalyticsCharts(state.data);
+  }
 }
 
 function toggleTheme() {
@@ -1143,6 +1255,25 @@ async function loadDashboard({ isRefresh = false } = {}) {
   }
 }
 
+/**
+ * Re-fetches stats and re-renders in place, WITHOUT touching the
+ * loading/error/content state toggles. Used after a mutation (deleting a
+ * user) so numbers across the dashboard resync without flashing the
+ * skeleton over content the admin is actively looking at. A failure here
+ * is non-fatal — the delete itself already succeeded and its row was
+ * already removed locally — so this only logs, it doesn't surface an
+ * error state over otherwise-valid content.
+ */
+async function refreshDataSilently() {
+  try {
+    const data = await fetchStats();
+    state.data = data;
+    renderAll(data);
+  } catch (err) {
+    console.warn("Background refresh failed:", err);
+  }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Loading / error states                                                */
 /* ---------------------------------------------------------------------- */
@@ -1180,6 +1311,22 @@ function renderAll(data) {
   renderTopVerses(data);
   renderRecentUsers(data);
   updateNavBadges(data);
+
+  // Keep whichever per-view KPI grid is currently visible in sync too —
+  // switchView() populates these on demand, but a background refresh
+  // (auto-refresh, or the resync after a delete) wouldn't otherwise
+  // touch them, so numbers on a view the admin is actively sitting on
+  // would silently go stale until they navigated away and back.
+  const activeKpiContainerId = `kpi-grid-${state.currentView}`;
+  if (state.currentView !== "dashboard" && document.getElementById(activeKpiContainerId)) {
+    renderKpis(data, {
+      view: state.currentView === "analytics" ? null : state.currentView,
+      containerId: activeKpiContainerId,
+    });
+  }
+  if (state.currentView === "analytics") {
+    renderAnalyticsCharts(data);
+  }
 }
 
 function renderTopbarMeta(data) {
@@ -1292,7 +1439,19 @@ function chartColors() {
 
 function buildLineChart(canvasId, labels, values, colorFrom, colorTo) {
   const canvas = document.getElementById(canvasId);
-  if (!canvas || typeof Chart === "undefined") return null;
+  if (!canvas) return null;
+
+  if (typeof Chart === "undefined") {
+    // Chart.js failed to load (CDN hiccup, network block, etc.) — show
+    // something instead of leaving the panel indefinitely, silently
+    // empty with no indication anything went wrong.
+    const wrap = canvas.closest(".chart-wrap");
+    if (wrap) {
+      wrap.innerHTML = '<div class="chart-fallback">Chart library failed to load. Try refreshing the page.</div>';
+    }
+    return null;
+  }
+
   const ctx = canvas.getContext("2d");
 
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight || 240);
@@ -1356,14 +1515,53 @@ function renderCharts(data) {
   );
 }
 
+/**
+ * The Analytics page has its own copies of the signup/search trend
+ * charts (chart-signups-2 / chart-searches-2) — a separate canvas pair
+ * from the Dashboard overview's, so it needs its own Chart.js instances
+ * rather than reusing renderCharts()'s. Deliberately NOT called eagerly
+ * alongside renderCharts(): these canvases live inside the Analytics
+ * <section>, which is display:none until that view is active, and a
+ * Chart.js instance built against a zero-size hidden canvas renders
+ * blank and doesn't reliably pick up its real size later. Instead this
+ * is called on-demand — every time the admin actually switches to the
+ * Analytics view (switchView()), plus whenever data refreshes or the
+ * theme changes while already sitting on that view — so it only ever
+ * runs while the canvases are genuinely visible and correctly sized.
+ */
+function renderAnalyticsCharts(data) {
+  if (state.charts.signupsAnalytics) state.charts.signupsAnalytics.destroy();
+  if (state.charts.searchesAnalytics) state.charts.searchesAnalytics.destroy();
+
+  const signupLabels = data.signupsByDay.map((d) => d.date.slice(5));
+  const signupValues = data.signupsByDay.map((d) => d.count);
+  const searchLabels = data.searchesByDay.map((d) => d.date.slice(5));
+  const searchValues = data.searchesByDay.map((d) => d.count);
+
+  state.charts.signupsAnalytics = buildLineChart(
+    "chart-signups-2",
+    signupLabels,
+    signupValues,
+    "rgba(139,92,246,0.35)",
+    "rgba(139,92,246,0)"
+  );
+  state.charts.searchesAnalytics = buildLineChart(
+    "chart-searches-2",
+    searchLabels,
+    searchValues,
+    "rgba(217,70,239,0.32)",
+    "rgba(217,70,239,0)"
+  );
+}
+
 /* ---------------------------------------------------------------------- */
 /* Rendering: AI-style insights (derived client-side from the stats data) */
 /* ---------------------------------------------------------------------- */
 
 function renderInsights(data) {
+  const containers = $$('[data-role="insights-grid"]');
+  if (containers.length === 0) return;
   const t = data.totals;
-  const container = $("#insights-grid");
-  if (!container) return;
 
   const topVerse = data.topVerses[0];
   const proRatio = t.users > 0 ? Math.round((t.proUsers / t.users) * 100) : 0;
@@ -1422,7 +1620,7 @@ function renderInsights(data) {
     },
   ];
 
-  container.innerHTML = insights
+  const html = insights
     .map(
       (ins, i) => `
       <div class="insight-card" style="animation-delay:${i * 0.04}s">
@@ -1432,6 +1630,8 @@ function renderInsights(data) {
       </div>`
     )
     .join("");
+
+  containers.forEach((c) => { c.innerHTML = html; });
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1525,18 +1725,27 @@ function renderTopVerses(data) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Rendering: recent users table                                         */
+/* Rendering: user tables (shared by Recent Users + Search Users)         */
 /* ---------------------------------------------------------------------- */
 
-function renderRecentUsers(data) {
-  const containers = $$('[data-role="recent-users"]');
-  if (containers.length === 0) return;
-
-  const users = data.recentUsers;
+/**
+ * Renders a table of users into `container`, each row with a delete
+ * action. Shared by the "Recent Users" list (data.recentUsers, from the
+ * stats payload) and the "Search Users" results (from a live search
+ * request) so both stay visually and behaviorally identical, and a fix
+ * to one (e.g. the delete button) never has to be duplicated for the
+ * other.
+ *
+ * NOTE: each user object MUST include a stable `id` field for the
+ * delete button to target the right record — see the backend
+ * requirements noted alongside this file.
+ */
+function renderUserTable(users, container, { emptyMessage = "No users found." } = {}) {
+  if (!container) return;
 
   const html =
-    users.length === 0
-      ? emptyStateHtml("No signups yet.")
+    !users || users.length === 0
+      ? emptyStateHtml(emptyMessage)
       : `
       <div class="table-wrap">
       <table>
@@ -1547,13 +1756,14 @@ function renderRecentUsers(data) {
             <th>Method</th>
             <th>Identified</th>
             <th>Joined</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           ${users
             .map(
               (u) => `
-            <tr>
+            <tr data-user-row="${escapeHtml(u.id)}">
               <td>
                 <div class="user-cell">
                   <div class="user-avatar">${initials(u.name)}</div>
@@ -1567,6 +1777,14 @@ function renderRecentUsers(data) {
               <td><span class="badge ${u.signupMethod === "google" ? "tint-info" : "tint-violet"}">${u.signupMethod === "google" ? "Google" : "Email"}</span></td>
               <td>${formatNumber(u.identifiedCount)}</td>
               <td>${formatDate(u.createdAt)}</td>
+              <td>
+                <button
+                  class="icon-btn icon-btn-sm tint-danger"
+                  data-delete-user="${escapeHtml(u.id)}"
+                  data-user-name="${escapeHtml(u.name)}"
+                  title="Delete user"
+                >${svgIcon("trash")}</button>
+              </td>
             </tr>`
             )
             .join("")}
@@ -1574,10 +1792,133 @@ function renderRecentUsers(data) {
       </table>
       </div>`;
 
-  containers.forEach((c) => {
-    c.innerHTML = html;
+  container.innerHTML = html;
+}
+
+function renderRecentUsers(data) {
+  const containers = $$('[data-role="recent-users"]');
+  if (containers.length === 0) return;
+  containers.forEach((c) => renderUserTable(data.recentUsers, c, { emptyMessage: "No signups yet." }));
+}
+
+/* ---------------------------------------------------------------------- */
+/* Search users                                                           */
+/* ---------------------------------------------------------------------- */
+
+let searchDebounceTimer = null;
+let searchRequestId = 0;
+
+function wireUserSearch() {
+  const input = $("#user-search-input");
+  if (!input) return;
+
+  input.addEventListener("input", () => {
+    clearTimeout(searchDebounceTimer);
+    const query = input.value.trim();
+
+    if (query.length < 2) {
+      searchRequestId++; // invalidate any in-flight request's response
+      $("#search-hint").textContent = "Type at least 2 characters to search.";
+      $("#search-hint").classList.remove("hidden");
+      $("#user-search-results").innerHTML = "";
+      return;
+    }
+
+    $("#search-hint").classList.add("hidden");
+    searchDebounceTimer = setTimeout(() => runUserSearch(query), 300);
   });
 }
+
+async function runUserSearch(query) {
+  const container = $("#user-search-results");
+  if (!container) return;
+
+  const thisRequestId = ++searchRequestId;
+  container.innerHTML = '<div class="skeleton skeleton-row"></div>';
+
+  try {
+    const key = getAdminKey();
+    const res = await fetch(`${API_BASE}/admin/users/search/?q=${encodeURIComponent(query)}`, {
+      headers: { "X-Admin-Key": key },
+    });
+
+    if (thisRequestId !== searchRequestId) return; // superseded by a newer search
+
+    if (res.status === 401 || res.status === 403) {
+      clearAdminKey();
+      showGate("That admin key was rejected. Please try again.");
+      return;
+    }
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+    const data = await res.json();
+    if (thisRequestId !== searchRequestId) return;
+
+    const users = data.users || [];
+    if (users.length === 0) {
+      container.innerHTML = `<p style="font-size:12.5px; color:var(--muted); padding:14px 2px;">No users match "${escapeHtml(query)}".</p>`;
+      return;
+    }
+    renderUserTable(users, container, { emptyMessage: "No users found." });
+  } catch (err) {
+    if (thisRequestId !== searchRequestId) return;
+    container.innerHTML = `<p style="font-size:12.5px; color:var(--danger); padding:14px 2px;">Couldn't search right now — ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Delete user                                                            */
+/* ---------------------------------------------------------------------- */
+
+async function handleDeleteUserClick(e) {
+  const btn = e.target.closest("[data-delete-user]");
+  if (!btn) return;
+
+  const id = btn.dataset.deleteUser;
+  const name = btn.dataset.userName || "this user";
+
+  const confirmed = confirm(`Delete ${name}? This permanently removes their account and cannot be undone.`);
+  if (!confirmed) return;
+
+  const row = btn.closest("tr");
+  btn.disabled = true;
+
+  try {
+    const key = getAdminKey();
+    const res = await fetch(`${API_BASE}/admin/users/${encodeURIComponent(id)}/`, {
+      method: "DELETE",
+      headers: { "X-Admin-Key": key },
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      clearAdminKey();
+      showGate("That admin key was rejected. Please try again.");
+      return;
+    }
+    if (!res.ok && res.status !== 204) {
+      throw new Error(`Server returned ${res.status}`);
+    }
+
+    if (row) {
+      row.style.opacity = "0";
+      setTimeout(() => row.remove(), 200);
+    }
+
+    // Deleting a user changes several aggregate numbers at once (total
+    // users, possibly MRR/active subscriptions if they had one, nav
+    // badges, etc.) — resync everything from the server in the
+    // background rather than trying to hand-patch each affected figure
+    // client-side.
+    refreshDataSilently();
+  } catch (err) {
+    btn.disabled = false;
+    alert(`Couldn't delete this user: ${err.message}`);
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Rendering: recent users table (legacy alias, kept for clarity)         */
+/* ---------------------------------------------------------------------- */
 
 function emptyStateHtml(message) {
   return `
@@ -1614,7 +1955,15 @@ function switchView(view) {
   if (state.data) {
     const kpiContainerId = `kpi-grid-${view}`;
     if (document.getElementById(kpiContainerId)) {
-      renderKpis(state.data, { view, containerId: kpiContainerId });
+      // "Analytics" means show every KPI (its section header literally says
+      // "All Metrics") — not a category filter like the other views. No
+      // KPI_DEF is tagged view:"analytics", so filtering by that view name
+      // the same way the others do would always return nothing; passing
+      // null here reuses renderKpis()'s own "no view = everything" default.
+      renderKpis(state.data, { view: view === "analytics" ? null : view, containerId: kpiContainerId });
+    }
+    if (view === "analytics") {
+      renderAnalyticsCharts(state.data);
     }
   }
 
@@ -1701,6 +2050,16 @@ function wireEvents() {
   $$(".nav-item[data-view]").forEach((item) => {
     item.addEventListener("click", () => switchView(item.dataset.view));
   });
+
+  wireUserSearch();
+
+  // Delegated on .content rather than per-row: both the Recent Users
+  // table and the Search Users results table are re-rendered wholesale
+  // on every data update, so listeners attached directly to row buttons
+  // would need to be re-wired after every single render. One listener
+  // on a stable ancestor handles every current and future row for both
+  // tables automatically.
+  $(".content")?.addEventListener("click", handleDeleteUserClick);
 }
 
 function startAutoRefresh() {
