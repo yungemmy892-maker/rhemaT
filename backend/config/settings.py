@@ -277,7 +277,9 @@ DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL", "VerseID <noreply@verseid.app>"
 )
 
-EMAIL_TIMEOUT = 10  # seconds — fail fast instead of hanging on a dead/unreachable SMTP host
+EMAIL_TIMEOUT = (
+    10  # seconds — fail fast instead of hanging on a dead/unreachable SMTP host
+)
 
 # Base URL of the deployed frontend, used to build links inside transactional
 # emails (welcome email CTA, future password-reset links, etc).

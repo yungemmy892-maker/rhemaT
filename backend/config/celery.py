@@ -22,8 +22,8 @@ def reconnect_mongo(**kwargs):
 
     connection.disconnect_all()
     connect(
-        db=settings.MONGO_DB_NAME,       # match your existing connect() call
-        host=settings.MONGO_URI,          # match your existing connect() call
+        db=settings.MONGO_DB_NAME,  # match your existing connect() call
+        host=settings.MONGO_URI,  # match your existing connect() call
         maxPoolSize=50,
         minPoolSize=1,
         maxIdleTimeMS=45000,

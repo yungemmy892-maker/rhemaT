@@ -18,9 +18,7 @@ def send_daily_verse():
     # cache.add() is SETNX on the Redis/Upstash backend — only the first
     # caller within LOCK_TIMEOUT gets True; a duplicate beat fire just no-ops.
     if not cache.add(LOCK_KEY, "1", timeout=LOCK_TIMEOUT):
-        logger.warning(
-            "send_daily_verse already running — skipping this trigger."
-        )
+        logger.warning("send_daily_verse already running — skipping this trigger.")
         return
     try:
         call_command("send_daily_verse")

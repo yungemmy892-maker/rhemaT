@@ -75,7 +75,9 @@ def send_push_to_user(user_id: str, payload: dict) -> dict:
                 # the subscription in place so we retry on the next delivery.
                 logger.warning(
                     "Push to %s returned %s for user %s",
-                    sub.endpoint, resp.status_code, user_id,
+                    sub.endpoint,
+                    resp.status_code,
+                    user_id,
                 )
         except requests.RequestException as exc:
             # Network error — treat as transient, keep subscription, but log

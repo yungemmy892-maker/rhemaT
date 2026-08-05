@@ -1,6 +1,5 @@
 class SecurityHeadersMiddleware:
 
-
     CSP = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
