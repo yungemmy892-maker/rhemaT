@@ -1,11 +1,5 @@
-"""
-Web Push delivery using py_vapid (for VAPID JWT signing) and requests (for
-the HTTP POST to the push service). This avoids pywebpush's aiohttp
-dependency, which fails to install on many platforms without a Rust/C
-compiler toolchain available.
-"""
-
 import json
+import logging
 from urllib.parse import urlparse
 
 import requests
@@ -13,6 +7,8 @@ from django.conf import settings
 from py_vapid import Vapid01
 
 from .models import PushSubscription
+
+logger = logging.getLogger(__name__)
 
 
 class PushDeliveryError(Exception):
@@ -26,6 +22,7 @@ def _get_vapid() -> Vapid01 | None:
     try:
         return Vapid01.from_raw(key.encode() if isinstance(key, str) else key)
     except Exception:
+        logger.exception("Failed to load VAPID key")
         return None
 
 
@@ -62,7 +59,10 @@ def send_push_to_user(user_id: str, payload: dict) -> dict:
                 sub.endpoint,
                 headers=headers,
                 data=json.dumps(payload).encode(),
-                timeout=10,
+                # Separate connect/read timeouts instead of one shared value —
+                # bounds worst case per subscription to 8s instead of ~20s,
+                # so one slow/stale endpoint can't stall a user's whole run.
+                timeout=(3.5, 8),
             )
             if resp.status_code in (404, 410):
                 # Browser has unsubscribed / subscription is stale — remove it
@@ -70,9 +70,17 @@ def send_push_to_user(user_id: str, payload: dict) -> dict:
                 expired += 1
             elif resp.status_code in (200, 201, 202):
                 sent += 1
-            # Other failures (5xx, 400 auth issues) are transient — leave
-            # the subscription in place so we retry on the next delivery.
-        except requests.RequestException:
-            pass  # Network error — treat as transient, keep subscription
+            else:
+                # Other failures (5xx, 400 auth issues) are transient — leave
+                # the subscription in place so we retry on the next delivery.
+                logger.warning(
+                    "Push to %s returned %s for user %s",
+                    sub.endpoint, resp.status_code, user_id,
+                )
+        except requests.RequestException as exc:
+            # Network error — treat as transient, keep subscription, but log
+            # it so a systemic outage (bad VAPID key, DNS, etc.) is visible
+            # instead of silently showing up as a low push count.
+            logger.warning("Push delivery error for user %s: %s", user_id, exc)
 
     return {"sent": sent, "expired": expired}
