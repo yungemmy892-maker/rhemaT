@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { AuthProvider } from "../context/AuthContext";
 import { ThemeProvider } from "../context/ThemeContext";
+import { ConsentProvider } from "../context/ConsentContext";
+import { ConsentBanner } from "../components/ConsentBanner";
 
 // Runs before first paint (inline, blocking) so the correct theme class is
 // present on <html> immediately — otherwise there'd be a flash of the light
@@ -218,9 +220,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <Outlet />
-        </AuthProvider>
+        <ConsentProvider>
+          <AuthProvider>
+            <Outlet />
+            <ConsentBanner />
+          </AuthProvider>
+        </ConsentProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

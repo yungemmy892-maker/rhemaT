@@ -22,10 +22,12 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Cookie,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useConsent } from "@/context/ConsentContext";
 import { useT } from "@/context/I18nContext";
 import { useSettings, useUpdateSettings } from "@/hooks/queries/usePreferences";
 import { useLanguages } from "@/hooks/queries/useBible";
@@ -49,6 +51,7 @@ function Settings() {
   const t = useT();
   const { deleteAccount, signOut } = useAuth();
   const { setTheme } = useTheme();
+  const { consent, grantConsent, declineConsent } = useConsent();
   const { data: settings, isLoading } = useSettings();
   const updateSettings = useUpdateSettings();
   const push = usePushNotifications();
@@ -391,6 +394,25 @@ function Settings() {
           </div>
           <p className="mt-2.5 text-xs text-muted-foreground">
             "System" matches your device's light/dark setting automatically.
+          </p>
+        </div>
+      </Group>
+
+      {/* ── Privacy ─────────────────────────────────────────────────── */}
+      <Group title={t("settings.group.privacy", "Privacy")}>
+        <ToggleRow
+          Icon={Cookie}
+          label={t("settings.analytics", "Analytics")}
+          value={consent === "granted"}
+          onChange={(v) => (v ? grantConsent() : declineConsent())}
+        />
+        <div className="px-4 pb-3.5 -mt-1">
+          <p className="text-xs text-muted-foreground">
+            Helps us understand how VerseID is used. See our{" "}
+            <Link to="/privacy" className="text-primary">
+              Privacy Policy
+            </Link>{" "}
+            for details.
           </p>
         </div>
       </Group>

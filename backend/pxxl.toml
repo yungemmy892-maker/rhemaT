@@ -1,14 +1,17 @@
+name = "backend"
+domainChoice = "pxxl.pro"
+environment = "production"
+deployEnvironment = "prod"
+port = 3000
+
 [services.web]
 language = "python"
 installCommand = "pip install -r requirements.txt"
 startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers=3 --threads=2"
+port = 3000
 
 [services.celery-worker]
 language = "python"
 installCommand = "pip install -r requirements.txt"
 startCommand = "celery -A config worker --loglevel=info --concurrency=2"
 
-[services.celery-beat]
-language = "python"
-installCommand = "pip install -r requirements.txt"
-startCommand = "celery -A config beat --loglevel=info"

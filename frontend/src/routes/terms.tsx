@@ -101,6 +101,16 @@ function Terms() {
             </ul>
           </Section>
 
+          <Section title="Cookies & analytics">
+            We only use analytics cookies if you accept them via the consent banner shown on your
+            first visit — they are off by default and you can change your choice anytime in
+            Settings. See our{" "}
+            <Link to="/privacy" className="text-primary">
+              Privacy Policy
+            </Link>{" "}
+            for what's collected.
+          </Section>
+
           <Section title="Content and Bible text">
             The KJV, WEB, ASV, and DRA Bible texts used by VerseID are all in the public domain. The
             VerseID app, its matching engine, UI, and associated code are proprietary. You may not

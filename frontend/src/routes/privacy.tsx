@@ -86,6 +86,22 @@ function Privacy() {
             "Third-party services" below. This applies equally to typed text search.
           </Section>
 
+          <Section title="Cookies & analytics">
+            <p>
+              We use Google Analytics to understand how VerseID is used — which pages and features
+              get traffic, roughly where users are visiting from, and general device/browser
+              information. This is aggregate usage data; it is not linked to your search history,
+              saved verses, or the content of anything you look up.
+            </p>
+            <p className="mt-2">
+              We ask first. Analytics stays off until you accept it via the consent banner shown on
+              your first visit, and nothing is loaded or stored before then. You can change your
+              choice at any time from{" "}
+              <strong className="text-foreground">Settings → Privacy → Analytics</strong> in the
+              app, or by clearing your browser's site data for verseid.top to be asked again.
+            </p>
+          </Section>
+
           <Section title="How we use your data">
             <ul className="space-y-2 list-disc list-inside text-muted-foreground">
               <li>To identify Bible verses from your queries and return results.</li>
@@ -133,6 +149,11 @@ function Privacy() {
                 translates the app's interface text if you select a language other than English.
                 Only fixed interface strings are translated, never your personal data or search
                 queries.
+              </li>
+              <li>
+                <strong className="text-foreground">Google Analytics</strong> - usage analytics,
+                loaded only if you accept the consent banner. See "Cookies & analytics" above.
+                Google's privacy policy is at policies.google.com/privacy.
               </li>
             </ul>
           </Section>
