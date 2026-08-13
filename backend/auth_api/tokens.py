@@ -33,6 +33,21 @@ def issue_refresh_token(user) -> str:
         "exp": expires_at,
     }
     RefreshToken(user_id=str(user.id), token_jti=jti, expires_at=expires_at).save()
+
+    # Free and Pro are single-person plans (see users.models.User.
+    # allows_concurrent_sessions) — only Family may be signed in on more
+    # than one device at once. Revoking every other still-valid refresh
+    # token here, rather than blocking this login, mirrors how a
+    # single-device streaming tier works: signing in somewhere new simply
+    # signs the account out everywhere else instead of failing the new
+    # login outright. This also fires on ordinary token refresh (not just
+    # login) — harmless there, since the only "other" tokens for a
+    # single-session account at that point are stale/abandoned ones.
+    if not user.allows_concurrent_sessions():
+        RefreshToken.objects(user_id=str(user.id), revoked=False, token_jti__ne=jti).update(
+            set__revoked=True
+        )
+
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 

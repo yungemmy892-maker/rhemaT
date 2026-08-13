@@ -37,6 +37,43 @@ export function useMarkAllRead() {
   });
 }
 
+export function useDeleteNotification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => notificationsApi.delete(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: queryKeys.notifications });
+      const prev = qc.getQueryData(queryKeys.notifications);
+      qc.setQueryData(
+        queryKeys.notifications,
+        (old: { id: string }[] | undefined) => old?.filter((n) => n.id !== id) ?? [],
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKeys.notifications, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+  });
+}
+
+export function useClearNotifications() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: notificationsApi.clearAll,
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: queryKeys.notifications });
+      const prev = qc.getQueryData(queryKeys.notifications);
+      qc.setQueryData(queryKeys.notifications, []);
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKeys.notifications, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Billing / pricing
 // ---------------------------------------------------------------------------
@@ -52,12 +89,14 @@ export function usePricing() {
 export function useInitiatePayment() {
   return useMutation({
     mutationFn: ({
+      plan,
       interval,
       callbackUrl,
     }: {
+      plan: "Pro" | "Family";
       interval: "monthly" | "annual";
       callbackUrl?: string;
-    }) => billingApi.initiate(interval, callbackUrl),
+    }) => billingApi.initiate(plan, interval, callbackUrl),
     onSuccess: (data) => {
       window.location.href = data.authorization_url;
     },

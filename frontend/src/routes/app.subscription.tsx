@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Crown, Sparkles, X, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Check, Crown, Sparkles, Users, X, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthContext";
@@ -13,24 +13,41 @@ import {
 
 export const Route = createFileRoute("/app/subscription")({
   validateSearch: z.object({ status: z.string().optional(), reference: z.string().optional() }),
-  head: () => ({ meta: [{ title: "Upgrade to Pro - VerseID" }] }),
+  head: () => ({ meta: [{ title: "Upgrade - VerseID" }] }),
   component: Subscription,
 });
 
-const FEATURES = [
-  "Unlimited verse identifications",
-  "All translations",
-  "Full search history",
-  "Custom collections",
-  "Daily verse notifications",
-  "Priority support",
-];
+const PLAN_FEATURES: Record<"Pro" | "Family", string[]> = {
+  Pro: [
+    "Unlimited verse identifications",
+    "KJV, WEB & ASV translations",
+    "Full search history & unlimited collections",
+    "Daily verse notifications",
+    "Priority support",
+  ],
+  Family: [
+    "Everything in Pro",
+    "Every translation, including DRA",
+    "Use on multiple devices at once",
+    "Built for up to 5 people",
+    "Priority support",
+  ],
+};
+
+const FALLBACK_NAIRA: Record<
+  "Pro" | "Family",
+  { monthly: number; annual: number; savings: string }
+> = {
+  Pro: { monthly: 1000, annual: 9000, savings: "Save ₦3,000" },
+  Family: { monthly: 2500, annual: 22500, savings: "Save ₦7,500" },
+};
 
 function Subscription() {
   const navigate = useNavigate();
   const { status, reference } = useSearch({ from: "/app/subscription" });
   const { user, refreshUser } = useAuth();
-  const [plan, setPlan] = useState<"monthly" | "annual">("annual");
+  const [selectedPlan, setSelectedPlan] = useState<"Pro" | "Family">("Pro");
+  const [interval, setInterval] = useState<"monthly" | "annual">("annual");
   const [cancelConfirm, setCancelConfirm] = useState(false);
 
   const { data: pricing, isLoading: pricingLoading } = usePricing();
@@ -38,7 +55,7 @@ function Subscription() {
   const verifyPayment = useVerifyPayment();
   const cancelSub = useCancelSubscription();
 
-  const isPro = user?.plan === "Pro";
+  const isSubscribed = user?.plan === "Pro" || user?.plan === "Family";
 
   // Handle Paystack redirect-back with a reference to verify
   useEffect(() => {
@@ -61,7 +78,7 @@ function Subscription() {
   }, [status, reference]);
 
   const handleUpgrade = () => {
-    initiatePayment.mutate({ interval: plan });
+    initiatePayment.mutate({ plan: selectedPlan, interval });
   };
 
   const handleCancel = async () => {
@@ -70,10 +87,12 @@ function Subscription() {
     navigate({ to: "/app/profile" });
   };
 
-  const monthlyNaira = pricing?.plans.monthly.naira ?? 1000;
-  const annualNaira = pricing?.plans.annual.naira ?? 9000;
+  const planPricing = pricing?.plans[selectedPlan];
+  const fallback = FALLBACK_NAIRA[selectedPlan];
+  const monthlyNaira = planPricing?.monthly.naira ?? fallback.monthly;
+  const annualNaira = planPricing?.annual.naira ?? fallback.annual;
   const annualMonthly = Math.round(annualNaira / 12);
-  const savings = pricing?.plans.annual.savings ?? "Save ₦3,000";
+  const savings = planPricing?.annual.savings ?? fallback.savings;
 
   return (
     <div>
@@ -96,8 +115,8 @@ function Subscription() {
             ? "Verifying your payment…"
             : verifyPayment.isSuccess
               ? verifyPayment.data?.status === "already_verified"
-                ? "Payment already verified — you're on Pro."
-                : "🎉 Welcome to Pro! All features are now unlocked."
+                ? `Payment already verified — you're on ${verifyPayment.data.user.plan}.`
+                : `🎉 Welcome to ${verifyPayment.data?.user.plan ?? selectedPlan}! All features are now unlocked.`
               : "Payment received - refreshing your account…"}
         </motion.div>
       )}
@@ -117,30 +136,63 @@ function Subscription() {
           <Crown className="h-7 w-7 text-white" />
         </div>
         <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight">
-          Go <span className="text-gradient">Pro</span>
+          Upgrade to <span className="text-gradient">{selectedPlan}</span>
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Unlimited searches · All features · Nigerian pricing
+          {selectedPlan === "Family"
+            ? "Unlimited searches · Every translation · Shared with your household"
+            : "Unlimited searches · All features · Nigerian pricing"}
         </p>
       </div>
 
-      {/* Plan toggle */}
-      <div className="mt-7 relative flex p-1 rounded-2xl glass-strong shadow-card">
+      {/* Plan tier selector */}
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        {(["Pro", "Family"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setSelectedPlan(p)}
+            className={`p-4 rounded-2xl text-left transition ${
+              selectedPlan === p
+                ? "bg-gradient-primary text-white shadow-glow"
+                : "glass-strong shadow-card"
+            }`}
+          >
+            {p === "Pro" ? (
+              <Sparkles
+                className={`h-4.5 w-4.5 ${selectedPlan === p ? "text-white" : "text-primary"}`}
+              />
+            ) : (
+              <Users
+                className={`h-4.5 w-4.5 ${selectedPlan === p ? "text-white" : "text-primary"}`}
+              />
+            )}
+            <div className="mt-2 font-display text-base font-semibold">{p}</div>
+            <div
+              className={`text-xs mt-0.5 ${selectedPlan === p ? "text-white/80" : "text-muted-foreground"}`}
+            >
+              {p === "Pro" ? "Just for you" : "Up to 5 people"}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Interval toggle */}
+      <div className="mt-4 relative flex p-1 rounded-2xl glass-strong shadow-card">
         {(["monthly", "annual"] as const).map((p) => (
           <button
             key={p}
-            onClick={() => setPlan(p)}
+            onClick={() => setInterval(p)}
             className="relative flex-1 py-2.5 text-sm font-medium"
           >
-            {plan === p && (
+            {interval === p && (
               <motion.div
-                layoutId="plan-pill"
+                layoutId="interval-pill"
                 className="absolute inset-0 bg-gradient-primary rounded-xl shadow-glow"
                 transition={{ type: "spring", stiffness: 340, damping: 30 }}
               />
             )}
             <span
-              className={`relative capitalize ${plan === p ? "text-white" : "text-muted-foreground"}`}
+              className={`relative capitalize ${interval === p ? "text-white" : "text-muted-foreground"}`}
             >
               {p === "monthly" ? "Monthly" : `Annual · ${savings}`}
             </span>
@@ -150,35 +202,41 @@ function Subscription() {
 
       {/* Price card */}
       <motion.div
-        key={plan}
+        key={`${selectedPlan}-${interval}`}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className="mt-5 p-6 rounded-3xl glass-strong shadow-card"
       >
         <div className="flex items-end justify-between">
           <div>
-            <div className="text-xs uppercase tracking-[0.16em] text-primary font-medium">Pro</div>
+            <div className="text-xs uppercase tracking-[0.16em] text-primary font-medium">
+              {selectedPlan}
+            </div>
             {pricingLoading ? (
               <div className="mt-1 h-10 w-32 rounded-xl glass animate-pulse" />
             ) : (
               <div className="mt-1 font-display text-4xl font-semibold">
                 ₦
-                {plan === "monthly"
+                {interval === "monthly"
                   ? monthlyNaira.toLocaleString("en-NG")
                   : annualMonthly.toLocaleString("en-NG")}
                 <span className="text-base text-muted-foreground font-normal">/mo</span>
               </div>
             )}
-            {plan === "annual" && !pricingLoading && (
+            {interval === "annual" && !pricingLoading && (
               <div className="text-xs text-muted-foreground mt-0.5">
                 Billed as ₦{annualNaira.toLocaleString("en-NG")}/year
               </div>
             )}
           </div>
-          <Sparkles className="h-5 w-5 text-primary" />
+          {selectedPlan === "Family" ? (
+            <Users className="h-5 w-5 text-primary" />
+          ) : (
+            <Sparkles className="h-5 w-5 text-primary" />
+          )}
         </div>
         <ul className="mt-5 space-y-2.5">
-          {FEATURES.map((f) => (
+          {PLAN_FEATURES[selectedPlan].map((f) => (
             <li key={f} className="flex items-center gap-2.5 text-sm">
               <span className="h-5 w-5 rounded-full bg-primary-soft grid place-items-center shrink-0">
                 <Check className="h-3 w-3 text-primary" strokeWidth={3} />
@@ -192,15 +250,15 @@ function Subscription() {
       {/* Free plan note */}
       <div className="mt-4 p-4 rounded-2xl glass text-sm text-muted-foreground text-center">
         Free plan includes{" "}
-        <span className="text-foreground font-medium">{pricing?.freeLimit ?? 20} searches</span> per
+        <span className="text-foreground font-medium">{pricing?.freeLimit ?? 6} searches</span> per
         day.
       </div>
 
-      {isPro ? (
+      {isSubscribed ? (
         <>
           <div className="mt-6 p-4 rounded-2xl bg-primary/10 border border-primary/20 text-center">
             <Crown className="h-5 w-5 text-primary mx-auto mb-1" />
-            <p className="text-sm font-medium text-primary">You're on Pro</p>
+            <p className="text-sm font-medium text-primary">You're on {user?.plan}</p>
             {user?.planExpiresAt && (
               <p className="text-xs text-muted-foreground mt-1">
                 Renews{" "}
@@ -257,10 +315,10 @@ function Subscription() {
                   <ShieldAlert className="h-5 w-5 text-destructive" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-display text-lg font-semibold">Cancel Pro?</div>
+                  <div className="font-display text-lg font-semibold">Cancel {user?.plan}?</div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    You'll keep Pro features until the end of your billing period, then revert to 6
-                    searches/day.
+                    You'll keep {user?.plan} features until the end of your billing period, then
+                    revert to {pricing?.freeLimit ?? 6} searches/day.
                   </p>
                 </div>
                 <button
@@ -276,7 +334,7 @@ function Subscription() {
                   onClick={() => setCancelConfirm(false)}
                   className="h-12 rounded-2xl glass-strong font-medium text-sm"
                 >
-                  Keep Pro
+                  Keep {user?.plan}
                 </button>
                 <button
                   onClick={handleCancel}

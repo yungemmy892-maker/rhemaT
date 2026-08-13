@@ -23,6 +23,7 @@ import {
   ChevronDown,
   ChevronUp,
   Cookie,
+  Lock,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -46,10 +47,26 @@ const BIBLE_VERSIONS: { code: BibleVersion; name: string; desc: string }[] = [
   { code: "DRA", name: "DRA", desc: "Douay-Rheims Bible" },
 ];
 
+// Mirrors bible.models.PLAN_VERSIONS on the backend — kept here purely so
+// the picker can show a lock icon and skip the mutation before the round
+// trip; the backend's own check in bible/views.py and search/views.py is
+// still what actually enforces this, not this list.
+const PLAN_VERSIONS: Record<"Free" | "Pro" | "Family", BibleVersion[]> = {
+  Free: ["KJV", "WEB"],
+  Pro: ["KJV", "WEB", "ASV"],
+  Family: ["KJV", "WEB", "ASV", "DRA"],
+};
+
+/** Only meaningful for a version the current user doesn't have — says
+ * which plan unlocks it. */
+function unlocksAt(code: BibleVersion): "Pro" | "Family" {
+  return PLAN_VERSIONS.Pro.includes(code) ? "Pro" : "Family";
+}
+
 function Settings() {
   const navigate = useNavigate();
   const t = useT();
-  const { deleteAccount, signOut } = useAuth();
+  const { user, deleteAccount, signOut } = useAuth();
   const { setTheme } = useTheme();
   const { consent, grantConsent, declineConsent } = useConsent();
   const { data: settings, isLoading } = useSettings();
@@ -241,12 +258,21 @@ function Settings() {
         <div className="p-4 space-y-2">
           {BIBLE_VERSIONS.map((v) => {
             const active = settings.bibleVersion === v.code;
+            const allowed = PLAN_VERSIONS[user?.plan ?? "Free"].includes(v.code);
             return (
               <button
                 key={v.code}
-                onClick={() => updateSettings.mutate({ bibleVersion: v.code })}
+                onClick={() =>
+                  allowed
+                    ? updateSettings.mutate({ bibleVersion: v.code })
+                    : navigate({ to: "/app/subscription" })
+                }
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition ${
-                  active ? "bg-gradient-primary text-white shadow-glow" : "glass-strong"
+                  active
+                    ? "bg-gradient-primary text-white shadow-glow"
+                    : allowed
+                      ? "glass-strong"
+                      : "glass-strong opacity-60"
                 }`}
               >
                 <div
@@ -268,7 +294,14 @@ function Settings() {
                     {v.desc}
                   </div>
                 </div>
-                {active && <Check className="h-4 w-4 text-white ml-auto shrink-0" />}
+                {active ? (
+                  <Check className="h-4 w-4 text-white ml-auto shrink-0" />
+                ) : !allowed ? (
+                  <span className="ml-auto shrink-0 flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                    <Lock className="h-3 w-3" />
+                    {unlocksAt(v.code)}
+                  </span>
+                ) : null}
               </button>
             );
           })}

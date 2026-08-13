@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, Crown, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Crown, Sparkles, Users } from "lucide-react";
 import { useState } from "react";
 import { usePricing } from "@/hooks/queries/useNotificationsBilling";
 
@@ -10,12 +10,13 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "VerseID pricing: 6 free verse identifications a day, or go Pro for unlimited searches, both KJV & WEB translations, and priority support.",
+          "VerseID pricing: 6 free verse identifications a day with KJV & WEB, or go Pro for unlimited searches with KJV, WEB & ASV, or Family to share every translation with up to 5 people.",
       },
       { property: "og:title", content: "VerseID Pricing" },
       {
         property: "og:description",
-        content: "6 free verse identifications a day, or go Pro for unlimited searches and more.",
+        content:
+          "6 free verse identifications a day, Pro for unlimited searches, or Family to share with up to 5 people.",
       },
       { property: "og:url", content: "https://verseid.top/pricing" },
       {
@@ -24,19 +25,33 @@ export const Route = createFileRoute("/pricing")({
           "@type": "Product",
           name: "VerseID Pro",
           description:
-            "Unlimited Bible verse identifications, both KJV & WEB translations, full search history, custom collections, and priority support.",
+            "Unlimited Bible verse identifications, KJV, WEB & ASV translations, full search history, custom collections, and priority support.",
           offers: [
             {
               "@type": "Offer",
-              name: "Monthly",
+              name: "Pro Monthly",
               price: "1000",
               priceCurrency: "NGN",
               url: "https://verseid.top/pricing",
             },
             {
               "@type": "Offer",
-              name: "Annual",
+              name: "Pro Annual",
               price: "9000",
+              priceCurrency: "NGN",
+              url: "https://verseid.top/pricing",
+            },
+            {
+              "@type": "Offer",
+              name: "Family Monthly",
+              price: "2500",
+              priceCurrency: "NGN",
+              url: "https://verseid.top/pricing",
+            },
+            {
+              "@type": "Offer",
+              name: "Family Annual",
+              price: "22500",
               priceCurrency: "NGN",
               url: "https://verseid.top/pricing",
             },
@@ -51,32 +66,45 @@ export const Route = createFileRoute("/pricing")({
 
 const FREE_FEATURES = [
   "6 verse identifications a day",
+  "KJV & WEB translations",
   "Saved verses",
-  "Full search history",
-  "Custom collections",
+  "Sign in on 1 device at a time",
 ];
 
 const PRO_FEATURES = [
   "Unlimited verse identifications",
-  "Both KJV & WEB translations",
-  "Full search history",
-  "Custom collections",
+  "KJV, WEB & ASV translations",
+  "Full search history & unlimited collections",
   "Daily verse notifications",
+  "Priority support",
+  "Sign in on 1 device at a time",
+];
+
+const FAMILY_FEATURES = [
+  "Everything in Pro",
+  "Every translation, including DRA",
+  "Sign in on multiple devices at once",
+  "Built for up to 5 people",
   "Priority support",
 ];
 
 function Pricing() {
-  const [plan, setPlan] = useState<"monthly" | "annual">("annual");
+  const [interval, setInterval] = useState<"monthly" | "annual">("annual");
   const { data: pricing, isLoading } = usePricing();
 
-  const monthlyNaira = pricing?.plans.monthly.naira ?? 1000;
-  const annualNaira = pricing?.plans.annual.naira ?? 9000;
-  const annualMonthly = Math.round(annualNaira / 12);
-  const savings = pricing?.plans.annual.savings ?? "Save ₦3,000";
+  const proMonthly = pricing?.plans.Pro.monthly.naira ?? 1000;
+  const proAnnual = pricing?.plans.Pro.annual.naira ?? 9000;
+  const proAnnualMonthly = Math.round(proAnnual / 12);
+  const proSavings = pricing?.plans.Pro.annual.savings ?? "Save ₦3,000";
+
+  const familyMonthly = pricing?.plans.Family.monthly.naira ?? 2500;
+  const familyAnnual = pricing?.plans.Family.annual.naira ?? 22500;
+  const familyAnnualMonthly = Math.round(familyAnnual / 12);
+  const familySavings = pricing?.plans.Family.annual.savings ?? "Save ₦7,500";
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-2xl px-5 py-8">
+      <div className="mx-auto max-w-4xl px-5 py-8">
         <div className="flex items-center gap-3 mb-8">
           <Link
             to="/"
@@ -91,7 +119,24 @@ function Pricing() {
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-5">
+        {/* Shared monthly/annual toggle — applies to both paid tiers below */}
+        <div className="mb-6 inline-flex p-1 rounded-full glass-strong shadow-card">
+          {(["monthly", "annual"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setInterval(p)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+                interval === p
+                  ? "bg-gradient-primary text-white shadow-glow"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {p === "monthly" ? "Monthly" : "Annual"}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-5">
           {/* Free plan */}
           <div className="rounded-[2rem] p-7 glass-strong shadow-card">
             <h2 className="font-display text-lg font-semibold">Free</h2>
@@ -122,31 +167,18 @@ function Pricing() {
                 <h2 className="font-display text-lg font-semibold">Pro</h2>
               </div>
 
-              {/* Monthly / annual toggle */}
-              <div className="mt-4 inline-flex p-1 rounded-full bg-white/15">
-                {(["monthly", "annual"] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPlan(p)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
-                      plan === p ? "bg-white text-primary" : "text-white/80"
-                    }`}
-                  >
-                    {p === "monthly" ? "Monthly" : `Annual · ${savings}`}
-                  </button>
-                ))}
-              </div>
-
               <p className="mt-4 text-3xl font-display font-semibold">
                 ₦
                 {isLoading
                   ? "…"
-                  : (plan === "monthly" ? monthlyNaira : annualMonthly).toLocaleString("en-NG")}
+                  : (interval === "monthly" ? proMonthly : proAnnualMonthly).toLocaleString(
+                      "en-NG",
+                    )}
                 <span className="text-base font-normal">/mo</span>
               </p>
-              {plan === "annual" && !isLoading && (
+              {interval === "annual" && !isLoading && (
                 <p className="text-xs text-white/75">
-                  Billed as ₦{annualNaira.toLocaleString("en-NG")}/year
+                  Billed as ₦{proAnnual.toLocaleString("en-NG")}/year · {proSavings}
                 </p>
               )}
 
@@ -174,6 +206,49 @@ function Pricing() {
                 Secure payment via Paystack · Cancel any time
               </p>
             </div>
+          </div>
+
+          {/* Family plan */}
+          <div className="relative overflow-hidden rounded-[2rem] p-7 glass-strong shadow-card border border-primary/20">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-lg font-semibold">Family</h2>
+            </div>
+
+            <p className="mt-4 text-3xl font-display font-semibold">
+              ₦
+              {isLoading
+                ? "…"
+                : (interval === "monthly" ? familyMonthly : familyAnnualMonthly).toLocaleString(
+                    "en-NG",
+                  )}
+              <span className="text-base font-normal text-muted-foreground">/mo</span>
+            </p>
+            {interval === "annual" && !isLoading && (
+              <p className="text-xs text-muted-foreground">
+                Billed as ₦{familyAnnual.toLocaleString("en-NG")}/year · {familySavings}
+              </p>
+            )}
+
+            <ul className="mt-5 space-y-2.5">
+              {FAMILY_FEATURES.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm">
+                  <Users className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            <Link
+              to="/auth"
+              search={{ redirect: "subscription" }}
+              className="mt-7 flex items-center justify-center h-12 rounded-full bg-gradient-primary text-white font-medium text-sm shadow-glow hover:scale-[1.02] transition-transform"
+            >
+              Get Family
+            </Link>
+            <p className="mt-3 text-center text-[11px] text-muted-foreground">
+              Secure payment via Paystack · Cancel any time
+            </p>
           </div>
         </div>
 

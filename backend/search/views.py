@@ -37,6 +37,20 @@ class IdentifyView(APIView):
         version = serializer.validated_data.get("version")
 
         user = request.user
+        if version and version not in user.allowed_versions():
+            return Response(
+                {
+                    "error": {
+                        "code": 403,
+                        "message": (
+                            f"{version} isn't available on your plan. "
+                            "Upgrade to search it."
+                        ),
+                    }
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         if not user.has_search_quota():
             return Response(
                 {
@@ -59,7 +73,7 @@ class IdentifyView(APIView):
         user.record_search()
         user.save()
 
-        result = find_best_match(query, version=version)
+        result = find_best_match(query, version=version, allowed_versions=user.allowed_versions())
 
         SearchHistory(
             user_id=str(request.user.id),

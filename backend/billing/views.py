@@ -19,21 +19,36 @@ from .paystack import (
     verify_webhook_signature,
 )
 from .serializers import InitiatePaymentSerializer, VerifyPaymentSerializer
-from .services import activate_pro, record_payment
+from .services import activate_plan, record_payment
 
 logger = logging.getLogger(__name__)
 
 NGN_PRICES = {
-    "monthly": {
-        "kobo": settings.PLAN_MONTHLY_KOBO,
-        "label": "₦1,000/month",
-        "naira": 1000,
+    "Pro": {
+        "monthly": {
+            "kobo": settings.PLAN_MONTHLY_KOBO,
+            "label": "₦1,000/month",
+            "naira": 1000,
+        },
+        "annual": {
+            "kobo": settings.PLAN_ANNUAL_KOBO,
+            "label": "₦9,000/year",
+            "naira": 9000,
+            "savings": "Save ₦3,000",
+        },
     },
-    "annual": {
-        "kobo": settings.PLAN_ANNUAL_KOBO,
-        "label": "₦9,000/year",
-        "naira": 9000,
-        "savings": "Save ₦3,000",
+    "Family": {
+        "monthly": {
+            "kobo": settings.FAMILY_PLAN_MONTHLY_KOBO,
+            "label": "₦2,500/month",
+            "naira": 2500,
+        },
+        "annual": {
+            "kobo": settings.FAMILY_PLAN_ANNUAL_KOBO,
+            "label": "₦22,500/year",
+            "naira": 22500,
+            "savings": "Save ₦7,500",
+        },
     },
 }
 
@@ -57,7 +72,7 @@ class PricingView(APIView):
 class InitiatePaymentView(APIView):
     """
     POST /api/v1/billing/initiate/
-    Body: { "interval": "monthly"|"annual", "callback_url": "..." }
+    Body: { "plan": "Pro"|"Family", "interval": "monthly"|"annual", "callback_url": "..." }
 
     Returns { "authorization_url": "https://checkout.paystack.com/..." }
     which the frontend opens (redirect or popup) for card entry.
@@ -69,8 +84,9 @@ class InitiatePaymentView(APIView):
         serializer = InitiatePaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        plan = data["plan"]
         interval = data["interval"]
-        price = NGN_PRICES[interval]
+        price = NGN_PRICES[plan][interval]
 
         try:
             tx = initialize_transaction(
@@ -78,6 +94,7 @@ class InitiatePaymentView(APIView):
                 amount_kobo=price["kobo"],
                 metadata={
                     "user_id": str(request.user.id),
+                    "plan": plan,
                     "interval": interval,
                     "cancel_action": data["callback_url"].replace(
                         "status=success", "status=cancelled"
@@ -102,6 +119,7 @@ class InitiatePaymentView(APIView):
                 "authorization_url": tx["authorization_url"],
                 "reference": tx["reference"],
                 "amount_naira": price["naira"],
+                "plan": plan,
                 "interval": interval,
             }
         )
@@ -160,26 +178,27 @@ class VerifyPaymentView(APIView):
             )
 
         metadata = tx.get("metadata", {})
+        plan = metadata.get("plan", "Pro")
         interval = metadata.get("interval", "monthly")
         user_id = metadata.get("user_id", str(request.user.id))
 
-        # Record the Payment BEFORE activating Pro — this ordering (ledger
+        # Record the Payment BEFORE activating — this ordering (ledger
         # entry first, side effect second) is what actually makes this
         # endpoint safe against a race, not the pre-check above. Two
         # concurrent requests for a brand-new reference (double-tap,
         # browser back+resubmit) can both sail past the pre-check before
         # either has written anything; record_payment()'s unique index is
         # the real lock. Whichever request loses this insert stops right
-        # here instead of also calling activate_pro() — the winner
+        # here instead of also calling activate_plan() — the winner
         # already has it covered — so a single charge can never activate
-        # (and reset the paid period on) Pro more than once.
-        if not record_payment(reference, user_id, interval, tx.get("amount", 0)):
+        # (and reset the paid period on) a plan more than once.
+        if not record_payment(reference, user_id, plan, interval, tx.get("amount", 0)):
             user = User.objects(id=request.user.id).first()
             return Response(
                 {"user": user.to_public_dict(), "status": "already_verified"}
             )
 
-        activate_pro(user_id, interval, tx)
+        activate_plan(user_id, plan, interval, tx)
 
         user = User.objects(id=request.user.id).first()
         return Response({"user": user.to_public_dict(), "status": "activated"})
@@ -200,12 +219,14 @@ class CancelSubscriptionView(APIView):
 
     def post(self, request):
         user = request.user
+        sub = Subscription.objects(user_id=str(user.id)).first()
+        plan_name = sub.plan if sub else "Pro"
         Subscription.objects(user_id=str(user.id)).update(set__status="cancelled")
         Notification(
             user_id=str(user.id),
             kind="pro_upsell",
-            title="Pro subscription cancelled",
-            body="Your Pro features will remain until the end of the billing period.",
+            title=f"{plan_name} subscription cancelled",
+            body=f"Your {plan_name} features will remain until the end of the billing period.",
         ).save()
         return Response(user.to_public_dict())
 
@@ -271,10 +292,11 @@ class PaystackWebhookView(APIView):
         if event_type == "charge.success":
             metadata = data.get("metadata", {})
             uid = metadata.get("user_id") or user_id
+            plan = metadata.get("plan", "Pro")
             interval = metadata.get("interval", "monthly")
             charge_reference = data.get("reference", "")
             # Renewal charges (charge_renewals.py) already record their own
-            # Payment row and activate Pro synchronously right after the
+            # Payment row and activate the plan synchronously right after the
             # charge succeeds — skip here to avoid a duplicate, contradictory
             # "Welcome to Pro 🎉" notification on a renewal.
             if uid and not metadata.get("renewal"):
@@ -290,12 +312,12 @@ class PaystackWebhookView(APIView):
                 # race (or simply duplicate-deliver, or arrive after) the
                 # same charge already processed via /billing/verify/, and
                 # record_payment()'s unique index — not a pre-check — is
-                # what actually prevents activate_pro() from running twice
+                # what actually prevents activate_plan() from running twice
                 # for one charge.
                 elif record_payment(
-                    charge_reference, uid, interval, data.get("amount", 0)
+                    charge_reference, uid, plan, interval, data.get("amount", 0)
                 ):
-                    activate_pro(uid, interval, data)
+                    activate_plan(uid, plan, interval, data)
 
         elif event_type in ("subscription.disable", "subscription.not_renew"):
             if sub:

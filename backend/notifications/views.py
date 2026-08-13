@@ -20,11 +20,16 @@ class VapidPublicKeyView(APIView):
 
 
 class NotificationListView(APIView):
-    """GET /api/v1/notifications/ — feed for the Notifications screen."""
+    """GET /api/v1/notifications/ — feed for the Notifications screen.
+    DELETE /api/v1/notifications/ — clears the whole feed."""
 
     def get(self, request):
         items = Notification.objects(user_id=str(request.user.id)).limit(50)
         return Response([n.to_dict() for n in items])
+
+    def delete(self, request):
+        Notification.objects(user_id=str(request.user.id)).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MarkAllReadView(APIView):
@@ -34,6 +39,21 @@ class MarkAllReadView(APIView):
         Notification.objects(user_id=str(request.user.id), read=False).update(
             set__read=True
         )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DeleteNotificationView(APIView):
+    """DELETE /api/v1/notifications/<id>/ — removes one notification.
+    Scoped to user_id in the query itself (not just looked up then
+    checked) so a request for another user's notification id matches
+    zero documents rather than ever touching someone else's row."""
+
+    def delete(self, request, notification_id):
+        deleted = Notification.objects(
+            id=notification_id, user_id=str(request.user.id)
+        ).delete()
+        if not deleted:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

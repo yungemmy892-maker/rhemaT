@@ -248,6 +248,12 @@ PAYSTACK_PUBLIC_KEY = os.environ.get("PAYSTACK_PUBLIC_KEY", "")
 PLAN_MONTHLY_KOBO = 100_000  # ₦1,000
 PLAN_ANNUAL_KOBO = 900_000  # ₦9,000
 
+# Family plan — up to 5 people, one subscription, every translation
+# unlocked. Placeholder pricing (2.5x Pro) — confirm before going live.
+# Same 9x-monthly annual discount shape as Pro (3 months free).
+FAMILY_PLAN_MONTHLY_KOBO = 250_000  # ₦2,500
+FAMILY_PLAN_ANNUAL_KOBO = 2_250_000  # ₦22,500
+
 # ---------------------------------------------------------------------------
 # Web Push (VAPID) — for the daily verse-of-the-day push notification.
 # Generate a keypair with: python manage.py generate_vapid_keys

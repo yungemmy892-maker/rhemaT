@@ -76,7 +76,7 @@ export interface AuthUser {
   name: string;
   email: string;
   avatar?: string | null;
-  plan: "Free" | "Pro";
+  plan: "Free" | "Pro" | "Family";
   planExpiresAt?: number | null;
   hasPassword: boolean;
   dailySearchesRemaining: number | null;
@@ -239,13 +239,18 @@ export const searchApi = {
 // Billing (Paystack / NGN subscriptions)
 // ---------------------------------------------------------------------------
 
+export interface PlanPricing {
+  monthly: { kobo: number; label: string; naira: number };
+  annual: { kobo: number; label: string; naira: number; savings: string };
+}
+
 export interface NGNPricing {
   currency: "NGN";
   symbol: "₦";
   freeLimit: number;
   plans: {
-    monthly: { kobo: number; label: string; naira: number };
-    annual: { kobo: number; label: string; naira: number; savings: string };
+    Pro: PlanPricing;
+    Family: PlanPricing;
   };
 }
 
@@ -253,15 +258,17 @@ export interface PaymentInit {
   authorization_url: string;
   reference: string;
   amount_naira: number;
+  plan: "Pro" | "Family";
   interval: "monthly" | "annual";
 }
 
 export const billingApi = {
   pricing: () => api.get<NGNPricing>("/billing/pricing/").then((r) => r.data),
 
-  initiate: (interval: "monthly" | "annual", callbackUrl?: string) =>
+  initiate: (plan: "Pro" | "Family", interval: "monthly" | "annual", callbackUrl?: string) =>
     api
       .post<PaymentInit>("/billing/initiate/", {
+        plan,
         interval,
         callback_url: callbackUrl ?? `${window.location.origin}/app/subscription?status=success`,
       })
@@ -292,6 +299,10 @@ export const notificationsApi = {
   list: () => api.get<AppNotification[]>("/notifications/").then((r) => r.data),
 
   markAllRead: () => api.post<void>("/notifications/mark-all-read/").then((r) => r.data),
+
+  delete: (id: string) => api.delete<void>(`/notifications/${id}/`).then(() => undefined),
+
+  clearAll: () => api.delete<void>("/notifications/").then(() => undefined),
 
   subscribe: (sub: PushSubscriptionJSON) =>
     api.post<void>("/notifications/push/subscribe/", {

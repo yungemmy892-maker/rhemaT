@@ -21,7 +21,7 @@ MAX_RENEWAL_ATTEMPTS = 3
 
 
 class Command(BaseCommand):
-    help = "Auto-renews Pro subscriptions by charging the saved card via Paystack."
+    help = "Auto-renews Pro and Family subscriptions by charging the saved card via Paystack."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -103,6 +103,7 @@ class Command(BaseCommand):
                     authorization_code=sub.paystack_authorization_code,
                     metadata={
                         "user_id": str(user.id),
+                        "plan": sub.plan,
                         "interval": sub.interval,
                         "renewal": True,
                     },
@@ -184,18 +185,18 @@ class Command(BaseCommand):
                 # reference — see the crash-recovery comment below), since
                 # the compare-and-swap above, not this call, is what
                 # actually decided whether this process gets to finalize.
-                record_payment(reference, str(user.id), sub.interval, sub.amount_kobo)
+                record_payment(reference, str(user.id), sub.plan, sub.interval, sub.amount_kobo)
 
-                user.plan = "Pro"
+                user.plan = sub.plan
                 user.plan_expires_at = new_period_end
                 user.save()
 
                 Notification(
                     user_id=str(user.id),
                     kind="pro_upsell",
-                    title="Pro subscription renewed",
+                    title=f"{sub.plan} subscription renewed",
                     body=(
-                        f"Your VerseID Pro subscription has been renewed for another "
+                        f"Your VerseID {sub.plan} subscription has been renewed for another "
                         f"{'month' if sub.interval == 'monthly' else 'year'}."
                     ),
                 ).save()
@@ -245,9 +246,9 @@ class Command(BaseCommand):
             Notification(
                 user_id=str(user.id),
                 kind="pro_upsell",
-                title="Pro subscription ended",
+                title=f"{sub.plan} subscription ended",
                 body=(
-                    "We couldn't renew your payment after several attempts, so your Pro access "
+                    f"We couldn't renew your payment after several attempts, so your {sub.plan} access "
                     "has ended. You can resubscribe anytime from your Profile."
                 ),
             ).save()
@@ -264,7 +265,7 @@ class Command(BaseCommand):
                     kind="pro_upsell",
                     title="Payment failed",
                     body=(
-                        f"We couldn't renew your Pro subscription ({reason}). We'll try again - "
+                        f"We couldn't renew your {sub.plan} subscription ({reason}). We'll try again - "
                         "please make sure your card has sufficient funds and hasn't expired."
                     ),
                 ).save()

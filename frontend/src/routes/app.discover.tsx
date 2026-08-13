@@ -5,7 +5,7 @@ import { useVerseOfDay, usePopularVerses } from "@/hooks/queries/useBible";
 import { useSettings } from "@/hooks/queries/usePreferences";
 
 export const Route = createFileRoute("/app/discover")({
-  head: () => ({ meta: [{ title: "Discover — VerseID" }] }),
+  head: () => ({ meta: [{ title: "Discover - VerseID" }] }),
   component: Discover,
 });
 

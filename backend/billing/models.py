@@ -19,6 +19,7 @@ class Subscription(me.Document):
 
     id = me.StringField(primary_key=True, default=_gen_id)
     user_id = me.StringField(required=True, unique=True)
+    plan = me.StringField(choices=("Pro", "Family"), default="Pro")
     paystack_customer_code = me.StringField()
     paystack_subscription_code = me.StringField()
     paystack_authorization_code = me.StringField()
@@ -81,6 +82,7 @@ class Payment(me.Document):
     id = me.StringField(primary_key=True, default=_gen_id)
     reference = me.StringField(required=True, unique=True)
     user_id = me.StringField(required=True)
+    plan = me.StringField(choices=("Pro", "Family"), default="Pro")
     interval = me.StringField(choices=BILLING_INTERVALS, required=True)
     amount_kobo = me.IntField(required=True)
     gateway = me.StringField(default="paystack")

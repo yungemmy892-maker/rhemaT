@@ -15,13 +15,14 @@ import {
   ChevronDown,
   Image as ImageIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { z } from "zod";
 import { useIdentifyQuery } from "@/hooks/queries/useSearch";
 import { useVerseByRef } from "@/hooks/queries/useBible";
 import { useSavedVerses, useToggleSaved, useSettings } from "@/hooks/queries/usePreferences";
 import { useT } from "@/context/I18nContext";
 import { bibleApi, type BibleVersion, type Verse } from "@/services/api";
+import { playVerseFoundChime } from "@/lib/sound";
 
 const searchSchema = z.object({
   q: z.string().default(""),
@@ -412,6 +413,42 @@ function Results() {
   const [chapterOpen, setChapterOpen] = useState(false);
   const { speaking, speak, stop } = useSpeech();
 
+  // Computed here (above the early returns below) rather than down by the
+  // "no match" section where it's actually consumed, specifically so the
+  // chime effect right after it can run on every render — a hook placed
+  // after a conditional `return` would violate rules-of-hooks on whichever
+  // renders take that early exit (loading skeleton, quota exceeded).
+  const result = useMemo(
+    () =>
+      isDirect
+        ? direct.data
+          ? { verse: direct.data, confidence: confidenceParam ?? null, semanticMatch: false }
+          : null
+        : response?.matched
+          ? {
+              verse: response.verse,
+              confidence: response.confidence as number | null,
+              semanticMatch: Boolean(response.semanticMatch),
+            }
+          : null,
+    [isDirect, direct.data, confidenceParam, response],
+  );
+
+  // The "verse found" chime. isDirect is excluded on purpose — opening a
+  // Saved/History/Recent verse is a navigation, not a fresh match, so it
+  // shouldn't re-announce itself every time.
+  const playedChimeForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isDirect || !result || !settings?.sound) return;
+    // React Query can silently revalidate identify.data in the background
+    // for the same query — this guard makes sure the chime only fires
+    // once per genuinely new match, not on every background refetch.
+    const matchKey = `${q}:${result.verse.id}`;
+    if (playedChimeForRef.current === matchKey) return;
+    playedChimeForRef.current = matchKey;
+    playVerseFoundChime();
+  }, [isDirect, result, settings?.sound, q]);
+
   /* ── loading skeleton ─────────────────────────────────────────────── */
   if (isPending) {
     return (
@@ -468,18 +505,6 @@ function Results() {
   }
 
   /* ── no match ───────────────────────────────────────────────────────── */
-  const result = isDirect
-    ? direct.data
-      ? { verse: direct.data, confidence: confidenceParam ?? null, semanticMatch: false }
-      : null
-    : response?.matched
-      ? {
-          verse: response.verse,
-          confidence: response.confidence as number | null,
-          semanticMatch: Boolean(response.semanticMatch),
-        }
-      : null;
-
   if (!result) {
     return (
       <div>

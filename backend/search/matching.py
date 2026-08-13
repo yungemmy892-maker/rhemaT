@@ -1,32 +1,6 @@
-"""
-Verse identification engine.
-
-Primary pipeline (semantic-first):
-  1. Normalize the query.
-  2. Embed it (BAAI/bge-small via Hugging Face) and search the precomputed
-     FAISS index (search/faiss_index.py) for the top 20 semantically
-     closest verse references. Meaning-based retrieval is the right primary
-     signal for a voice/paraphrase-driven app: people misremember exact
-     wording constantly, but rarely misremember what a verse is *about*.
-  3. Resolve those 20 references to actual Verse documents in whichever
-     version(s) are being searched.
-  4. RapidFuzz reranks those real candidates against the query for the
-     final precision pass — this is what turns "semantically in the
-     neighborhood" into an actual confident match-or-not decision, and is
-     also where the "why did this match" breakdown (phrase/partial/token
-     set/fuzzy) comes from.
-
-Fallback (lexical-only): if semantic search is unavailable for any reason —
-no FAISS index built yet (`manage.py precompute_embeddings` never run), no
-HF_API_TOKEN configured, or the HF API is down — every verse in the version
-pool is scored directly by RapidFuzz instead. This corpus is small enough
-(~31k verses per version) that a full scan is still fast, so search never
-fully breaks just because the semantic layer isn't set up.
-"""
-
 from rapidfuzz import fuzz
 
-from bible.models import Verse
+from bible.models import SUPPORTED_VERSIONS, Verse
 
 from .faiss_index import semantic_candidates
 
@@ -89,7 +63,7 @@ def _match_breakdown(query: str, verse_text_lower: str) -> dict:
     }
 
 
-def _version_pool(version: str | None) -> list[str]:
+def _version_pool(version: str | None, allowed_versions) -> list[str]:
     """
     KJV/WEB/ASV by default; DRA only when explicitly selected. DRA
     (Douay-Rheims) follows Vulgate-based verse numbering and noticeably
@@ -97,16 +71,26 @@ def _version_pool(version: str | None) -> list[str]:
     against completely unrelated queries when mixed in by default. It still
     matches correctly when a user has it explicitly selected as their
     Bible version.
+
+    `allowed_versions` further restricts the pool to what the requesting
+    user's plan can access (see users.models.User.allowed_versions) — a
+    Free or Pro user's omitted-version search never pulls in versions
+    their plan doesn't include, and a specific `version` is trusted here
+    (the caller — search/views.py — is responsible for rejecting a
+    request for a version outside the user's plan before ever reaching
+    this function).
     """
-    return [version] if version else ["KJV", "WEB", "ASV"]
+    if version:
+        return [version]
+    return [v for v in ("KJV", "WEB", "ASV") if v in allowed_versions]
 
 
-def _resolve_semantic_hits(hits, version: str | None) -> list[Verse]:
+def _resolve_semantic_hits(hits, version: str | None, allowed_versions) -> list[Verse]:
     """Resolves FAISS's (book, chapter, verse, similarity) references to
     actual Verse documents in every version currently being searched — a
     verse embedded once (WEB) can still surface a KJV or ASV match, since
     identity is by reference, not by which translation was embedded."""
-    pool = _version_pool(version)
+    pool = _version_pool(version, allowed_versions)
     resolved = []
     for book, chapter, verse_num, _similarity in hits:
         resolved.extend(
@@ -115,8 +99,8 @@ def _resolve_semantic_hits(hits, version: str | None) -> list[Verse]:
     return resolved
 
 
-def _lexical_scan(query: str, version: str | None) -> list[tuple[Verse, dict]]:
-    pool = _version_pool(version)
+def _lexical_scan(query: str, version: str | None, allowed_versions) -> list[tuple[Verse, dict]]:
+    pool = _version_pool(version, allowed_versions)
     scored = [
         (v, _match_breakdown(query, v.text_lower))
         for v in Verse.objects(version__in=pool)
@@ -125,8 +109,13 @@ def _lexical_scan(query: str, version: str | None) -> list[tuple[Verse, dict]]:
     return scored
 
 
-def find_best_match(raw_query: str, version: str | None = None):
-    """Returns {"verse": Verse.to_dict(), **match_breakdown} or None."""
+def find_best_match(raw_query: str, version: str | None = None, allowed_versions=SUPPORTED_VERSIONS):
+    """Returns {"verse": Verse.to_dict(), **match_breakdown} or None.
+
+    `allowed_versions` should be the caller's user.allowed_versions() —
+    defaults to every SUPPORTED_VERSIONS so existing callers that don't
+    pass it (scripts/check_matching.py) keep their current unrestricted
+    behavior."""
     query = _normalize(raw_query)
     if not query:
         return None
@@ -134,7 +123,7 @@ def find_best_match(raw_query: str, version: str | None = None):
     hits = semantic_candidates(query, k=SEMANTIC_TOP_K)
 
     if hits:
-        candidates = _resolve_semantic_hits(hits, version)
+        candidates = _resolve_semantic_hits(hits, version, allowed_versions)
         if candidates:
             scored = sorted(
                 ((v, _match_breakdown(query, v.text_lower)) for v in candidates),
@@ -156,14 +145,14 @@ def find_best_match(raw_query: str, version: str | None = None):
     # Semantic search unavailable (no FAISS index yet, no HF token, or the
     # API call failed) — fall back to scoring every verse directly so
     # identify still works at all.
-    scored = _lexical_scan(query, version)
+    scored = _lexical_scan(query, version, allowed_versions)
     if not scored or scored[0][1]["confidence"] < MIN_CONFIDENCE:
         return None
     best, best_breakdown = scored[0]
     return {"verse": best.to_dict(), **best_breakdown, "semanticMatch": False}
 
 
-def search_verses(raw_query: str, limit: int = 10, version: str | None = None):
+def search_verses(raw_query: str, limit: int = 10, version: str | None = None, allowed_versions=SUPPORTED_VERSIONS):
     """Multi-result search used by the text-search suggestions / discover
     flows, returning a ranked list instead of a single best guess."""
     query = _normalize(raw_query)
@@ -172,7 +161,7 @@ def search_verses(raw_query: str, limit: int = 10, version: str | None = None):
 
     hits = semantic_candidates(query, k=SEMANTIC_TOP_K)
     if hits:
-        candidates = _resolve_semantic_hits(hits, version)
+        candidates = _resolve_semantic_hits(hits, version, allowed_versions)
         if candidates:
             scored = sorted(
                 ((v, _match_breakdown(query, v.text_lower)) for v in candidates),
@@ -185,7 +174,7 @@ def search_verses(raw_query: str, limit: int = 10, version: str | None = None):
                 if breakdown["confidence"] >= MIN_CONFIDENCE
             ]
 
-    scored = _lexical_scan(query, version)
+    scored = _lexical_scan(query, version, allowed_versions)
     return [
         {"verse": v.to_dict(), **breakdown}
         for v, breakdown in scored[:limit]

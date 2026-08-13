@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .languages import LANGUAGES
-from .models import SUPPORTED_VERSIONS, Verse
+from .models import PLAN_VERSIONS, SUPPORTED_VERSIONS, Verse
 from .translate_service import get_ui_translations
 
 # Bible text (every version currently loaded) is static once
@@ -32,9 +32,22 @@ POPULAR_REFS = [
 ]
 
 
+def _allowed_versions(request) -> tuple[str, ...]:
+    """The Bible versions this requester may read, by plan. All of these
+    views are AllowAny (verse-of-day/popular/reading are shown to
+    logged-out visitors on the marketing pages too), and our custom
+    JWTAuthentication leaves request.user as None rather than a proper
+    AnonymousUser for unauthenticated requests — an anonymous visitor
+    gets the same versions a Free account would."""
+    user = getattr(request, "user", None)
+    return user.allowed_versions() if user else PLAN_VERSIONS["Free"]
+
+
 def _resolve_version(request) -> str:
     version = request.query_params.get("version", "KJV").upper()
-    return version if version in SUPPORTED_VERSIONS else "KJV"
+    if version not in SUPPORTED_VERSIONS or version not in _allowed_versions(request):
+        return "KJV"
+    return version
 
 
 def _lookup(book, chapter, verse, version="KJV"):

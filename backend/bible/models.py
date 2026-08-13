@@ -4,6 +4,16 @@ import mongoengine as me
 
 SUPPORTED_VERSIONS = ("KJV", "WEB", "ASV", "DRA")
 
+# Which of SUPPORTED_VERSIONS each subscription plan may access. Free and
+# Pro are both single-person plans (see users.models.User.
+# allows_concurrent_sessions) — Family is the only tier that opens every
+# translation, DRA included.
+PLAN_VERSIONS = {
+    "Free": ("KJV", "WEB"),
+    "Pro": ("KJV", "WEB", "ASV"),
+    "Family": SUPPORTED_VERSIONS,
+}
+
 
 class UITranslation(me.Document):
     """

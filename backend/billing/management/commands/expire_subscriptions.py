@@ -72,16 +72,16 @@ class Command(BaseCommand):
             Notification(
                 user_id=str(user.id),
                 kind="pro_upsell",
-                title="Your Pro access has ended",
+                title=f"Your {sub.plan} access has ended",
                 body=(
-                    "The Pro billing period you already paid for has finished, so "
+                    f"The {sub.plan} billing period you already paid for has finished, so "
                     "your account is back on the Free plan. Resubscribe any time "
                     "from your Profile."
                 ),
             ).save()
 
             try:
-                send_pro_expired_email(user.email, user.name.split(" ")[0])
+                send_pro_expired_email(user.email, user.name.split(" ")[0], sub.plan)
             except Exception:
                 # Never let an email provider hiccup stop the actual
                 # downgrade — the in-app notification above already

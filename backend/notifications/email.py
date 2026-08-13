@@ -445,7 +445,7 @@ def send_password_changed_email(
     msg.send(fail_silently=False)
 
 
-def _pro_expired_html(name: str, resubscribe_url: str) -> str:
+def _pro_expired_html(name: str, resubscribe_url: str, plan: str = "Pro") -> str:
     b = BRAND
     # M1: user-controlled, must be escaped before interpolation.
     name = html.escape(name)
@@ -475,14 +475,14 @@ def _pro_expired_html(name: str, resubscribe_url: str) -> str:
               <td style="background:{b['surface']};border:1px solid {b['border']};border-radius:{b['radius']};padding:36px 32px;text-align:center;">
                 <div style="width:52px;height:52px;line-height:52px;text-align:center;border-radius:16px;margin:0 auto;background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});font-size:22px;">⏳</div>
                 <div style="font-family:{FONT_DISPLAY};font-size:22px;font-weight:600;color:{b['foreground']};margin-top:18px;">
-                  Your Pro access has ended
+                  Your {plan} access has ended
                 </div>
                 <p style="font-size:14px;line-height:1.6;color:{b['muted']};margin:10px 0 26px;">
-                  Hi {name}, the Pro billing period you already paid for has now finished,
+                  Hi {name}, the {plan} billing period you already paid for has now finished,
                   so your VerseID account is back on the Free plan.
                 </p>
                 <a href="{resubscribe_url}" style="display:inline-block;padding:13px 32px;border-radius:999px;background:linear-gradient(135deg,{b['gradient_start']},{b['gradient_end']});color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">
-                  Resubscribe to Pro
+                  Resubscribe to {plan}
                 </a>
               </td>
             </tr>
@@ -502,16 +502,16 @@ def _pro_expired_html(name: str, resubscribe_url: str) -> str:
 """
 
 
-def send_pro_expired_email(to_email: str, name: str) -> None:
+def send_pro_expired_email(to_email: str, name: str, plan: str = "Pro") -> None:
     resubscribe_url = f"{settings.FRONTEND_URL.rstrip('/')}/app/subscription"
-    subject = "Your VerseID Pro access has ended"
+    subject = f"Your VerseID {plan} access has ended"
     text_body = (
         f"Hi {name},\n\n"
-        "The Pro billing period you already paid for has now finished, so your "
+        f"The {plan} billing period you already paid for has now finished, so your "
         "VerseID account is back on the Free plan.\n\n"
         f"Resubscribe any time: {resubscribe_url}\n"
     )
 
     msg = EmailMultiAlternatives(subject, text_body, None, [to_email])
-    msg.attach_alternative(_pro_expired_html(name, resubscribe_url), "text/html")
+    msg.attach_alternative(_pro_expired_html(name, resubscribe_url, plan), "text/html")
     msg.send(fail_silently=False)

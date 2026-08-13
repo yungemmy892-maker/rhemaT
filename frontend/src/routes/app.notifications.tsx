@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Bell,
@@ -9,9 +9,15 @@ import {
   Mic,
   Heart,
   PartyPopper,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useNotifications, useMarkAllRead } from "@/hooks/queries/useNotificationsBilling";
+import {
+  useNotifications,
+  useMarkAllRead,
+  useDeleteNotification,
+  useClearNotifications,
+} from "@/hooks/queries/useNotificationsBilling";
 import { useT } from "@/context/I18nContext";
 import type { AppNotification } from "@/services/api";
 
@@ -66,6 +72,8 @@ function Notifications() {
   const t = useT();
   const { data: items = [], isLoading } = useNotifications();
   const markAll = useMarkAllRead();
+  const deleteOne = useDeleteNotification();
+  const clearAll = useClearNotifications();
 
   return (
     <div>
@@ -80,13 +88,27 @@ function Notifications() {
         <h1 className="font-display text-2xl font-semibold flex-1">
           {t("notifications.title", "Notifications")}
         </h1>
-        <button
-          className="text-xs font-medium text-primary"
-          onClick={() => markAll.mutate()}
-          disabled={markAll.isPending || !items.some((n) => n.unread)}
-        >
-          Mark all read
-        </button>
+        <div className="flex items-center gap-2.5 text-xs font-medium">
+          <button
+            className="text-primary disabled:opacity-40"
+            onClick={() => markAll.mutate()}
+            disabled={markAll.isPending || !items.some((n) => n.unread)}
+          >
+            Mark all read
+          </button>
+          <span className="text-muted-foreground/40">·</span>
+          <button
+            className="text-muted-foreground disabled:opacity-40"
+            onClick={() => {
+              if (confirm("Clear all notifications? This can't be undone.")) {
+                clearAll.mutate();
+              }
+            }}
+            disabled={clearAll.isPending || items.length === 0}
+          >
+            Clear all
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 space-y-3">
@@ -99,36 +121,49 @@ function Notifications() {
             No notifications yet — check back after your first verse search.
           </div>
         ) : (
-          items.map((n, i) => {
-            const meta = KIND_META[n.kind] ?? KIND_META.verse_of_day;
-            return (
-              <motion.div
-                key={n.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="relative flex gap-3 p-4 rounded-2xl glass-strong shadow-card"
-              >
-                <div
-                  className={`h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-br ${meta.tint} grid place-items-center shadow-glow`}
+          <AnimatePresence initial={false}>
+            {items.map((n, i) => {
+              const meta = KIND_META[n.kind] ?? KIND_META.verse_of_day;
+              return (
+                <motion.div
+                  key={n.id}
+                  layout
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -24, transition: { duration: 0.15 } }}
+                  transition={{ delay: i * 0.04 }}
+                  className="relative flex gap-3 p-4 pr-11 rounded-2xl glass-strong shadow-card"
                 >
-                  <meta.Icon className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold truncate">{n.title}</div>
-                    <div className="text-[11px] text-muted-foreground shrink-0">
+                  <div
+                    className={`h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-br ${meta.tint} grid place-items-center shadow-glow`}
+                  >
+                    <meta.Icon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {n.unread && (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      )}
+                      <div className="text-sm font-semibold truncate">{n.title}</div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className="text-sm text-muted-foreground line-clamp-2">{n.body}</p>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1">
                       {formatTime(n.createdAt)}
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
-                </div>
-                {n.unread && (
-                  <span className="absolute top-3 right-3 h-2 w-2 rounded-full bg-primary shadow-glow" />
-                )}
-              </motion.div>
-            );
-          })
+                  <button
+                    aria-label="Delete notification"
+                    onClick={() => deleteOne.mutate(n.id)}
+                    className="absolute top-3 right-3 h-6 w-6 rounded-full glass grid place-items-center text-muted-foreground opacity-70 active:opacity-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         )}
       </div>
 

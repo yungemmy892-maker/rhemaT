@@ -19,6 +19,7 @@ def now_utc() -> datetime.datetime:
 def record_payment(
     reference: str,
     user_id: str,
+    plan: str,
     interval: str,
     amount_kobo: int,
     gateway_status: str = "success",
@@ -32,6 +33,7 @@ def record_payment(
         Payment(
             reference=reference,
             user_id=user_id,
+            plan=plan,
             interval=interval,
             amount_kobo=amount_kobo,
             gateway="paystack",
@@ -43,9 +45,11 @@ def record_payment(
         return False
 
 
-def activate_pro(user_id: str, interval: str, tx_data: dict) -> None:
+def activate_plan(user_id: str, plan: str, interval: str, tx_data: dict) -> None:
     """
-    Shared helper: marks user as Pro and upserts the Subscription record.
+    Shared helper: marks user as Pro or Family and upserts the
+    Subscription record. `plan` is "Pro" or "Family" — everything else
+    (period math, idempotency, upsert shape) is identical between them.
     """
     user = User.objects(id=user_id).first()
     if user is None:
@@ -63,11 +67,12 @@ def activate_pro(user_id: str, interval: str, tx_data: dict) -> None:
         or existing_sub.current_period_end < now
     )
 
-    user.plan = "Pro"
+    user.plan = plan
     user.plan_expires_at = expires_at
     user.save()
 
     Subscription.objects(user_id=user_id).upsert_one(
+        set__plan=plan,
         set__paystack_customer_code=tx_data.get("customer", {}).get(
             "customer_code", ""
         ),
@@ -87,6 +92,11 @@ def activate_pro(user_id: str, interval: str, tx_data: dict) -> None:
         Notification(
             user_id=user_id,
             kind="pro_upsell",
-            title="Welcome to VerseID Pro 🎉",
-            body="Unlimited searches and all premium features are now unlocked.",
+            title=f"Welcome to VerseID {plan} 🎉",
+            body=(
+                "Every member of your family now has unlimited searches and all "
+                "translations unlocked."
+                if plan == "Family"
+                else "Unlimited searches and all premium features are now unlocked."
+            ),
         ).save()

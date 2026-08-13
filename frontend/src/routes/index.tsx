@@ -260,7 +260,7 @@ function Landing() {
             Help
           </Link>
         </div>
-        © {new Date().getFullYear()} VerseID. Welcome.
+        © {new Date().getFullYear()} VerseID. All Rights Reserved.
       </footer>
     </div>
   );

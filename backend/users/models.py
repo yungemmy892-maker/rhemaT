@@ -4,6 +4,8 @@ import uuid
 import mongoengine as me
 from django.conf import settings
 
+from bible.models import PLAN_VERSIONS
+
 
 def _gen_id():
     return uuid.uuid4().hex
@@ -38,7 +40,7 @@ class User(me.Document):
     email = me.EmailField(required=True, unique=True)
     name = me.StringField(required=True)
     avatar = me.StringField()
-    plan = me.StringField(choices=("Free", "Pro"), default="Free")
+    plan = me.StringField(choices=("Free", "Pro", "Family"), default="Free")
     plan_expires_at = me.DateTimeField(null=True)
 
     created_at = me.DateTimeField(default=datetime.datetime.utcnow)
@@ -88,12 +90,39 @@ class User(me.Document):
             self.streak_count = 1
         self.last_active_date = today
 
+    def effective_plan(self) -> str:
+        """Returns "Free", "Pro", or "Family" — the plan actually in
+        effect right now, accounting for expiry. A lapsed Pro/Family
+        (plan_expires_at in the past) reads as "Free" everywhere else in
+        the app, same as is_pro() already guaranteed before Family
+        existed."""
+        if self.plan in ("Pro", "Family"):
+            if self.plan_expires_at and self.plan_expires_at < datetime.datetime.utcnow():
+                return "Free"
+            return self.plan
+        return "Free"
+
     def is_pro(self) -> bool:
-        if self.plan != "Pro":
-            return False
-        if self.plan_expires_at and self.plan_expires_at < datetime.datetime.utcnow():
-            return False
-        return True
+        """True for both Pro and Family — both are unlimited-search paid
+        plans. Kept as `is_pro` rather than renamed since it's already
+        threaded through daily_searches_remaining/record_search/
+        to_public_dict below, and Family counting as "pro" in the
+        unlimited-quota sense is correct, not a naming mismatch."""
+        return self.effective_plan() in ("Pro", "Family")
+
+    def allowed_versions(self) -> tuple[str, ...]:
+        """Bible translations this account can read or search right now,
+        per PLAN_VERSIONS. Free: KJV+WEB. Pro: + ASV. Family: everything,
+        including DRA."""
+        return PLAN_VERSIONS.get(self.effective_plan(), PLAN_VERSIONS["Free"])
+
+    def allows_concurrent_sessions(self) -> bool:
+        """Free and Pro are single-person plans — signing in on a new
+        device signs the account out everywhere else (see
+        auth_api/tokens.py issue_refresh_token). Family is the only tier
+        meant to be used by more than one person at once, so it's the
+        only one exempt."""
+        return self.effective_plan() == "Family"
 
     def _roll_daily_quota_if_new_day(self):
         today = datetime.datetime.utcnow().date()
@@ -128,7 +157,7 @@ class User(me.Document):
             "name": self.name,
             "email": self.email,
             "avatar": _resolve_avatar_url(self.avatar),
-            "plan": "Pro" if self.is_pro() else "Free",
+            "plan": self.effective_plan(),
             "planExpiresAt": (
                 int(
                     self.plan_expires_at.replace(

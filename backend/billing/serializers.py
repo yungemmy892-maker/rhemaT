@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 
 class InitiatePaymentSerializer(serializers.Serializer):
+    plan = serializers.ChoiceField(choices=["Pro", "Family"], default="Pro")
     interval = serializers.ChoiceField(choices=["monthly", "annual"])
     callback_url = serializers.URLField(
         required=False,
