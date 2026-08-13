@@ -92,15 +92,17 @@ function Pricing() {
   const [interval, setInterval] = useState<"monthly" | "annual">("annual");
   const { data: pricing, isLoading } = usePricing();
 
-  const proMonthly = pricing?.plans.Pro.monthly.naira ?? 1000;
-  const proAnnual = pricing?.plans.Pro.annual.naira ?? 9000;
+  const proMonthly = pricing?.plans?.Pro?.monthly?.naira ?? 1000;
+  const proAnnual = pricing?.plans?.Pro?.annual?.naira ?? 9000;
   const proAnnualMonthly = Math.round(proAnnual / 12);
-  const proSavings = pricing?.plans.Pro.annual.savings ?? "Save ₦3,000";
+  const proSavings =
+    pricing?.plans?.Pro?.annual?.savings ?? "Save ₦3,000";
 
-  const familyMonthly = pricing?.plans.Family.monthly.naira ?? 2500;
-  const familyAnnual = pricing?.plans.Family.annual.naira ?? 22500;
+  const familyMonthly = pricing?.plans?.Family?.monthly?.naira ?? 2500;
+  const familyAnnual = pricing?.plans?.Family?.annual?.naira ?? 22500;
   const familyAnnualMonthly = Math.round(familyAnnual / 12);
-  const familySavings = pricing?.plans.Family.annual.savings ?? "Save ₦7,500";
+  const familySavings =
+    pricing?.plans?.Family?.annual?.savings ?? "Save ₦7,500";
 
   return (
     <div className="min-h-screen bg-background">
