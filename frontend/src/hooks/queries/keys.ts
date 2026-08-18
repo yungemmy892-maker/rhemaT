@@ -8,4 +8,5 @@ export const queryKeys = {
   settings: ["preferences", "settings"] as const,
   notifications: ["notifications"] as const,
   pricing: ["billing", "pricing"] as const,
+  bachsPricing: ["billing", "bachs", "pricing"] as const,
 };

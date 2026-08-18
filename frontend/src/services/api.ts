@@ -282,6 +282,60 @@ export const billingApi = {
   cancel: () => api.post<AuthUser>("/billing/cancel/").then((r) => r.data),
 };
 
+// Bachs — now the sole gateway for NEW subscriptions, both NGN and USD
+// (see config/settings.py's BACHS_* block on the backend for why
+// Paystack/billingApi above is left running unchanged rather than
+// removed — existing Paystack subscribers still need it to keep
+// renewing/cancelling). There's no `verify` here: completing Bachs
+// checkout is what creates the subscription on their side, and
+// entitlement is granted asynchronously by the webhook, not by a
+// client-callable verify-by-reference step the way Paystack has one. The
+// frontend just refreshes user state after landing back on successUrl.
+export interface BachsPlanPricing {
+  monthly: { naira?: number; dollars?: number };
+  annual: { naira?: number; dollars?: number; savings: string };
+}
+
+export interface BachsPricing {
+  freeLimit: number;
+  currencies: {
+    NGN: { symbol: "₦"; plans: { Pro: BachsPlanPricing; Family: BachsPlanPricing } };
+    USD: { symbol: "$"; plans: { Pro: BachsPlanPricing; Family: BachsPlanPricing } };
+  };
+}
+
+export interface BachsCheckoutInit {
+  checkout_url: string;
+  session_id: string;
+  amount: number;
+  currency: "NGN" | "USD";
+  plan: "Pro" | "Family";
+  interval: "monthly" | "annual";
+}
+
+export const bachsBillingApi = {
+  pricing: () => api.get<BachsPricing>("/billing/bachs/pricing/").then((r) => r.data),
+
+  initiate: (
+    plan: "Pro" | "Family",
+    interval: "monthly" | "annual",
+    currency: "NGN" | "USD",
+    successUrl?: string,
+    cancelUrl?: string,
+  ) =>
+    api
+      .post<BachsCheckoutInit>("/billing/bachs/initiate/", {
+        plan,
+        interval,
+        currency,
+        success_url:
+          successUrl ?? `${window.location.origin}/app/subscription?status=success&gateway=bachs`,
+        cancel_url:
+          cancelUrl ?? `${window.location.origin}/app/subscription?status=cancelled&gateway=bachs`,
+      })
+      .then((r) => r.data),
+};
+
 // ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { billingApi, notificationsApi } from "@/services/api";
+import { bachsBillingApi, billingApi, notificationsApi } from "@/services/api";
 import { queryKeys } from "./keys";
 
 // ---------------------------------------------------------------------------
@@ -126,6 +126,38 @@ export function useCancelSubscription() {
     mutationFn: billingApi.cancel,
     onSuccess: (updated) => {
       qc.setQueryData(queryKeys.me, updated);
+    },
+  });
+}
+
+export function useBachsPricing() {
+  return useQuery({
+    queryKey: queryKeys.bachsPricing,
+    queryFn: bachsBillingApi.pricing,
+    staleTime: Infinity, // prices don't change between deployments
+  });
+}
+
+export function useBachsInitiatePayment() {
+  return useMutation({
+    mutationFn: ({
+      plan,
+      interval,
+      currency,
+      successUrl,
+      cancelUrl,
+    }: {
+      plan: "Pro" | "Family";
+      interval: "monthly" | "annual";
+      currency: "NGN" | "USD";
+      successUrl?: string;
+      cancelUrl?: string;
+    }) => bachsBillingApi.initiate(plan, interval, currency, successUrl, cancelUrl),
+    onSuccess: (data) => {
+      window.location.href = data.checkout_url;
+    },
+    onError: (err) => {
+      console.error(err);
     },
   });
 }

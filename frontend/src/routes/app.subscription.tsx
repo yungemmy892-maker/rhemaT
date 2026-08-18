@@ -4,15 +4,20 @@ import { ArrowLeft, Check, Crown, Sparkles, Users, X, ShieldAlert } from "lucide
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthContext";
+import { authApi } from "@/services/api";
 import {
-  usePricing,
-  useInitiatePayment,
   useVerifyPayment,
   useCancelSubscription,
+  useBachsPricing,
+  useBachsInitiatePayment,
 } from "@/hooks/queries/useNotificationsBilling";
 
 export const Route = createFileRoute("/app/subscription")({
-  validateSearch: z.object({ status: z.string().optional(), reference: z.string().optional() }),
+  validateSearch: z.object({
+    status: z.string().optional(),
+    reference: z.string().optional(),
+    gateway: z.string().optional(),
+  }),
   head: () => ({ meta: [{ title: "Upgrade - VerseID" }] }),
   component: Subscription,
 });
@@ -34,51 +39,95 @@ const PLAN_FEATURES: Record<"Pro" | "Family", string[]> = {
   ],
 };
 
-const FALLBACK_NAIRA: Record<
-  "Pro" | "Family",
-  { monthly: number; annual: number; savings: string }
+const FALLBACK_PRICING: Record<
+  "NGN" | "USD",
+  Record<"Pro" | "Family", { monthly: number; annual: number; savings: string }>
 > = {
-  Pro: { monthly: 1000, annual: 9000, savings: "Save ₦3,000" },
-  Family: { monthly: 2500, annual: 22500, savings: "Save ₦7,500" },
+  NGN: {
+    Pro: { monthly: 1000, annual: 9000, savings: "Save ₦3,000" },
+    Family: { monthly: 2500, annual: 22500, savings: "Save ₦7,500" },
+  },
+  USD: {
+    Pro: { monthly: 5, annual: 45, savings: "Save $15" },
+    Family: { monthly: 12, annual: 108, savings: "Save $36" },
+  },
 };
 
 function Subscription() {
   const navigate = useNavigate();
-  const { status, reference } = useSearch({ from: "/app/subscription" });
+  const { status, reference, gateway } = useSearch({ from: "/app/subscription" });
   const { user, refreshUser } = useAuth();
+  const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [selectedPlan, setSelectedPlan] = useState<"Pro" | "Family">("Pro");
   const [interval, setInterval] = useState<"monthly" | "annual">("annual");
   const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [bachsSyncState, setBachsSyncState] = useState<"idle" | "syncing" | "done" | "timeout">(
+    "idle",
+  );
 
-  const { data: pricing, isLoading: pricingLoading } = usePricing();
-  const initiatePayment = useInitiatePayment();
-  const verifyPayment = useVerifyPayment();
+  const { data: bachsPricing, isLoading: pricingLoading } = useBachsPricing();
+  const bachsInitiatePayment = useBachsInitiatePayment();
+  const verifyPayment = useVerifyPayment(); // legacy Paystack success-link fallback, see useEffect below
   const cancelSub = useCancelSubscription();
 
   const isSubscribed = user?.plan === "Pro" || user?.plan === "Family";
 
-  // Handle Paystack redirect-back with a reference to verify
+  // Handle redirect-back. Every current checkout goes through Bachs now
+  // (both currencies), which has no verify-by-reference endpoint —
+  // entitlement is granted asynchronously by its webhook, so this
+  // bounded-poll for refreshUser() to reflect the upgrade stands in for a
+  // verify call that doesn't exist. Stops once the plan shows up, or
+  // after ~9s if it hasn't (still refreshed one more time on the way to
+  // /app/profile, in case it lands right after the poll gives up).
+  //
+  // The `reference`-based branch below is now unreachable from this
+  // page's own UI (nothing here links to Paystack checkout anymore) —
+  // kept only so an old bookmarked or emailed
+  // ?status=success&reference=... link from before this migration still
+  // resolves correctly for an existing Paystack subscriber, rather than
+  // silently doing nothing.
   useEffect(() => {
-    if (status === "success" && reference) {
+    if (status !== "success") return;
+
+    if (gateway === "bachs") {
+      setBachsSyncState("syncing");
+      let cancelled = false;
+
+      const poll = async (attempt: number) => {
+        const fresh = await authApi.me().catch(() => null);
+        if (cancelled) return;
+        const active = fresh?.plan === "Pro" || fresh?.plan === "Family";
+        if (active) {
+          await refreshUser();
+          setBachsSyncState("done");
+          setTimeout(() => navigate({ to: "/app/profile", replace: true }), 1500);
+        } else if (attempt >= 6) {
+          setBachsSyncState("timeout");
+        } else {
+          setTimeout(() => poll(attempt + 1), 1500);
+        }
+      };
+      poll(0);
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (reference) {
       verifyPayment.mutate(reference, {
         onSuccess: async () => {
           await refreshUser();
-          // Leave the success message on screen just long enough to
-          // register, then move off this URL entirely — refreshing,
-          // sharing, or hitting back on a page parked at
-          // ?status=success&reference=... would otherwise silently
-          // re-run verification against a reference that's already been
-          // processed every time.
           setTimeout(() => {
             navigate({ to: "/app/profile", replace: true });
           }, 1500);
         },
       });
     }
-  }, [status, reference]);
+  }, [status, reference, gateway]);
 
   const handleUpgrade = () => {
-    initiatePayment.mutate({ plan: selectedPlan, interval });
+    bachsInitiatePayment.mutate({ plan: selectedPlan, interval, currency });
   };
 
   const handleCancel = async () => {
@@ -87,12 +136,21 @@ function Subscription() {
     navigate({ to: "/app/profile" });
   };
 
-  const planPricing = pricing?.plans[selectedPlan];
-  const fallback = FALLBACK_NAIRA[selectedPlan];
-  const monthlyNaira = planPricing?.monthly.naira ?? fallback.monthly;
-  const annualNaira = planPricing?.annual.naira ?? fallback.annual;
-  const annualMonthly = Math.round(annualNaira / 12);
+  const currencyPricing = bachsPricing?.currencies[currency];
+  const planPricing = currencyPricing?.plans[selectedPlan];
+  const fallback = FALLBACK_PRICING[currency][selectedPlan];
+  const monthly =
+    (currency === "USD" ? planPricing?.monthly.dollars : planPricing?.monthly.naira) ??
+    fallback.monthly;
+  const annual =
+    (currency === "USD" ? planPricing?.annual.dollars : planPricing?.annual.naira) ??
+    fallback.annual;
+  const annualMonthly =
+    currency === "USD" ? Math.round((annual / 12) * 100) / 100 : Math.round(annual / 12);
   const savings = planPricing?.annual.savings ?? fallback.savings;
+  const freeLimit = bachsPricing?.freeLimit ?? 6;
+  const symbol = currency === "USD" ? "$" : "₦";
+  const isPending = pricingLoading;
 
   return (
     <div>
@@ -111,13 +169,31 @@ function Subscription() {
           animate={{ opacity: 1, y: 0 }}
           className="mt-4 p-4 rounded-2xl bg-primary/10 border border-primary/20 text-sm text-primary font-medium text-center"
         >
-          {verifyPayment.isPending
-            ? "Verifying your payment…"
-            : verifyPayment.isSuccess
-              ? verifyPayment.data?.status === "already_verified"
-                ? `Payment already verified — you're on ${verifyPayment.data.user.plan}.`
-                : `🎉 Welcome to ${verifyPayment.data?.user.plan ?? selectedPlan}! All features are now unlocked.`
-              : "Payment received - refreshing your account…"}
+          {gateway === "bachs" ? (
+            bachsSyncState === "done" ? (
+              `🎉 Welcome to ${user?.plan ?? selectedPlan}! All features are now unlocked.`
+            ) : bachsSyncState === "timeout" ? (
+              <>
+                Payment received — still finalizing on our end. This can take a minute; check{" "}
+                <Link to="/app/profile" className="underline">
+                  your profile
+                </Link>{" "}
+                shortly.
+              </>
+            ) : (
+              "Payment received — activating your account…"
+            )
+          ) : verifyPayment.isPending ? (
+            "Verifying your payment…"
+          ) : verifyPayment.isSuccess ? (
+            verifyPayment.data?.status === "already_verified" ? (
+              `Payment already verified — you're on ${verifyPayment.data.user.plan}.`
+            ) : (
+              `🎉 Welcome to ${verifyPayment.data?.user.plan ?? selectedPlan}! All features are now unlocked.`
+            )
+          ) : (
+            "Payment received - refreshing your account…"
+          )}
         </motion.div>
       )}
 
@@ -141,8 +217,27 @@ function Subscription() {
         <p className="mt-2 text-muted-foreground">
           {selectedPlan === "Family"
             ? "Unlimited searches · Every translation · Shared with your household"
-            : "Unlimited searches · All features · Nigerian pricing"}
+            : "Unlimited searches · All features · Choose your currency"}
         </p>
+      </div>
+
+      {/* Currency toggle — both NGN and USD now go through Bachs. */}
+      <div className="mt-5 flex justify-center">
+        <div className="inline-flex p-1 rounded-full glass-strong shadow-card">
+          {(["NGN", "USD"] as const).map((c) => (
+            <button
+              key={c}
+              onClick={() => setCurrency(c)}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition ${
+                currency === c
+                  ? "bg-gradient-primary text-white shadow-glow"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {c === "NGN" ? "₦ Naira" : "$ USD"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Plan tier selector */}
@@ -202,7 +297,7 @@ function Subscription() {
 
       {/* Price card */}
       <motion.div
-        key={`${selectedPlan}-${interval}`}
+        key={`${currency}-${selectedPlan}-${interval}`}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className="mt-5 p-6 rounded-3xl glass-strong shadow-card"
@@ -212,20 +307,21 @@ function Subscription() {
             <div className="text-xs uppercase tracking-[0.16em] text-primary font-medium">
               {selectedPlan}
             </div>
-            {pricingLoading ? (
+            {isPending ? (
               <div className="mt-1 h-10 w-32 rounded-xl glass animate-pulse" />
             ) : (
               <div className="mt-1 font-display text-4xl font-semibold">
-                ₦
-                {interval === "monthly"
-                  ? monthlyNaira.toLocaleString("en-NG")
-                  : annualMonthly.toLocaleString("en-NG")}
+                {symbol}
+                {(interval === "monthly" ? monthly : annualMonthly).toLocaleString(
+                  currency === "NGN" ? "en-NG" : "en-US",
+                )}
                 <span className="text-base text-muted-foreground font-normal">/mo</span>
               </div>
             )}
-            {interval === "annual" && !pricingLoading && (
+            {interval === "annual" && !isPending && (
               <div className="text-xs text-muted-foreground mt-0.5">
-                Billed as ₦{annualNaira.toLocaleString("en-NG")}/year
+                Billed as {symbol}
+                {annual.toLocaleString(currency === "NGN" ? "en-NG" : "en-US")}/year
               </div>
             )}
           </div>
@@ -249,9 +345,8 @@ function Subscription() {
 
       {/* Free plan note */}
       <div className="mt-4 p-4 rounded-2xl glass text-sm text-muted-foreground text-center">
-        Free plan includes{" "}
-        <span className="text-foreground font-medium">{pricing?.freeLimit ?? 6} searches</span> per
-        day.
+        Free plan includes <span className="text-foreground font-medium">{freeLimit} searches</span>{" "}
+        per day.
       </div>
 
       {isSubscribed ? (
@@ -281,13 +376,13 @@ function Subscription() {
         <>
           <button
             onClick={handleUpgrade}
-            disabled={initiatePayment.isPending || pricingLoading}
+            disabled={bachsInitiatePayment.isPending || isPending}
             className="mt-6 w-full h-14 rounded-2xl bg-gradient-primary text-white font-medium shadow-glow disabled:opacity-70"
           >
-            {initiatePayment.isPending ? "Redirecting to payment…" : "Subscribe with Paystack"}
+            {bachsInitiatePayment.isPending ? "Redirecting to payment…" : "Subscribe with Bachs"}
           </button>
           <p className="mt-3 text-center text-[11px] text-muted-foreground">
-            Secure payment via Paystack · NGN pricing · Cancel any time
+            Secure payment via Bachs · {currency} pricing · Cancel any time
           </p>
         </>
       )}
@@ -318,7 +413,7 @@ function Subscription() {
                   <div className="font-display text-lg font-semibold">Cancel {user?.plan}?</div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     You'll keep {user?.plan} features until the end of your billing period, then
-                    revert to {pricing?.freeLimit ?? 6} searches/day.
+                    revert to {freeLimit} searches/day.
                   </p>
                 </div>
                 <button

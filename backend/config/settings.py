@@ -255,6 +255,59 @@ FAMILY_PLAN_MONTHLY_KOBO = 250_000  # ₦2,500
 FAMILY_PLAN_ANNUAL_KOBO = 2_250_000  # ₦22,500
 
 # ---------------------------------------------------------------------------
+# Bachs — now the sole gateway for NEW subscriptions, both NGN and USD.
+# Paystack (config above) is deliberately left fully intact and untouched:
+# charge_renewals.py, expire_subscriptions.py, the Paystack webhook, and
+# CancelSubscriptionView all still need to work for any user who already
+# subscribed via Paystack before this cutover — existing paying customers
+# keep renewing/cancelling exactly as before. Only the checkout/initiate
+# path for BRAND NEW subscriptions moves to Bachs. This is a decision to
+# accept the risk of Bachs's youth as a platform in exchange for one
+# integration instead of two — made deliberately, not a default.
+BACHS_ENV = os.environ.get("BACHS_ENV", "sandbox")  # "sandbox" | "production"
+BACHS_BASE_URL = (
+    "https://api.bachs.io"
+    if BACHS_ENV == "production"
+    else "https://sandbox-api.bachs.io"
+)
+BACHS_API_KEY = os.environ.get("BACHS_API_KEY", "")
+BACHS_WEBHOOK_SECRET = os.environ.get("BACHS_WEBHOOK_SECRET", "")
+
+# One Bachs product per currency+plan+interval (8 total) — a product's
+# currency and billing_cycle are both fixed at creation, so neither a
+# different currency nor a different cadence can share a product ID.
+# Fill each in as you create the matching product in the Bachs dashboard
+# (Products > Create). BACHS_NGN_PRO_MONTHLY_PRODUCT_ID is the one you've
+# already created ("verseid monthly", prod_079db9337a0249e085cd) — the
+# other 7 still need creating.
+BACHS_NGN_PRO_MONTHLY_PRODUCT_ID = os.environ.get("BACHS_NGN_PRO_MONTHLY_PRODUCT_ID", "")
+BACHS_NGN_PRO_ANNUAL_PRODUCT_ID = os.environ.get("BACHS_NGN_PRO_ANNUAL_PRODUCT_ID", "")
+BACHS_NGN_FAMILY_MONTHLY_PRODUCT_ID = os.environ.get(
+    "BACHS_NGN_FAMILY_MONTHLY_PRODUCT_ID", ""
+)
+BACHS_NGN_FAMILY_ANNUAL_PRODUCT_ID = os.environ.get("BACHS_NGN_FAMILY_ANNUAL_PRODUCT_ID", "")
+BACHS_USD_PRO_MONTHLY_PRODUCT_ID = os.environ.get("BACHS_USD_PRO_MONTHLY_PRODUCT_ID", "")
+BACHS_USD_PRO_ANNUAL_PRODUCT_ID = os.environ.get("BACHS_USD_PRO_ANNUAL_PRODUCT_ID", "")
+BACHS_USD_FAMILY_MONTHLY_PRODUCT_ID = os.environ.get(
+    "BACHS_USD_FAMILY_MONTHLY_PRODUCT_ID", ""
+)
+BACHS_USD_FAMILY_ANNUAL_PRODUCT_ID = os.environ.get("BACHS_USD_FAMILY_ANNUAL_PRODUCT_ID", "")
+
+# NGN pricing — Pro monthly (₦1,000) matches the real product you already
+# created in the dashboard; the other three are placeholders (same shape
+# as the old Paystack NGN pricing) until you create their products.
+BACHS_NGN_PRO_MONTHLY_NAIRA = 1_000
+BACHS_NGN_PRO_ANNUAL_NAIRA = 9_000  # saves ₦3,000
+BACHS_NGN_FAMILY_MONTHLY_NAIRA = 2_500
+BACHS_NGN_FAMILY_ANNUAL_NAIRA = 22_500  # saves ₦7,500
+
+# USD pricing — all four placeholders, not a business decision made here.
+BACHS_USD_PRO_MONTHLY_CENTS = 500  # $5.00
+BACHS_USD_PRO_ANNUAL_CENTS = 4_500  # $45.00 (saves $15)
+BACHS_USD_FAMILY_MONTHLY_CENTS = 1_200  # $12.00
+BACHS_USD_FAMILY_ANNUAL_CENTS = 10_800  # $108.00 (saves $36)
+
+# ---------------------------------------------------------------------------
 # Web Push (VAPID) — for the daily verse-of-the-day push notification.
 # Generate a keypair with: python manage.py generate_vapid_keys
 # ---------------------------------------------------------------------------

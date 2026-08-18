@@ -35,7 +35,15 @@ class Command(BaseCommand):
         now = now_utc()
         today = now.date()
 
-        query = {"status": "active"}
+        # gateway="paystack" is load-bearing, not incidental: Bachs
+        # subscriptions renew on Bachs's own side (that's the whole
+        # reason this command exists for Paystack in the first place —
+        # see Subscription.renewal_attempts' comment). Without this
+        # filter, a Bachs row would match "status": "active" just as
+        # well as a Paystack one, and this command would try to charge
+        # it via paystack_authorization_code, which a Bachs-originated
+        # subscription was never given.
+        query = {"status": "active", "gateway": "paystack"}
         if not force:
             query["current_period_end__lte"] = now
 
@@ -185,7 +193,14 @@ class Command(BaseCommand):
                 # reference — see the crash-recovery comment below), since
                 # the compare-and-swap above, not this call, is what
                 # actually decided whether this process gets to finalize.
-                record_payment(reference, str(user.id), sub.plan, sub.interval, sub.amount_kobo)
+                record_payment(
+                    reference,
+                    str(user.id),
+                    sub.plan,
+                    sub.interval,
+                    gateway="paystack",
+                    amount_kobo=sub.amount_kobo,
+                )
 
                 user.plan = sub.plan
                 user.plan_expires_at = new_period_end
