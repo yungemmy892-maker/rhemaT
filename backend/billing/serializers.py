@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from django.conf import settings
 from rest_framework import serializers
 
@@ -54,8 +56,28 @@ class BachsInitiatePaymentSerializer(serializers.Serializer):
         # callback_url above — a client-supplied redirect target forwarded
         # to Bachs unvalidated is a phishing vector. Confine both to our
         # own frontend origin.
-        allowed_prefix = settings.FRONTEND_URL.rstrip("/")
-        if not value.startswith(allowed_prefix):
+        #
+        # Deliberately comparing scheme+hostname via urlparse rather than
+        # a raw string prefix: verseid.top and www.verseid.top are the
+        # same site to any visitor and to Vercel's own domain config, but
+        # "https://www.verseid.top/...".startswith("https://verseid.top")
+        # is False — a bare string-prefix check rejects a perfectly
+        # legitimate request just because of that one subdomain. Port is
+        # deliberately ignored too (matters for local dev against
+        # different dev-server ports); what actually matters for the
+        # open-redirect concern this exists for is that the hostname
+        # can't be swapped for an attacker-controlled domain, which this
+        # still catches.
+        target = urlparse(value)
+        allowed = urlparse(settings.FRONTEND_URL)
+
+        def bare_host(host: str | None) -> str:
+            host = (host or "").lower()
+            return host[4:] if host.startswith("www.") else host
+
+        if target.scheme != allowed.scheme or bare_host(target.hostname) != bare_host(
+            allowed.hostname
+        ):
             raise serializers.ValidationError(f"{field_name} must point to the VerseID app.")
         return value
 
