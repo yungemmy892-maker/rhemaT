@@ -107,14 +107,21 @@ BACHS_PRICES = {
                 "monthly": {"dollars": settings.BACHS_USD_PRO_MONTHLY_CENTS / 100},
                 "annual": {
                     "dollars": settings.BACHS_USD_PRO_ANNUAL_CENTS / 100,
-                    "savings": "Save $15",
+                    # Derived, not hardcoded — a hardcoded string here is
+                    # exactly how the NGN side's savings text and its
+                    # actual kobo values drifted out of sync once before.
+                    "savings": (
+                        f"Save ${round((settings.BACHS_USD_PRO_MONTHLY_CENTS * 12 - settings.BACHS_USD_PRO_ANNUAL_CENTS) / 100)}"
+                    ),
                 },
             },
             "Family": {
                 "monthly": {"dollars": settings.BACHS_USD_FAMILY_MONTHLY_CENTS / 100},
                 "annual": {
                     "dollars": settings.BACHS_USD_FAMILY_ANNUAL_CENTS / 100,
-                    "savings": "Save $36",
+                    "savings": (
+                        f"Save ${round((settings.BACHS_USD_FAMILY_MONTHLY_CENTS * 12 - settings.BACHS_USD_FAMILY_ANNUAL_CENTS) / 100)}"
+                    ),
                 },
             },
         },

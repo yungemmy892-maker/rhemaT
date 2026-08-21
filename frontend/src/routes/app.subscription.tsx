@@ -48,8 +48,8 @@ const FALLBACK_PRICING: Record<
     Family: { monthly: 2500, annual: 22500, savings: "Save ₦7,500" },
   },
   USD: {
-    Pro: { monthly: 5, annual: 45, savings: "Save $15" },
-    Family: { monthly: 12, annual: 108, savings: "Save $36" },
+    Pro: { monthly: 1.0, annual: 6.67, savings: "Save $5.33" },
+    Family: { monthly: 1.85, annual: 16.67, savings: "Save $5.53" },
   },
 };
 
@@ -73,12 +73,15 @@ function Subscription() {
   const isSubscribed = user?.plan === "Pro" || user?.plan === "Family";
 
   // Handle redirect-back. Every current checkout goes through Bachs now
-  // (both currencies), which has no verify-by-reference endpoint —
-  // entitlement is granted asynchronously by its webhook, so this
-  // bounded-poll for refreshUser() to reflect the upgrade stands in for a
-  // verify call that doesn't exist. Stops once the plan shows up, or
-  // after ~9s if it hasn't (still refreshed one more time on the way to
-  // /app/profile, in case it lands right after the poll gives up).
+  // (both currencies — NGN via Bachs requires NGN subscriptions to be
+  // enabled for this account; confirm that's actually true before
+  // trusting this in production, since it previously failed with
+  // NGN_SUBSCRIPTIONS_NOT_ENABLED), which has no verify-by-reference
+  // endpoint — entitlement is granted asynchronously by its webhook, so
+  // this bounded-poll for refreshUser() to reflect the upgrade stands in
+  // for a verify call that doesn't exist. Stops once the plan shows up,
+  // or after ~9s if it hasn't (still refreshed one more time on the way
+  // to /app/profile, in case it lands right after the poll gives up).
   //
   // The `reference`-based branch below is now unreachable from this
   // page's own UI (nothing here links to Paystack checkout anymore) —
@@ -221,7 +224,7 @@ function Subscription() {
         </p>
       </div>
 
-      {/* Currency toggle — both NGN and USD now go through Bachs. */}
+      {/* Currency toggle — both NGN and USD go through Bachs. */}
       <div className="mt-5 flex justify-center">
         <div className="inline-flex p-1 rounded-full glass-strong shadow-card">
           {(["NGN", "USD"] as const).map((c) => (

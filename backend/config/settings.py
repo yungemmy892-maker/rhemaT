@@ -302,10 +302,21 @@ BACHS_NGN_FAMILY_MONTHLY_NAIRA = 2_500
 BACHS_NGN_FAMILY_ANNUAL_NAIRA = 22_500  # saves ₦7,500
 
 # USD pricing — all four placeholders, not a business decision made here.
-BACHS_USD_PRO_MONTHLY_CENTS = 500  # $5.00
-BACHS_USD_PRO_ANNUAL_CENTS = 4_500  # $45.00 (saves $15)
-BACHS_USD_FAMILY_MONTHLY_CENTS = 1_200  # $12.00
-BACHS_USD_FAMILY_ANNUAL_CENTS = 10_800  # $108.00 (saves $36)
+# USD pricing — exact conversion from the NGN prices at the live rate
+# checked when this was set (~₦1,350/$1), NOT a rounded/viability-adjusted
+# number. One exception: Pro monthly's true conversion (₦1,000 → $0.74) is
+# below Bachs's own $1.00 minimum charge amount — a hard platform
+# constraint (docs.bachs.io OpenAPI spec, MerchantIntent.amount: "Minimum
+# ... 1 for USD"), not a judgment call — so it's floored to $1.00 instead.
+# That floor is also why Pro's annual "savings" no longer matches the
+# Naira side's 3-months-free shape: $6.67 (exact conversion) against a
+# floored $1.00 monthly reads as a much steeper discount than intended.
+# Cosmetic, not a bug — re-derive from a fresh FX rate if it's ever worth
+# fixing properly.
+BACHS_USD_PRO_MONTHLY_CENTS = 100  # $1.00 (floored — true conversion was $0.74)
+BACHS_USD_PRO_ANNUAL_CENTS = 667  # $6.67 (exact conversion of ₦9,000)
+BACHS_USD_FAMILY_MONTHLY_CENTS = 185  # $1.85 (exact conversion of ₦2,500)
+BACHS_USD_FAMILY_ANNUAL_CENTS = 1_667  # $16.67 (exact conversion of ₦22,500)
 
 # ---------------------------------------------------------------------------
 # Web Push (VAPID) — for the daily verse-of-the-day push notification.

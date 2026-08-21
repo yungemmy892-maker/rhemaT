@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Mic, Sparkles, Search, ShieldCheck, Wand2, ChevronRight, Quote } from "lucide-react";
+import { Mic, Sparkles, Search, ShieldCheck, Wand2, ChevronRight, Quote, X } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -245,22 +245,104 @@ function Landing() {
         </div>
       </section>
 
-      <footer className="mx-auto max-w-5xl px-5 pb-10 text-center text-xs text-muted-foreground">
-        <div className="flex items-center justify-center gap-4 mb-3">
-          <Link to="/pricing" className="hover:text-foreground transition">
-            Pricing
-          </Link>
-          <Link to="/privacy" className="hover:text-foreground transition">
-            Privacy
-          </Link>
-          <Link to="/terms" className="hover:text-foreground transition">
-            Terms
-          </Link>
-          <Link to="/help" className="hover:text-foreground transition">
-            Help
-          </Link>
+      <footer className="mt-8 border-t border-foreground/10">
+        <div className="mx-auto max-w-5xl px-5 py-14">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-10">
+            {/* Brand */}
+            <div className="col-span-2 sm:col-span-1">
+              <Link to="/" className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-gradient-primary grid place-items-center shadow-glow">
+                  <img src="/logo-glyph.png" alt="" className="h-4.5 w-4.5" />
+                </div>
+                <span className="font-display text-lg font-semibold">VerseID</span>
+              </Link>
+              <p className="mt-3 text-sm text-muted-foreground max-w-[220px] leading-relaxed">
+                Find any Bible verse instantly from your voice or a few words.
+              </p>
+              <a
+                href="https://x.com/visitrhema"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow VerseID on X"
+                className="mt-4 inline-flex h-9 w-9 items-center justify-center rounded-full glass hover:bg-primary-soft transition"
+              >
+                <X className="h-4 w-4" />
+              </a>
+            </div>
+
+            {/* Product */}
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-foreground/70 mb-3.5">
+                Product
+              </div>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                <li>
+                  <Link to="/app/voice" className="hover:text-foreground transition">
+                    Voice search
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/app/text" className="hover:text-foreground transition">
+                    Text search
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/app/discover" className="hover:text-foreground transition">
+                    Discover
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/pricing" className="hover:text-foreground transition">
+                    Pricing
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-foreground/70 mb-3.5">
+                Resources
+              </div>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                <li>
+                  <Link to="/help" className="hover:text-foreground transition">
+                    Help center
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/auth" className="hover:text-foreground transition">
+                    Sign in
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-foreground/70 mb-3.5">
+                Legal
+              </div>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                <li>
+                  <Link to="/privacy" className="hover:text-foreground transition">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="hover:text-foreground transition">
+                    Terms of Service
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-12 pt-6 border-t border-foreground/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div>© {new Date().getFullYear()} VerseID. All rights reserved.</div>
+            <div>Bible text: KJV, WEB, ASV, DRA.</div>
+          </div>
         </div>
-        © {new Date().getFullYear()} VerseID. All Rights Reserved.
       </footer>
     </div>
   );

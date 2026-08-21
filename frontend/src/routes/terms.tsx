@@ -66,16 +66,41 @@ function Terms() {
 
           <Section title="Pro plan">
             <p>
-              Pro removes the daily search limit and grants access to all current and future premium
-              features. Pricing is in Nigerian Naira (₦):
+              Pro removes the daily search limit, adds the American Standard Version (ASV)
+              translation on top of KJV and WEB, and grants access to all current and future premium
+              features. Like the free plan, Pro is limited to one signed-in device at a time -
+              signing in elsewhere signs you out of your other device.
             </p>
+            <p className="mt-2">Pricing:</p>
             <ul className="mt-2 space-y-1 list-disc list-inside text-muted-foreground">
-              <li>Monthly: ₦1,000/month</li>
-              <li>Annual: ₦9,000/year (saves ₦3,000 vs monthly)</li>
+              <li>Naira: ₦1,000/month or ₦9,000/year (saves ₦3,000 vs monthly)</li>
+              <li>USD: $1.00/month or $6.67/year (saves $5.33 vs monthly)</li>
             </ul>
-            <p className="mt-2">
-              Payment is processed by Paystack. Subscriptions renew automatically. You may cancel at
-              any time from the Subscription screen your Pro access continues until the end of the
+          </Section>
+
+          <Section title="Family plan">
+            <p>
+              Family includes everything in Pro, adds the Douay-Rheims (DRA) translation, and
+              removes the single-device limit - Family is intended for up to 5 people and may be
+              signed in on multiple devices at once.
+            </p>
+            <p className="mt-2">Pricing:</p>
+            <ul className="mt-2 space-y-1 list-disc list-inside text-muted-foreground">
+              <li>Naira: ₦2,500/month or ₦22,500/year (saves ₦7,500 vs monthly)</li>
+              <li>USD: $1.85/month or $16.67/year (saves $5.53 vs monthly)</li>
+            </ul>
+            <p className="mt-2 text-muted-foreground">
+              Family is a shared subscription, not shared individual accounts - each person still
+              needs their own VerseID account. Anyone signed in on the plan's allowed devices has
+              full Family access; we do not currently support inviting specific named members.
+            </p>
+          </Section>
+
+          <Section title="Billing, renewal & cancellation">
+            <p>
+              All payments - Naira or USD - are processed by Bachs. Subscriptions renew
+              automatically in the currency and plan you subscribed with. You may cancel at any time
+              from the Subscription screen - your plan's access continues until the end of the
               current billing period, after which you revert to the free plan.
             </p>
             <p className="mt-2">

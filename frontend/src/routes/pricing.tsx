@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Check, Crown, Sparkles, Users } from "lucide-react";
 import { useState } from "react";
-import { usePricing } from "@/hooks/queries/useNotificationsBilling";
+import { useBachsPricing } from "@/hooks/queries/useNotificationsBilling";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -10,13 +10,13 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "VerseID pricing: 6 free verse identifications a day with KJV & WEB, or go Pro for unlimited searches with KJV, WEB & ASV, or Family to share every translation with up to 5 people.",
+          "VerseID pricing: 6 free verse identifications a day with KJV & WEB, or go Pro for unlimited searches with KJV, WEB & ASV, or Family to share every translation with up to 5 people. Priced in Naira or USD.",
       },
       { property: "og:title", content: "VerseID Pricing" },
       {
         property: "og:description",
         content:
-          "6 free verse identifications a day, Pro for unlimited searches, or Family to share with up to 5 people.",
+          "6 free verse identifications a day, Pro for unlimited searches, or Family to share with up to 5 people. Naira or USD.",
       },
       { property: "og:url", content: "https://verseid.top/pricing" },
       {
@@ -29,30 +29,58 @@ export const Route = createFileRoute("/pricing")({
           offers: [
             {
               "@type": "Offer",
-              name: "Pro Monthly",
+              name: "Pro Monthly (NGN)",
               price: "1000",
               priceCurrency: "NGN",
               url: "https://verseid.top/pricing",
             },
             {
               "@type": "Offer",
-              name: "Pro Annual",
+              name: "Pro Annual (NGN)",
               price: "9000",
               priceCurrency: "NGN",
               url: "https://verseid.top/pricing",
             },
             {
               "@type": "Offer",
-              name: "Family Monthly",
+              name: "Family Monthly (NGN)",
               price: "2500",
               priceCurrency: "NGN",
               url: "https://verseid.top/pricing",
             },
             {
               "@type": "Offer",
-              name: "Family Annual",
+              name: "Family Annual (NGN)",
               price: "22500",
               priceCurrency: "NGN",
+              url: "https://verseid.top/pricing",
+            },
+            {
+              "@type": "Offer",
+              name: "Pro Monthly (USD)",
+              price: "1.00",
+              priceCurrency: "USD",
+              url: "https://verseid.top/pricing",
+            },
+            {
+              "@type": "Offer",
+              name: "Pro Annual (USD)",
+              price: "6.67",
+              priceCurrency: "USD",
+              url: "https://verseid.top/pricing",
+            },
+            {
+              "@type": "Offer",
+              name: "Family Monthly (USD)",
+              price: "1.85",
+              priceCurrency: "USD",
+              url: "https://verseid.top/pricing",
+            },
+            {
+              "@type": "Offer",
+              name: "Family Annual (USD)",
+              price: "16.67",
+              priceCurrency: "USD",
               url: "https://verseid.top/pricing",
             },
           ],
@@ -89,20 +117,42 @@ const FAMILY_FEATURES = [
 ];
 
 function Pricing() {
+  const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [interval, setInterval] = useState<"monthly" | "annual">("annual");
-  const { data: pricing, isLoading } = usePricing();
+  const { data: bachsPricing, isLoading } = useBachsPricing();
 
-  const proMonthly = pricing?.plans?.Pro?.monthly?.naira ?? 1000;
-  const proAnnual = pricing?.plans?.Pro?.annual?.naira ?? 9000;
-  const proAnnualMonthly = Math.round(proAnnual / 12);
-  const proSavings =
-    pricing?.plans?.Pro?.annual?.savings ?? "Save ₦3,000";
+  const proMonthlyNaira = bachsPricing?.currencies.NGN.plans.Pro.monthly.naira ?? 1000;
+  const proAnnualNaira = bachsPricing?.currencies.NGN.plans.Pro.annual.naira ?? 9000;
+  const proAnnualMonthlyNaira = Math.round(proAnnualNaira / 12);
+  const proSavingsNaira = bachsPricing?.currencies.NGN.plans.Pro.annual.savings ?? "Save ₦3,000";
 
-  const familyMonthly = pricing?.plans?.Family?.monthly?.naira ?? 2500;
-  const familyAnnual = pricing?.plans?.Family?.annual?.naira ?? 22500;
-  const familyAnnualMonthly = Math.round(familyAnnual / 12);
-  const familySavings =
-    pricing?.plans?.Family?.annual?.savings ?? "Save ₦7,500";
+  const familyMonthlyNaira = bachsPricing?.currencies.NGN.plans.Family.monthly.naira ?? 2500;
+  const familyAnnualNaira = bachsPricing?.currencies.NGN.plans.Family.annual.naira ?? 22500;
+  const familyAnnualMonthlyNaira = Math.round(familyAnnualNaira / 12);
+  const familySavingsNaira =
+    bachsPricing?.currencies.NGN.plans.Family.annual.savings ?? "Save ₦7,500";
+
+  const proMonthlyUsd = bachsPricing?.currencies.USD.plans.Pro.monthly.dollars ?? 1.0;
+  const proAnnualUsd = bachsPricing?.currencies.USD.plans.Pro.annual.dollars ?? 6.67;
+  const proAnnualMonthlyUsd = Math.round((proAnnualUsd / 12) * 100) / 100;
+  const proSavingsUsd = bachsPricing?.currencies.USD.plans.Pro.annual.savings ?? "Save $5.33";
+
+  const familyMonthlyUsd = bachsPricing?.currencies.USD.plans.Family.monthly.dollars ?? 1.85;
+  const familyAnnualUsd = bachsPricing?.currencies.USD.plans.Family.annual.dollars ?? 16.67;
+  const familyAnnualMonthlyUsd = Math.round((familyAnnualUsd / 12) * 100) / 100;
+  const familySavingsUsd = bachsPricing?.currencies.USD.plans.Family.annual.savings ?? "Save $5.53";
+  const symbol = currency === "USD" ? "$" : "₦";
+  const locale = currency === "USD" ? "en-US" : "en-NG";
+  const proMonthly = currency === "USD" ? proMonthlyUsd : proMonthlyNaira;
+  const proAnnual = currency === "USD" ? proAnnualUsd : proAnnualNaira;
+  const proAnnualMonthly = currency === "USD" ? proAnnualMonthlyUsd : proAnnualMonthlyNaira;
+  const proSavings = currency === "USD" ? proSavingsUsd : proSavingsNaira;
+  const familyMonthly = currency === "USD" ? familyMonthlyUsd : familyMonthlyNaira;
+  const familyAnnual = currency === "USD" ? familyAnnualUsd : familyAnnualNaira;
+  const familyAnnualMonthly =
+    currency === "USD" ? familyAnnualMonthlyUsd : familyAnnualMonthlyNaira;
+  const familySavings = currency === "USD" ? familySavingsUsd : familySavingsNaira;
+  const gatewayName = "Bachs";
 
   return (
     <div className="min-h-screen bg-background">
@@ -117,32 +167,51 @@ function Pricing() {
           </Link>
           <div>
             <h1 className="font-display text-2xl font-semibold">Pricing</h1>
-            <p className="text-xs text-muted-foreground">Simple, Nigerian-priced plans.</p>
+            <p className="text-xs text-muted-foreground">Simple plans, in Naira or USD.</p>
           </div>
         </div>
 
-        {/* Shared monthly/annual toggle — applies to both paid tiers below */}
-        <div className="mb-6 inline-flex p-1 rounded-full glass-strong shadow-card">
-          {(["monthly", "annual"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setInterval(p)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
-                interval === p
-                  ? "bg-gradient-primary text-white shadow-glow"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {p === "monthly" ? "Monthly" : "Annual"}
-            </button>
-          ))}
+        <div className="mb-6 flex flex-wrap gap-3">
+          {/* Currency toggle */}
+          <div className="inline-flex p-1 rounded-full glass-strong shadow-card">
+            {(["NGN", "USD"] as const).map((c) => (
+              <button
+                key={c}
+                onClick={() => setCurrency(c)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+                  currency === c
+                    ? "bg-gradient-primary text-white shadow-glow"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {c === "NGN" ? "₦ Naira" : "$ USD"}
+              </button>
+            ))}
+          </div>
+
+          {/* Monthly/annual toggle — applies to both paid tiers below */}
+          <div className="inline-flex p-1 rounded-full glass-strong shadow-card">
+            {(["monthly", "annual"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setInterval(p)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+                  interval === p
+                    ? "bg-gradient-primary text-white shadow-glow"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {p === "monthly" ? "Monthly" : "Annual"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-5">
           {/* Free plan */}
           <div className="rounded-[2rem] p-7 glass-strong shadow-card">
             <h2 className="font-display text-lg font-semibold">Free</h2>
-            <p className="mt-1 text-3xl font-display font-semibold">₦0</p>
+            <p className="mt-1 text-3xl font-display font-semibold">{symbol}0</p>
             <p className="text-xs text-muted-foreground mb-5">forever</p>
             <ul className="space-y-2.5">
               {FREE_FEATURES.map((f) => (
@@ -170,17 +239,16 @@ function Pricing() {
               </div>
 
               <p className="mt-4 text-3xl font-display font-semibold">
-                ₦
+                {symbol}
                 {isLoading
                   ? "…"
-                  : (interval === "monthly" ? proMonthly : proAnnualMonthly).toLocaleString(
-                      "en-NG",
-                    )}
+                  : (interval === "monthly" ? proMonthly : proAnnualMonthly).toLocaleString(locale)}
                 <span className="text-base font-normal">/mo</span>
               </p>
               {interval === "annual" && !isLoading && (
                 <p className="text-xs text-white/75">
-                  Billed as ₦{proAnnual.toLocaleString("en-NG")}/year · {proSavings}
+                  Billed as {symbol}
+                  {proAnnual.toLocaleString(locale)}/year · {proSavings}
                 </p>
               )}
 
@@ -205,7 +273,7 @@ function Pricing() {
                 Get Pro
               </Link>
               <p className="mt-3 text-center text-[11px] text-white/70">
-                Secure payment via Paystack · Cancel any time
+                Secure payment via {gatewayName} · Cancel any time
               </p>
             </div>
           </div>
@@ -218,17 +286,18 @@ function Pricing() {
             </div>
 
             <p className="mt-4 text-3xl font-display font-semibold">
-              ₦
+              {symbol}
               {isLoading
                 ? "…"
                 : (interval === "monthly" ? familyMonthly : familyAnnualMonthly).toLocaleString(
-                    "en-NG",
+                    locale,
                   )}
               <span className="text-base font-normal text-muted-foreground">/mo</span>
             </p>
             {interval === "annual" && !isLoading && (
               <p className="text-xs text-muted-foreground">
-                Billed as ₦{familyAnnual.toLocaleString("en-NG")}/year · {familySavings}
+                Billed as {symbol}
+                {familyAnnual.toLocaleString(locale)}/year · {familySavings}
               </p>
             )}
 
@@ -249,7 +318,7 @@ function Pricing() {
               Get Family
             </Link>
             <p className="mt-3 text-center text-[11px] text-muted-foreground">
-              Secure payment via Paystack · Cancel any time
+              Secure payment via {gatewayName} · Cancel any time
             </p>
           </div>
         </div>
